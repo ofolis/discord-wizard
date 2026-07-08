@@ -1,1 +1,1 @@
-export { Ping } from "./ping";
+export { Submit } from "./submit";

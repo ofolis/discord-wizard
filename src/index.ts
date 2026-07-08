@@ -1,4 +1,5 @@
-import { Ping } from "./commands";
+import { Submit } from "./commands";
+import { ChannelCache } from "./controllers";
 import {
   ChannelCommandMessage,
   Command,
@@ -7,7 +8,7 @@ import {
   Log,
 } from "./core";
 
-const commands: Command[] = [new Ping()];
+const commands: Command[] = [new Submit()];
 
 function initializeApp(): void {
   if (Environment.config.devMode) {
@@ -19,7 +20,8 @@ function initializeApp(): void {
 
   // Ready Event
   Discord.client.once("ready", () => {
-    Discord.deployCommands(commands)
+    ChannelCache.cacheGuilds(Discord.client.guilds.cache.values())
+      .then(() => Discord.deployCommands(commands))
       .then(() => {
         Log.success("Discord bot is ready.");
       })
@@ -30,7 +32,8 @@ function initializeApp(): void {
 
   // Guild Create Event
   Discord.client.on("guildCreate", guild => {
-    Discord.deployCommands(commands, [guild.id])
+    ChannelCache.cacheGuild(guild)
+      .then(() => Discord.deployCommands(commands, [guild.id]))
       .then(() => {
         Log.success("Discord bot deployed to new guild.", { guild });
       })
