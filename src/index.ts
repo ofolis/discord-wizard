@@ -1,4 +1,4 @@
-import { Submit } from "./commands";
+import { PollClose, PollOpen, Submit, Vote } from "./commands";
 import { ChannelCache } from "./controllers";
 import {
   ChannelCommandMessage,
@@ -8,7 +8,12 @@ import {
   Log,
 } from "./core";
 
-const commands: Command[] = [new Submit()];
+const commands: Command[] = [
+  new Submit(),
+  new PollOpen(),
+  new Vote(),
+  new PollClose(),
+];
 
 function initializeApp(): void {
   if (Environment.config.devMode) {
