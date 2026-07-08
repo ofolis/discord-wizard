@@ -9,6 +9,7 @@ import {
 import { PollState } from "../saveables";
 
 const optionsOptionName: string = "options";
+const discordMessageMaxLength: number = 2000;
 const maxPollOptions: number = 26;
 
 export class PollOpen implements Command {
@@ -64,8 +65,19 @@ export class PollOpen implements Command {
       guildId: message.member.guild.id,
       options: parsedOptions,
     });
+    const pollMessage: string = `Poll Opened:\n${pollState.formatOptions()}`;
+    if (pollMessage.length > discordMessageMaxLength) {
+      await message.update({
+        content:
+          "The poll options are too long to post. Please shorten them and try again.",
+      });
+      return;
+    }
     await Discord.sendChannelMessage(message.channelId, {
-      content: `Poll Opened:\n${pollState.formatOptions()}`,
+      allowedMentions: {
+        parse: [],
+      },
+      content: pollMessage,
     });
     DataController.savePollState(pollState);
     await message.update({

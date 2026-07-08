@@ -9,6 +9,8 @@ import { PollState } from "../saveables";
 
 type PollResult = ReturnType<PollState["getSortedResults"]>[number];
 
+const discordMessageMaxLength: number = 2000;
+
 export class PollClose implements Command {
   public readonly description: string = "Closes the open poll.";
 
@@ -33,8 +35,21 @@ export class PollClose implements Command {
       return;
     }
 
+    const pollResultsMessage: string = `Poll Results:\n${this.__formatResults(
+      pollState.getSortedResults(),
+    )}`;
+    if (pollResultsMessage.length > discordMessageMaxLength) {
+      await message.update({
+        content:
+          "The poll results are too long to post. The poll is still open.",
+      });
+      return;
+    }
     await Discord.sendChannelMessage(pollState.channelId, {
-      content: `Poll Results:\n${this.__formatResults(pollState.getSortedResults())}`,
+      allowedMentions: {
+        parse: [],
+      },
+      content: pollResultsMessage,
     });
     pollState.close();
     DataController.savePollState(pollState);

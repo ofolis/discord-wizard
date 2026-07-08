@@ -68,7 +68,8 @@ export class PollState implements Saveable {
 
   public containsLetter(letter: string): boolean {
     const normalizedLetter: string = this.__normalizeLetter(letter);
-    return this.__letterToIndex(normalizedLetter) < this.__options.length;
+    const optionIndex: number = this.__letterToIndex(normalizedLetter);
+    return optionIndex >= 0 && optionIndex < this.__options.length;
   }
 
   public formatOptions(): string {

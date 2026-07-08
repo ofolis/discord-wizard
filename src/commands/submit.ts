@@ -44,10 +44,19 @@ export class Submit implements Command {
     if (submittedMessage === undefined) {
       Log.throw("Cannot submit anonymous message. Message option is missing.");
     }
-    const submissionChannelId: string = ChannelCache.getChannelId(
-      message.member.guild.id,
-      ANONYMOUS_SUBMISSION_CHANNEL_NAME,
-    );
+    let submissionChannelId: string;
+    try {
+      submissionChannelId = ChannelCache.getChannelId(
+        message.member.guild.id,
+        ANONYMOUS_SUBMISSION_CHANNEL_NAME,
+      );
+    } catch (reason: unknown) {
+      Log.error("Could not resolve submission channel.", reason);
+      await message.update({
+        content: `Could not find exactly one \`${ANONYMOUS_SUBMISSION_CHANNEL_NAME}\` text channel. Please check the server configuration.`,
+      });
+      return;
+    }
     const formattedSubmission: string = `New Submission:\n${codeBlock(
       escapeCodeBlock(submittedMessage),
     )}`;
