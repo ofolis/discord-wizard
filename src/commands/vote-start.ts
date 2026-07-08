@@ -9,7 +9,6 @@ import {
 import { VotingState } from "../saveables";
 
 const optionsOptionName: string = "options";
-const maxVotingOptions: number = 26;
 
 export class VoteStart implements Command {
   public readonly description: string = "Starts a vote.";
@@ -48,17 +47,17 @@ export class VoteStart implements Command {
       CommandOptionType.STRING,
     );
     const parsedOptions: string[] = this.__parseOptions(optionString);
-    if (parsedOptions.length < 2) {
+    if (parsedOptions.length < VotingState.minOptionCount) {
       await InteractionController.informError(
         message,
         "A vote needs at least two options.",
       );
       return;
     }
-    if (parsedOptions.length > maxVotingOptions) {
+    if (parsedOptions.length > VotingState.maxOptionCount) {
       await InteractionController.informError(
         message,
-        `A vote can have at most ${String(maxVotingOptions)} options.`,
+        `A vote can have at most ${String(VotingState.maxOptionCount)} options.`,
       );
       return;
     }

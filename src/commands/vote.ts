@@ -25,6 +25,7 @@ export class Vote implements Command {
       description: "The vote option letter.",
       isRequired: true,
       maxLength: 1,
+      minLength: 1,
       name: letterOptionName,
       type: CommandOptionType.STRING,
     },

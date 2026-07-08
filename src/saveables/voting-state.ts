@@ -8,6 +8,10 @@ type VotingOptionResult = {
 };
 
 export class VotingState implements Saveable {
+  public static readonly maxOptionCount: number = 26;
+
+  public static readonly minOptionCount: number = 2;
+
   public readonly channelId: string;
 
   public readonly guildId: string;
@@ -23,6 +27,7 @@ export class VotingState implements Saveable {
     readonly guildId: string;
     readonly options: string[];
   }) {
+    VotingState.__validateOptions(state.options);
     this.channelId = state.channelId;
     this.guildId = state.guildId;
     this.__isOpen = true;
@@ -60,6 +65,11 @@ export class VotingState implements Saveable {
     expectedGuildId: string,
   ): VotingStateJson {
     const votesByUserId: unknown = json.votesByUserId;
+    const hasValidOptions: boolean =
+      Array.isArray(json.options) &&
+      json.options.every(option => typeof option === "string") &&
+      json.options.length >= this.minOptionCount &&
+      json.options.length <= this.maxOptionCount;
     const hasValidVotesByUserId: boolean =
       votesByUserId === undefined ||
       (typeof votesByUserId === "object" &&
@@ -74,8 +84,7 @@ export class VotingState implements Saveable {
       typeof json.guildId !== "string" ||
       json.guildId !== expectedGuildId ||
       typeof json.isOpen !== "boolean" ||
-      !Array.isArray(json.options) ||
-      !json.options.every(option => typeof option === "string") ||
+      !hasValidOptions ||
       !hasValidVotesByUserId
     ) {
       Log.throw(
@@ -91,9 +100,22 @@ export class VotingState implements Saveable {
       channelId: json.channelId,
       guildId: json.guildId,
       isOpen: json.isOpen,
-      options: json.options,
+      options: json.options as string[],
       votesByUserId: votesByUserId as Record<string, string> | undefined,
     };
+  }
+
+  private static __validateOptions(options: readonly string[]): void {
+    if (
+      options.length < this.minOptionCount ||
+      options.length > this.maxOptionCount
+    ) {
+      Log.throw("Cannot create voting state. Option count is invalid.", {
+        maxOptionCount: this.maxOptionCount,
+        minOptionCount: this.minOptionCount,
+        options,
+      });
+    }
   }
 
   public castVote(userId: string, letter: string | undefined): string | null {

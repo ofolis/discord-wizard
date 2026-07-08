@@ -214,6 +214,12 @@ export class Discord {
     try {
       channel = await this.client.channels.fetch(channelId);
     } catch (reason: unknown) {
+      if (this.__isUnknownChannelError(reason)) {
+        Log.throw("Cannot get Discord channel. ID was not found.", {
+          channelId,
+          reason,
+        });
+      }
       Log.throw("Cannot get Discord channel. Failed to fetch channel.", {
         channelId,
         reason,
@@ -230,6 +236,15 @@ export class Discord {
     }
     Log.debug("Discord channel retrieved successfully.", { channel });
     return channel;
+  }
+
+  private static __isUnknownChannelError(reason: unknown): boolean {
+    return (
+      typeof reason === "object" &&
+      reason !== null &&
+      "code" in reason &&
+      reason.code === 10003
+    );
   }
 
   private static __sanitizeMessageCreateOptions(
