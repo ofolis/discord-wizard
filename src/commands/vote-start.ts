@@ -112,9 +112,9 @@ export class VoteStart implements Command {
       DataController.saveVotingState(votingState);
     } catch (reason: unknown) {
       Log.error("Could not save vote message ID.", reason);
-      await InteractionController.informError(
+      await InteractionController.informSuccess(
         message,
-        "Vote started, but the vote message could not be saved for total updates. Contact an admin.",
+        "Vote started, but total vote updates will not be available. Contact an admin.",
       );
       return;
     }

@@ -130,7 +130,7 @@ export class InteractionController {
 
   public static async updateVoteStart(votingState: VotingState): Promise<void> {
     if (votingState.messageId === null) {
-      Log.info("Skipping vote start message update. Message ID is missing.", {
+      Log.debug("Skipping vote start message update. Message ID is missing.", {
         channelId: votingState.channelId,
         guildId: votingState.guildId,
       });
