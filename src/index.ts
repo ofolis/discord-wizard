@@ -15,14 +15,30 @@ const commands: Command[] = [
   new Vote(),
   new VoteEnd(),
 ];
+const channelCacheRefreshDelayMs: number = 1500;
+const channelCacheRefreshTimeoutsByGuildId: Map<
+  string,
+  ReturnType<typeof setTimeout>
+> = new Map();
 
-function refreshGuildChannelCache(
+function scheduleGuildChannelCacheRefresh(
   guild: discordJs.Guild,
   context: Record<string, unknown>,
 ): void {
-  ChannelCache.cacheGuild(guild).catch((reason: unknown) => {
-    Log.error("Failed to refresh guild channel cache.", reason, context);
-  });
+  const existingTimeout: ReturnType<typeof setTimeout> | undefined =
+    channelCacheRefreshTimeoutsByGuildId.get(guild.id);
+  if (existingTimeout !== undefined) {
+    clearTimeout(existingTimeout);
+  }
+  channelCacheRefreshTimeoutsByGuildId.set(
+    guild.id,
+    setTimeout(() => {
+      channelCacheRefreshTimeoutsByGuildId.delete(guild.id);
+      ChannelCache.cacheGuild(guild).catch((reason: unknown) => {
+        Log.error("Failed to refresh guild channel cache.", reason, context);
+      });
+    }, channelCacheRefreshDelayMs),
+  );
 }
 
 function initializeApp(): void {
@@ -68,7 +84,7 @@ function initializeApp(): void {
     if (!("guild" in channel)) {
       return;
     }
-    refreshGuildChannelCache(channel.guild, { channel });
+    scheduleGuildChannelCacheRefresh(channel.guild, { channel });
   });
 
   // Channel Delete Event
@@ -76,7 +92,7 @@ function initializeApp(): void {
     if (!("guild" in channel)) {
       return;
     }
-    refreshGuildChannelCache(channel.guild, { channel });
+    scheduleGuildChannelCacheRefresh(channel.guild, { channel });
   });
 
   // Channel Update Event
@@ -84,7 +100,10 @@ function initializeApp(): void {
     if (!("guild" in newChannel)) {
       return;
     }
-    refreshGuildChannelCache(newChannel.guild, { newChannel, oldChannel });
+    scheduleGuildChannelCacheRefresh(newChannel.guild, {
+      newChannel,
+      oldChannel,
+    });
   });
 
   // Interaction Create Event
