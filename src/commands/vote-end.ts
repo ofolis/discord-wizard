@@ -33,10 +33,21 @@ export class VoteEnd implements Command {
       );
     } catch (reason: unknown) {
       Log.error("Could not post vote results.", reason);
-      await InteractionController.informError(
-        message,
-        "Could not post the vote results. The vote is still open. Contact an admin.",
-      );
+      const isMissingChannel: boolean =
+        reason instanceof Error && reason.message.includes("ID was not found");
+      if (isMissingChannel) {
+        votingState.close();
+        DataController.saveVotingState(votingState);
+        await InteractionController.informError(
+          message,
+          "Could not post the vote results because the vote channel no longer exists. The vote has been ended.",
+        );
+      } else {
+        await InteractionController.informError(
+          message,
+          "Could not post the vote results. The vote is still open. Contact an admin.",
+        );
+      }
       return;
     }
     votingState.close();
