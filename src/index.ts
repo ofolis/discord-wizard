@@ -41,6 +41,15 @@ function scheduleGuildChannelCacheRefresh(
   );
 }
 
+function toChannelLogContext(
+  channel: Pick<discordJs.Channel, "id" | "type">,
+): Record<string, unknown> {
+  return {
+    id: channel.id,
+    type: channel.type,
+  };
+}
+
 function initializeApp(): void {
   if (Environment.config.devMode) {
     Log.info("Running in development mode.");
@@ -84,7 +93,9 @@ function initializeApp(): void {
     if (!("guild" in channel)) {
       return;
     }
-    scheduleGuildChannelCacheRefresh(channel.guild, { channel });
+    scheduleGuildChannelCacheRefresh(channel.guild, {
+      channel: toChannelLogContext(channel),
+    });
   });
 
   // Channel Delete Event
@@ -92,7 +103,9 @@ function initializeApp(): void {
     if (!("guild" in channel)) {
       return;
     }
-    scheduleGuildChannelCacheRefresh(channel.guild, { channel });
+    scheduleGuildChannelCacheRefresh(channel.guild, {
+      channel: toChannelLogContext(channel),
+    });
   });
 
   // Channel Update Event
@@ -101,8 +114,8 @@ function initializeApp(): void {
       return;
     }
     scheduleGuildChannelCacheRefresh(newChannel.guild, {
-      newChannel,
-      oldChannel,
+      newChannel: toChannelLogContext(newChannel),
+      oldChannel: toChannelLogContext(oldChannel),
     });
   });
 
