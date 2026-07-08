@@ -72,7 +72,7 @@ export class VoteStart implements Command {
     try {
       DataController.saveVotingState(votingState);
     } catch (reason: unknown) {
-      Log.error("Could not save vote.", reason);
+      Log.error("Could not save new voting state.", reason);
       await InteractionController.informError(
         message,
         "Could not start the vote. Contact an admin.",
