@@ -29,7 +29,22 @@ export class DataController {
     if (votingStateJson === null) {
       return null;
     }
-    return new VotingState(votingStateJson as VotingStateJson);
+
+    const options: unknown = votingStateJson["options"];
+    if (
+      typeof votingStateJson["channelId"] !== "string" ||
+      typeof votingStateJson["guildId"] !== "string" ||
+      typeof votingStateJson["isOpen"] !== "boolean" ||
+      !Array.isArray(options) ||
+      !options.every(option => typeof option === "string")
+    ) {
+      Log.throw("Cannot load voting state. Stored voting state JSON is invalid.", {
+        guildId,
+        votingStateJson,
+      });
+    }
+
+    return new VotingState(votingStateJson as unknown as VotingStateJson);
   }
 
   public static saveChannelState(channelState: ChannelState): void {
