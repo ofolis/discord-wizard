@@ -40,7 +40,7 @@ export class Submit implements Command {
       Log.throw("Cannot submit anonymous message. Message option is missing.");
     }
     const submissionChannelId: string | null =
-      this.__getSubmissionChannelId(message);
+      await this.__getSubmissionChannelId(message);
     if (submissionChannelId === null) {
       await InteractionController.informError(
         message,
@@ -56,7 +56,8 @@ export class Submit implements Command {
     } catch (reason: unknown) {
       Log.error("Could not send anonymous submission.", reason);
       const isTooLong: boolean =
-        reason instanceof Error && reason.message.includes("Description is too long");
+        reason instanceof Error &&
+        reason.message.includes("Description is too long");
       await InteractionController.informError(
         message,
         isTooLong
@@ -71,13 +72,27 @@ export class Submit implements Command {
     );
   }
 
-  private __getSubmissionChannelId(
+  private async __getSubmissionChannelId(
     message: ChannelCommandMessage,
-  ): string | null {
-    const channelIds: string[] = ChannelCache.getChannelIds(
+  ): Promise<string | null> {
+    let channelIds: string[] = ChannelCache.getChannelIds(
       message.member.guild.id,
       ANONYMOUS_SUBMISSION_CHANNEL_NAME,
     );
+    if (channelIds.length === 0) {
+      try {
+        await ChannelCache.cacheGuild(message.member.guild);
+      } catch (reason: unknown) {
+        Log.error("Could not refresh guild channel cache.", reason, {
+          guildId: message.member.guild.id,
+        });
+        return null;
+      }
+      channelIds = ChannelCache.getChannelIds(
+        message.member.guild.id,
+        ANONYMOUS_SUBMISSION_CHANNEL_NAME,
+      );
+    }
     if (channelIds.length !== 1) {
       Log.error("Could not resolve submission channel.", {
         channelIds,
