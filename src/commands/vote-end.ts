@@ -35,7 +35,7 @@ export class VoteEnd implements Command {
       Log.error("Could not post vote results.", reason);
       await InteractionController.informError(
         message,
-        "Could not post the vote results. The vote is still open. Please check the channel configuration and try again.",
+        "Could not post the vote results. The vote is still open. Contact an admin.",
       );
       return;
     }

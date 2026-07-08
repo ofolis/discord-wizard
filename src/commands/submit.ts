@@ -44,7 +44,7 @@ export class Submit implements Command {
     if (submissionChannelId === null) {
       await InteractionController.informError(
         message,
-        `Could not find exactly one \`${ANONYMOUS_SUBMISSION_CHANNEL_NAME}\` text channel. Please check the server configuration.`,
+        `Could not find exactly one \`${ANONYMOUS_SUBMISSION_CHANNEL_NAME}\` text channel. Contact an admin.`,
       );
       return;
     }
@@ -57,7 +57,7 @@ export class Submit implements Command {
       Log.error("Could not send anonymous submission.", reason);
       await InteractionController.informError(
         message,
-        "Could not send your submission. Please shorten it or check the server configuration and try again.",
+        "Could not send your submission. Contact an admin.",
       );
       return;
     }

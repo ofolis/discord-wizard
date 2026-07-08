@@ -76,7 +76,7 @@ export class VoteStart implements Command {
       Log.error("Could not post vote.", reason);
       await InteractionController.informError(
         message,
-        "Could not post the vote. Please shorten the options or check the channel configuration and try again.",
+        "Could not post the vote. Contact an admin.",
       );
       return;
     }
