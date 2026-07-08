@@ -55,9 +55,13 @@ export class Submit implements Command {
       );
     } catch (reason: unknown) {
       Log.error("Could not send anonymous submission.", reason);
+      const isTooLong: boolean =
+        reason instanceof Error && reason.message.includes("Description is too long");
       await InteractionController.informError(
         message,
-        "Could not send your submission. Contact an admin.",
+        isTooLong
+          ? "Your submission is too long to post. Please shorten it and try again."
+          : "Could not send your submission. Contact an admin.",
       );
       return;
     }
