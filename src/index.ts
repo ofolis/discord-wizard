@@ -25,8 +25,12 @@ function initializeApp(): void {
 
   // Ready Event
   Discord.client.once("ready", () => {
-    ChannelCache.cacheGuilds(Discord.client.guilds.cache.values())
-      .then(() => Discord.deployCommands(commands))
+    ChannelCache.cacheGuilds(Discord.client.guilds.cache.values()).catch(
+      (reason: unknown) => {
+        Log.error("Failed to cache guild channels on ready.", reason);
+      },
+    );
+    Discord.deployCommands(commands)
       .then(() => {
         Log.success("Discord bot is ready.");
       })
