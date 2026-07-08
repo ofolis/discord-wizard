@@ -31,7 +31,9 @@ export class VotingState implements Saveable {
       this.guildId = stateOrJson.guildId;
       this.__isOpen = stateOrJson.isOpen;
       this.__options = [...stateOrJson.options];
-      this.__votesByUserId = { ...(stateOrJson.votesByUserId ?? {}) };
+      this.__votesByUserId = this.__normalizeVotesByUserId(
+        stateOrJson.votesByUserId ?? {},
+      );
     } else {
       this.channelId = stateOrJson.channelId;
       this.guildId = stateOrJson.guildId;
@@ -72,8 +74,7 @@ export class VotingState implements Saveable {
 
   public containsLetter(letter: string): boolean {
     const normalizedLetter: string = this.__normalizeLetter(letter);
-    const optionIndex: number = this.__letterToIndex(normalizedLetter);
-    return optionIndex >= 0 && optionIndex < this.__options.length;
+    return this.__containsNormalizedLetter(normalizedLetter);
   }
 
   public getSortedResults(): VotingOptionResult[] {
@@ -106,6 +107,11 @@ export class VotingState implements Saveable {
     };
   }
 
+  private __containsNormalizedLetter(letter: string): boolean {
+    const optionIndex: number = this.__letterToIndex(letter);
+    return optionIndex >= 0 && optionIndex < this.__options.length;
+  }
+
   private __indexToLetter(index: number): string {
     return String.fromCharCode("A".charCodeAt(0) + index);
   }
@@ -118,6 +124,26 @@ export class VotingState implements Saveable {
   }
 
   private __normalizeLetter(letter: string): string {
-    return letter.toUpperCase();
+    return letter.trim().toUpperCase();
+  }
+
+  private __normalizeVotesByUserId(
+    votesByUserId: Record<string, string>,
+  ): Record<string, string> {
+    const normalizedVotesByUserId: Record<string, string> = {};
+    Object.entries(votesByUserId).forEach(([userId, letter]) => {
+      const normalizedLetter: string = this.__normalizeLetter(letter);
+      if (!this.__containsNormalizedLetter(normalizedLetter)) {
+        Log.error("Ignoring invalid persisted vote.", {
+          letter,
+          normalizedLetter,
+          options: this.__options,
+          userId,
+        });
+        return;
+      }
+      normalizedVotesByUserId[userId] = normalizedLetter;
+    });
+    return normalizedVotesByUserId;
   }
 }
