@@ -130,9 +130,10 @@ export class InteractionController {
 
   public static async updateVoteStart(votingState: VotingState): Promise<void> {
     if (votingState.messageId === null) {
-      Log.throw("Cannot update vote start message. Message ID is missing.", {
+      Log.error("Cannot update vote start message. Message ID is missing.", {
         votingState,
       });
+      return;
     }
     await Discord.updateChannelMessage(
       votingState.channelId,

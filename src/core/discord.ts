@@ -307,12 +307,6 @@ export class Discord {
         },
       );
     }
-    return {
-      ...messageCreateOptions,
-      allowedMentions: {
-        ...(messageCreateOptions.allowedMentions ?? {}),
-        parse: [],
-      },
-    };
+    return this.__sanitizeBaseMessageOptions(messageCreateOptions);
   }
 }
