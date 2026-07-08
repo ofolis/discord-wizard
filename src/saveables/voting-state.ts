@@ -111,6 +111,9 @@ export class VotingState implements Saveable {
   }
 
   private __letterToIndex(letter: string): number {
+    if (!/^[A-Z]$/.test(letter)) {
+      return -1;
+    }
     return letter.charCodeAt(0) - "A".charCodeAt(0);
   }
 
