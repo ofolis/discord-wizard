@@ -17,6 +17,8 @@ export class VotingState implements Saveable {
 
   public readonly guildId: string;
 
+  public messageId: string | null;
+
   private __isOpen: boolean;
 
   private readonly __options: string[];
@@ -31,6 +33,7 @@ export class VotingState implements Saveable {
     VotingState.__validateOptions(state.options);
     this.channelId = state.channelId;
     this.guildId = state.guildId;
+    this.messageId = null;
     this.__isOpen = true;
     this.__options = [...state.options];
     this.__votesByUserId = {};
@@ -44,6 +47,10 @@ export class VotingState implements Saveable {
     return this.__options;
   }
 
+  public get totalVotes(): number {
+    return Object.keys(this.__votesByUserId).length;
+  }
+
   public static fromJson(json: Json, expectedGuildId: string): VotingState {
     const votingStateJson: VotingStateJson = this.__parseJson(
       json,
@@ -55,6 +62,7 @@ export class VotingState implements Saveable {
       options: votingStateJson.options,
     });
     votingState.__isOpen = votingStateJson.isOpen;
+    votingState.messageId = votingStateJson.messageId ?? null;
     votingState.__votesByUserId = votingState.__normalizeVotesByUserId(
       votingStateJson.votesByUserId ?? {},
     );
@@ -66,6 +74,7 @@ export class VotingState implements Saveable {
     expectedGuildId: string,
   ): VotingStateJson {
     const votesByUserId: unknown = json.votesByUserId;
+    const messageId: unknown = json.messageId;
     const hasValidOptions: boolean =
       Array.isArray(json.options) &&
       json.options.every(option => typeof option === "string") &&
@@ -79,6 +88,8 @@ export class VotingState implements Saveable {
         Object.values(votesByUserId as Record<string, unknown>).every(
           vote => typeof vote === "string",
         ));
+    const hasValidMessageId: boolean =
+      messageId === undefined || typeof messageId === "string";
 
     if (
       typeof json.channelId !== "string" ||
@@ -86,6 +97,7 @@ export class VotingState implements Saveable {
       json.guildId !== expectedGuildId ||
       typeof json.isOpen !== "boolean" ||
       !hasValidOptions ||
+      !hasValidMessageId ||
       !hasValidVotesByUserId
     ) {
       Log.throw(
@@ -101,6 +113,7 @@ export class VotingState implements Saveable {
       channelId: json.channelId,
       guildId: json.guildId,
       isOpen: json.isOpen,
+      messageId: messageId as string | undefined,
       options: json.options as string[],
       votesByUserId: votesByUserId as Record<string, string> | undefined,
     };
@@ -164,6 +177,7 @@ export class VotingState implements Saveable {
       channelId: this.channelId,
       guildId: this.guildId,
       isOpen: this.__isOpen,
+      messageId: this.messageId ?? undefined,
       options: [...this.__options],
       votesByUserId: { ...this.__votesByUserId },
     };

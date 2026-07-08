@@ -3,6 +3,7 @@ import {
   AppError,
   AppErrorCode,
   ChannelCommandMessage,
+  ChannelMessage,
   Command,
   CommandOption,
   CommandOptionType,
@@ -68,20 +69,20 @@ export class VoteStart implements Command {
       guildId: message.member.guild.id,
       options: parsedOptions,
     });
-    DataController.saveVotingState(votingState);
     try {
-      await InteractionController.announceVoteStart(
-        message.channelId,
-        votingState,
-      );
+      const voteMessage: ChannelMessage =
+        await InteractionController.announceVoteStart(
+          message.channelId,
+          votingState,
+        );
+      votingState.messageId = voteMessage.id;
+      DataController.saveVotingState(votingState);
     } catch (reason: unknown) {
       Log.error("Could not post vote.", reason);
       const isTooLong: boolean = AppError.is(
         reason,
         AppErrorCode.DISCORD_CARD_DESCRIPTION_TOO_LONG,
       );
-      votingState.close();
-      DataController.saveVotingState(votingState);
       await InteractionController.informError(
         message,
         isTooLong

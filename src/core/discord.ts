@@ -171,6 +171,24 @@ export class Discord {
     return channelMessage;
   }
 
+  public static async updateChannelMessage(
+    channelId: string,
+    messageId: string,
+    options: discordJs.BaseMessageOptions,
+  ): Promise<void> {
+    const safeOptions: discordJs.BaseMessageOptions =
+      this.__sanitizeBaseMessageOptions(options);
+    Log.debug("Updating Discord channel message...", {
+      channelId,
+      messageId,
+      options: safeOptions,
+    });
+    const channel: discordJs.TextChannel = await this.__getChannel(channelId);
+    const message: discordJs.Message = await channel.messages.fetch(messageId);
+    await message.edit(safeOptions);
+    Log.debug("Discord channel message updated successfully.");
+  }
+
   private static async __deployGlobalCommands(
     rest: discordJs.REST,
     commands: discordJs.SlashCommandBuilder[],
@@ -259,6 +277,18 @@ export class Discord {
       "code" in reason &&
       reason.code === 10003
     );
+  }
+
+  private static __sanitizeBaseMessageOptions(
+    options: discordJs.BaseMessageOptions,
+  ): discordJs.BaseMessageOptions {
+    return {
+      ...options,
+      allowedMentions: {
+        ...(options.allowedMentions ?? {}),
+        parse: [],
+      },
+    };
   }
 
   private static __sanitizeMessageCreateOptions(

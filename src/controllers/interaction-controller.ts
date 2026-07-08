@@ -3,6 +3,7 @@ import { ICONS } from "../constants";
 import {
   AppErrorCode,
   ChannelCommandMessage,
+  ChannelMessage,
   Discord,
   Log,
   Utils,
@@ -94,15 +95,10 @@ export class InteractionController {
   public static async announceVoteStart(
     channelId: string,
     votingState: VotingState,
-  ): Promise<void> {
-    await this.__createChannelCard(channelId, {
+  ): Promise<ChannelMessage> {
+    return await this.__createChannelCard(channelId, {
       color: CardColor.INFO,
-      description: Utils.linesToString([
-        `# ${ICONS[IconName.VOTE_START]} Vote Started`,
-        "Use the `/vote` command to vote for an option below.",
-        "### Options",
-        this.__formatVotingOptionsString(votingState.options),
-      ]),
+      description: this.__formatVoteStartDescription(votingState),
     });
   }
 
@@ -132,6 +128,26 @@ export class InteractionController {
     });
   }
 
+  public static async updateVoteStart(votingState: VotingState): Promise<void> {
+    if (votingState.messageId === null) {
+      Log.throw("Cannot update vote start message. Message ID is missing.", {
+        votingState,
+      });
+    }
+    await Discord.updateChannelMessage(
+      votingState.channelId,
+      votingState.messageId,
+      {
+        embeds: [
+          this.__buildCard({
+            color: CardColor.INFO,
+            description: this.__formatVoteStartDescription(votingState),
+          }),
+        ],
+      },
+    );
+  }
+
   private static __buildCard(
     embedData: discordJs.EmbedData,
   ): discordJs.EmbedBuilder {
@@ -154,14 +170,26 @@ export class InteractionController {
   private static async __createChannelCard(
     channelId: string,
     embedData: discordJs.EmbedData,
-  ): Promise<void> {
-    await Discord.sendChannelMessage(channelId, {
+  ): Promise<ChannelMessage> {
+    return await Discord.sendChannelMessage(channelId, {
       embeds: [this.__buildCard(embedData)],
     });
   }
 
   private static __formatRankEmoji(rank: number): string {
     return numberEmojis[rank] ?? `#${rank.toString()}`;
+  }
+
+  private static __formatVoteStartDescription(
+    votingState: VotingState,
+  ): string {
+    return Utils.linesToString([
+      `# ${ICONS[IconName.VOTE_START]} Vote Started`,
+      "Use the `/vote` command to vote for an option below.",
+      "### Options",
+      this.__formatVotingOptionsString(votingState.options),
+      `Total Votes: \`${votingState.totalVotes.toString()}\``,
+    ]);
   }
 
   private static __formatVoteWinnerString(results: VotingResult[]): string {

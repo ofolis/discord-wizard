@@ -17,4 +17,8 @@ export class ChannelMessage extends Message {
   public get channelId(): string {
     return this.__channelId;
   }
+
+  public get id(): string {
+    return this._currentEntity.id;
+  }
 }
