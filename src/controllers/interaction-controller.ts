@@ -188,7 +188,7 @@ export class InteractionController {
       "Use the `/vote` command to vote for an option below.",
       "### Options",
       this.__formatVotingOptionsString(votingState.options),
-      `Total Votes: \`${votingState.totalVotes.toString()}\``,
+      `### Total Votes: \`${votingState.totalVotes.toString()}\``,
     ]);
   }
 
