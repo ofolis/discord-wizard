@@ -5,6 +5,8 @@ import { Command } from "../core";
 export class Discord {
   private static __client: discordJs.Client | null = null;
 
+  private static readonly __messageMaxLength: number = 2000;
+
   public static get client(): discordJs.Client {
     if (this.__client === null) {
       Log.debug("Creating Discord client...");
@@ -137,12 +139,16 @@ export class Discord {
     channelId: string,
     messageCreateOptions: discordJs.MessageCreateOptions,
   ): Promise<ChannelMessage> {
+    const safeMessageCreateOptions: discordJs.MessageCreateOptions =
+      this.__sanitizeMessageCreateOptions(messageCreateOptions);
     Log.debug("Sending Discord channel message...", {
       channelId,
-      messageCreateOptions,
+      messageCreateOptions: safeMessageCreateOptions,
     });
     const channel: discordJs.TextChannel = await this.__getChannel(channelId);
-    const message: discordJs.Message = await channel.send(messageCreateOptions);
+    const message: discordJs.Message = await channel.send(
+      safeMessageCreateOptions,
+    );
     Log.debug("Discord message sent successfully.", { message });
     const channelMessage: ChannelMessage = new ChannelMessage(
       message,
@@ -209,5 +215,25 @@ export class Discord {
     }
     Log.debug("Discord channel retrieved successfully.", { channel });
     return channel;
+  }
+
+  private static __sanitizeMessageCreateOptions(
+    messageCreateOptions: discordJs.MessageCreateOptions,
+  ): discordJs.MessageCreateOptions {
+    if (
+      messageCreateOptions.content !== undefined &&
+      messageCreateOptions.content.length > this.__messageMaxLength
+    ) {
+      Log.throw("Cannot send Discord message. Content is too long.", {
+        maxLength: this.__messageMaxLength,
+        messageCreateOptions,
+      });
+    }
+    return {
+      ...messageCreateOptions,
+      allowedMentions: messageCreateOptions.allowedMentions ?? {
+        parse: [],
+      },
+    };
   }
 }

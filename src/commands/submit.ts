@@ -11,7 +11,6 @@ import {
 } from "../core";
 
 const messageOptionName: string = "message";
-const discordMessageMaxLength: number = 2000;
 const submissionMessageMaxLength: number = 1900;
 
 export class Submit implements Command {
@@ -55,18 +54,8 @@ export class Submit implements Command {
     const formattedSubmission: string = `New Submission:\n${codeBlock(
       escapeCodeBlock(submittedMessage),
     )}`;
-    if (formattedSubmission.length > discordMessageMaxLength) {
-      await message.update({
-        content:
-          "Your message was too long to submit after formatting. Please shorten it and try again.",
-      });
-      return;
-    }
     try {
       await Discord.sendChannelMessage(submissionChannelId, {
-        allowedMentions: {
-          parse: [],
-        },
         content: formattedSubmission,
       });
     } catch (reason: unknown) {

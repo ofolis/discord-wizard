@@ -5,11 +5,11 @@ import {
   CommandOption,
   CommandOptionType,
   Discord,
+  Log,
 } from "../core";
 import { PollState } from "../saveables";
 
 const optionsOptionName: string = "options";
-const discordMessageMaxLength: number = 2000;
 const maxPollOptions: number = 26;
 
 export class PollOpen implements Command {
@@ -66,19 +66,18 @@ export class PollOpen implements Command {
       options: parsedOptions,
     });
     const pollMessage: string = `Poll Opened:\n${pollState.formatOptions()}`;
-    if (pollMessage.length > discordMessageMaxLength) {
+    try {
+      await Discord.sendChannelMessage(message.channelId, {
+        content: pollMessage,
+      });
+    } catch (reason: unknown) {
+      Log.error("Could not post poll.", reason);
       await message.update({
         content:
-          "The poll options are too long to post. Please shorten them and try again.",
+          "Could not post the poll. Please shorten the options or check the channel configuration and try again.",
       });
       return;
     }
-    await Discord.sendChannelMessage(message.channelId, {
-      allowedMentions: {
-        parse: [],
-      },
-      content: pollMessage,
-    });
     DataController.savePollState(pollState);
     await message.update({
       content: "Poll opened.",
