@@ -41,17 +41,11 @@ export class Vote implements Command {
       return;
     }
 
-    const letter: string | null = this.__parseLetter(
+    const option: string | null = votingState.castVote(
+      message.user.id,
       message.getCommandOption(letterOptionName, CommandOptionType.STRING),
     );
-    if (letter === null) {
-      await InteractionController.informError(
-        message,
-        "Vote must be a single letter.",
-      );
-      return;
-    }
-    if (!votingState.containsLetter(letter)) {
+    if (option === null) {
       await InteractionController.informError(
         message,
         "That is not one of the vote option letters.",
@@ -59,22 +53,10 @@ export class Vote implements Command {
       return;
     }
 
-    const option: string = votingState.castVote(message.user.id, letter);
     DataController.saveVotingState(votingState);
     await InteractionController.informSuccess(
       message,
       `Your vote was cast for \`${option}\`.`,
     );
-  }
-
-  private __parseLetter(value: string | undefined): string | null {
-    if (value === undefined) {
-      return null;
-    }
-    const trimmedValue: string = value.trim();
-    if (!/^[a-z]$/i.test(trimmedValue)) {
-      return null;
-    }
-    return trimmedValue.toUpperCase();
   }
 }

@@ -2,6 +2,7 @@ import { Json, Log, Saveable } from "../core";
 import { VotingStateJson } from "../types";
 
 type VotingOptionResult = {
+  readonly letter: string;
   readonly option: string;
   readonly voteCount: number;
 };
@@ -15,32 +16,18 @@ export class VotingState implements Saveable {
 
   private readonly __options: string[];
 
-  private readonly __votesByUserId: Record<string, string>;
+  private __votesByUserId: Record<string, string>;
 
-  public constructor(
-    stateOrJson:
-      | VotingStateJson
-      | {
-          readonly channelId: string;
-          readonly guildId: string;
-          readonly options: string[];
-        },
-  ) {
-    if ("isOpen" in stateOrJson) {
-      this.channelId = stateOrJson.channelId;
-      this.guildId = stateOrJson.guildId;
-      this.__isOpen = stateOrJson.isOpen;
-      this.__options = [...stateOrJson.options];
-      this.__votesByUserId = this.__normalizeVotesByUserId(
-        stateOrJson.votesByUserId ?? {},
-      );
-    } else {
-      this.channelId = stateOrJson.channelId;
-      this.guildId = stateOrJson.guildId;
-      this.__isOpen = true;
-      this.__options = [...stateOrJson.options];
-      this.__votesByUserId = {};
-    }
+  public constructor(state: {
+    readonly channelId: string;
+    readonly guildId: string;
+    readonly options: string[];
+  }) {
+    this.channelId = state.channelId;
+    this.guildId = state.guildId;
+    this.__isOpen = true;
+    this.__options = [...state.options];
+    this.__votesByUserId = {};
   }
 
   public get isOpen(): boolean {
@@ -56,7 +43,16 @@ export class VotingState implements Saveable {
       json,
       expectedGuildId,
     );
-    return new VotingState(votingStateJson);
+    const votingState: VotingState = new VotingState({
+      channelId: votingStateJson.channelId,
+      guildId: votingStateJson.guildId,
+      options: votingStateJson.options,
+    });
+    votingState.__isOpen = votingStateJson.isOpen;
+    votingState.__votesByUserId = votingState.__normalizeVotesByUserId(
+      votingStateJson.votesByUserId ?? {},
+    );
+    return votingState;
   }
 
   private static __parseJson(
@@ -100,30 +96,23 @@ export class VotingState implements Saveable {
     };
   }
 
-  public castVote(userId: string, letter: string): string {
+  public castVote(userId: string, letter: string | undefined): string | null {
     if (!this.__isOpen) {
       Log.throw("Cannot cast vote. Vote is not open.");
     }
-    const normalizedLetter: string = this.__normalizeLetter(letter);
-    const optionIndex: number = this.__letterToIndex(normalizedLetter);
-    if (optionIndex < 0 || optionIndex >= this.__options.length) {
-      Log.throw("Cannot cast vote. Option letter does not exist.", {
-        letter,
-        options: this.__options,
-      });
+    const voteOption: {
+      readonly letter: string;
+      readonly option: string;
+    } | null = this.__getVoteOption(letter);
+    if (voteOption === null) {
+      return null;
     }
-    const option: string = this.__options[optionIndex];
-    this.__votesByUserId[userId] = normalizedLetter;
-    return option;
+    this.__votesByUserId[userId] = voteOption.letter;
+    return voteOption.option;
   }
 
   public close(): void {
     this.__isOpen = false;
-  }
-
-  public containsLetter(letter: string): boolean {
-    const normalizedLetter: string = this.__normalizeLetter(letter);
-    return this.__containsNormalizedLetter(normalizedLetter);
   }
 
   public getSortedResults(): VotingOptionResult[] {
@@ -134,6 +123,7 @@ export class VotingState implements Saveable {
     return this.__options
       .map((option, index) => ({
         index,
+        letter: this.__indexToLetter(index),
         option,
         voteCount: voteCountsByLetter[this.__indexToLetter(index)] ?? 0,
       }))
@@ -143,7 +133,7 @@ export class VotingState implements Saveable {
         }
         return a.index - b.index;
       })
-      .map(({ option, voteCount }) => ({ option, voteCount }));
+      .map(({ letter, option, voteCount }) => ({ letter, option, voteCount }));
   }
 
   public toJson(): VotingStateJson {
@@ -156,9 +146,28 @@ export class VotingState implements Saveable {
     };
   }
 
-  private __containsNormalizedLetter(letter: string): boolean {
+  private __containsNormalizedLetter(letter: string | null): boolean {
+    if (letter === null) {
+      return false;
+    }
     const optionIndex: number = this.__letterToIndex(letter);
     return optionIndex >= 0 && optionIndex < this.__options.length;
+  }
+
+  private __getVoteOption(
+    letter: string | undefined,
+  ): { readonly letter: string; readonly option: string } | null {
+    const normalizedLetter: string | null = this.__normalizeLetter(letter);
+    if (
+      normalizedLetter === null ||
+      !this.__containsNormalizedLetter(normalizedLetter)
+    ) {
+      return null;
+    }
+    return {
+      letter: normalizedLetter,
+      option: this.__options[this.__letterToIndex(normalizedLetter)],
+    };
   }
 
   private __indexToLetter(index: number): string {
@@ -172,8 +181,15 @@ export class VotingState implements Saveable {
     return letter.charCodeAt(0) - "A".charCodeAt(0);
   }
 
-  private __normalizeLetter(letter: string): string {
-    return letter.trim().toUpperCase();
+  private __normalizeLetter(letter: string | undefined): string | null {
+    if (letter === undefined) {
+      return null;
+    }
+    const normalizedLetter: string = letter.trim().toUpperCase();
+    if (!/^[A-Z]$/.test(normalizedLetter)) {
+      return null;
+    }
+    return normalizedLetter;
   }
 
   private __normalizeVotesByUserId(
@@ -181,8 +197,11 @@ export class VotingState implements Saveable {
   ): Record<string, string> {
     const normalizedVotesByUserId: Record<string, string> = {};
     Object.entries(votesByUserId).forEach(([userId, letter]) => {
-      const normalizedLetter: string = this.__normalizeLetter(letter);
-      if (!this.__containsNormalizedLetter(normalizedLetter)) {
+      const normalizedLetter: string | null = this.__normalizeLetter(letter);
+      if (
+        normalizedLetter === null ||
+        !this.__containsNormalizedLetter(normalizedLetter)
+      ) {
         Log.error("Ignoring invalid persisted vote.", {
           letter,
           normalizedLetter,
