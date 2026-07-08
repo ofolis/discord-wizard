@@ -1,4 +1,4 @@
-import { Log, Saveable } from "../core";
+import { Json, Log, Saveable } from "../core";
 import { VotingStateJson } from "../types";
 
 type VotingOptionResult = {
@@ -49,6 +49,55 @@ export class VotingState implements Saveable {
 
   public get options(): readonly string[] {
     return this.__options;
+  }
+
+  public static fromJson(json: Json, expectedGuildId: string): VotingState {
+    const votingStateJson: VotingStateJson = this.__parseJson(
+      json,
+      expectedGuildId,
+    );
+    return new VotingState(votingStateJson);
+  }
+
+  private static __parseJson(
+    json: Json,
+    expectedGuildId: string,
+  ): VotingStateJson {
+    const votesByUserId: unknown = json.votesByUserId;
+    const hasValidVotesByUserId: boolean =
+      votesByUserId === undefined ||
+      (typeof votesByUserId === "object" &&
+        votesByUserId !== null &&
+        !Array.isArray(votesByUserId) &&
+        Object.values(votesByUserId as Record<string, unknown>).every(
+          vote => typeof vote === "string",
+        ));
+
+    if (
+      typeof json.channelId !== "string" ||
+      typeof json.guildId !== "string" ||
+      json.guildId !== expectedGuildId ||
+      typeof json.isOpen !== "boolean" ||
+      !Array.isArray(json.options) ||
+      !json.options.every(option => typeof option === "string") ||
+      !hasValidVotesByUserId
+    ) {
+      Log.throw(
+        "Cannot load voting state. Stored voting state JSON is invalid.",
+        {
+          expectedGuildId,
+          json,
+        },
+      );
+    }
+
+    return {
+      channelId: json.channelId,
+      guildId: json.guildId,
+      isOpen: json.isOpen,
+      options: json.options,
+      votesByUserId: votesByUserId as Record<string, string> | undefined,
+    };
   }
 
   public castVote(userId: string, letter: string): string {

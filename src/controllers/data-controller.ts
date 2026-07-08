@@ -1,6 +1,5 @@
 import { IO, Json, Log } from "../core";
 import { ChannelState, VotingState } from "../saveables";
-import { VotingStateJson } from "../types";
 
 export class DataController {
   public static loadActiveVotingState(guildId: string): VotingState | null {
@@ -30,36 +29,7 @@ export class DataController {
       return null;
     }
 
-    const options: unknown = votingStateJson.options;
-    const votesByUserId: unknown = votingStateJson.votesByUserId;
-    const hasValidVotesByUserId: boolean =
-      votesByUserId === undefined ||
-      (typeof votesByUserId === "object" &&
-        votesByUserId !== null &&
-        !Array.isArray(votesByUserId) &&
-        Object.values(votesByUserId as Record<string, unknown>).every(
-          vote => typeof vote === "string",
-        ));
-
-    if (
-      typeof votingStateJson.channelId !== "string" ||
-      typeof votingStateJson.guildId !== "string" ||
-      votingStateJson.guildId !== guildId ||
-      typeof votingStateJson.isOpen !== "boolean" ||
-      !Array.isArray(options) ||
-      !options.every(option => typeof option === "string") ||
-      !hasValidVotesByUserId
-    ) {
-      Log.throw(
-        "Cannot load voting state. Stored voting state JSON is invalid.",
-        {
-          guildId,
-          votingStateJson,
-        },
-      );
-    }
-
-    return new VotingState(votingStateJson as unknown as VotingStateJson);
+    return VotingState.fromJson(votingStateJson, guildId);
   }
 
   public static saveChannelState(channelState: ChannelState): void {
