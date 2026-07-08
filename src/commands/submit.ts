@@ -10,7 +10,6 @@ import {
 } from "../core";
 
 const messageOptionName: string = "message";
-const submissionMessageMaxLength: number = 1900;
 
 export class Submit implements Command {
   public readonly description: string = "Makes an anonymous submission.";
@@ -27,8 +26,6 @@ export class Submit implements Command {
     {
       description: "The message to submit anonymously.",
       isRequired: true,
-      maxLength: submissionMessageMaxLength,
-      minLength: 1,
       name: messageOptionName,
       type: CommandOptionType.STRING,
     },

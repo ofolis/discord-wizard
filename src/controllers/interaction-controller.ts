@@ -6,7 +6,6 @@ import { VotingState } from "../saveables";
 
 type VotingResult = ReturnType<VotingState["getSortedResults"]>[number];
 
-const embedDescriptionMaxLength: number = 4096;
 const letterEmojis: string[] = [
   "🇦",
   "🇧",
@@ -132,11 +131,11 @@ export class InteractionController {
   ): discordJs.EmbedBuilder {
     if (
       embedData.description !== undefined &&
-      embedData.description.length > embedDescriptionMaxLength
+      embedData.description.length > Discord.embedDescriptionMaxLength
     ) {
       Log.throw("Cannot build Discord card. Description is too long.", {
         embedData,
-        maxLength: embedDescriptionMaxLength,
+        maxLength: Discord.embedDescriptionMaxLength,
       });
     }
     return new discordJs.EmbedBuilder(embedData);

@@ -26,8 +26,6 @@ export class VoteStart implements Command {
     {
       description: "Comma-separated vote options.",
       isRequired: true,
-      maxLength: 6000,
-      minLength: 1,
       name: optionsOptionName,
       type: CommandOptionType.STRING,
     },

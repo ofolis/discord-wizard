@@ -3,9 +3,11 @@ import { ChannelMessage, CommandOptionType, Environment, Log } from ".";
 import { Command } from "../core";
 
 export class Discord {
-  private static __client: discordJs.Client | null = null;
+  public static readonly embedDescriptionMaxLength: number = 4096;
 
-  private static readonly __messageMaxLength: number = 2000;
+  public static readonly messageContentMaxLength: number = 2000;
+
+  private static __client: discordJs.Client | null = null;
 
   public static get client(): discordJs.Client {
     if (this.__client === null) {
@@ -66,14 +68,20 @@ export class Discord {
             );
             break;
           case CommandOptionType.STRING:
-            slashCommandBuilder.addStringOption(stringOption =>
-              stringOption
-                .setName(option.name)
-                .setDescription(option.description)
-                .setRequired(option.isRequired)
-                .setMaxLength(option.maxLength)
-                .setMinLength(option.minLength),
-            );
+            slashCommandBuilder.addStringOption(stringOption => {
+              const stringOptionBuilder: discordJs.SlashCommandStringOption =
+                stringOption
+                  .setName(option.name)
+                  .setDescription(option.description)
+                  .setRequired(option.isRequired);
+              if (option.maxLength !== undefined) {
+                stringOptionBuilder.setMaxLength(option.maxLength);
+              }
+              if (option.minLength !== undefined) {
+                stringOptionBuilder.setMinLength(option.minLength);
+              }
+              return stringOptionBuilder;
+            });
             break;
           default:
             Log.throw("Cannot build command. Unknown command option type.", {
@@ -229,10 +237,10 @@ export class Discord {
   ): discordJs.MessageCreateOptions {
     if (
       messageCreateOptions.content !== undefined &&
-      messageCreateOptions.content.length > this.__messageMaxLength
+      messageCreateOptions.content.length > this.messageContentMaxLength
     ) {
       Log.throw("Cannot send Discord message. Content is too long.", {
-        maxLength: this.__messageMaxLength,
+        maxLength: this.messageContentMaxLength,
         messageCreateOptions,
       });
     }
