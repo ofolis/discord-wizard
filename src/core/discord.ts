@@ -202,8 +202,15 @@ export class Discord {
     channelId: string,
   ): Promise<discordJs.TextChannel> {
     Log.debug("Retrieving Discord channel...", { channelId });
-    const channel: discordJs.Channel | null =
-      await this.client.channels.fetch(channelId);
+    let channel: discordJs.Channel | null;
+    try {
+      channel = await this.client.channels.fetch(channelId);
+    } catch (reason: unknown) {
+      Log.throw("Cannot get Discord channel. Failed to fetch channel.", {
+        channelId,
+        reason,
+      });
+    }
     if (channel === null) {
       Log.throw("Cannot get Discord channel. ID was not found.", { channelId });
     }
