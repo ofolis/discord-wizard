@@ -51,4 +51,8 @@ export class ChannelCache {
         ?.get(channelName) ?? []),
     ];
   }
+
+  public static removeGuild(guildId: string): void {
+    this.__channelIdsByGuildIdByChannelName.delete(guildId);
+  }
 }

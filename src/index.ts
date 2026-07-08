@@ -57,6 +57,11 @@ function initializeApp(): void {
       });
   });
 
+  // Guild Delete Event
+  Discord.client.on("guildDelete", guild => {
+    ChannelCache.removeGuild(guild.id);
+  });
+
   // Interaction Create Event
   Discord.client.on("interactionCreate", interaction => {
     if (!interaction.isCommand()) {
