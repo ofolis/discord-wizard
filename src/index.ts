@@ -1,5 +1,5 @@
 import * as discordJs from "discord.js";
-import { PollClose, PollOpen, Submit, Vote } from "./commands";
+import { Submit, Vote, VoteEnd, VoteStart } from "./commands";
 import { ChannelCache } from "./controllers";
 import {
   ChannelCommandMessage,
@@ -11,9 +11,9 @@ import {
 
 const commands: Command[] = [
   new Submit(),
-  new PollOpen(),
+  new VoteStart(),
   new Vote(),
-  new PollClose(),
+  new VoteEnd(),
 ];
 
 function refreshGuildChannelCache(

@@ -1,12 +1,12 @@
 import { Log, Saveable } from "../core";
-import { PollStateJson } from "../types";
+import { VotingStateJson } from "../types";
 
-type PollOptionResult = {
+type VotingOptionResult = {
   readonly option: string;
   readonly voteCount: number;
 };
 
-export class PollState implements Saveable {
+export class VotingState implements Saveable {
   public readonly channelId: string;
 
   public readonly guildId: string;
@@ -19,7 +19,7 @@ export class PollState implements Saveable {
 
   public constructor(
     stateOrJson:
-      | PollStateJson
+      | VotingStateJson
       | {
           readonly channelId: string;
           readonly guildId: string;
@@ -45,14 +45,18 @@ export class PollState implements Saveable {
     return this.__isOpen;
   }
 
+  public get options(): readonly string[] {
+    return this.__options;
+  }
+
   public castVote(userId: string, letter: string): string {
     if (!this.__isOpen) {
-      Log.throw("Cannot cast poll vote. Poll is not open.");
+      Log.throw("Cannot cast vote. Vote is not open.");
     }
     const normalizedLetter: string = this.__normalizeLetter(letter);
     const optionIndex: number = this.__letterToIndex(normalizedLetter);
     if (optionIndex < 0 || optionIndex >= this.__options.length) {
-      Log.throw("Cannot cast poll vote. Option letter does not exist.", {
+      Log.throw("Cannot cast vote. Option letter does not exist.", {
         letter,
         options: this.__options,
       });
@@ -72,13 +76,7 @@ export class PollState implements Saveable {
     return optionIndex >= 0 && optionIndex < this.__options.length;
   }
 
-  public formatOptions(): string {
-    return this.__options
-      .map((option, index) => `${this.__indexToLetter(index)}: ${option}`)
-      .join("\n");
-  }
-
-  public getSortedResults(): PollOptionResult[] {
+  public getSortedResults(): VotingOptionResult[] {
     const voteCountsByLetter: Record<string, number> = {};
     Object.values(this.__votesByUserId).forEach(letter => {
       voteCountsByLetter[letter] = (voteCountsByLetter[letter] ?? 0) + 1;
@@ -98,7 +96,7 @@ export class PollState implements Saveable {
       .map(({ option, voteCount }) => ({ option, voteCount }));
   }
 
-  public toJson(): PollStateJson {
+  public toJson(): VotingStateJson {
     return {
       channelId: this.channelId,
       guildId: this.guildId,

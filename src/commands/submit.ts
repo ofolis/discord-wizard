@@ -1,12 +1,11 @@
 import { codeBlock, escapeCodeBlock } from "discord.js";
 import { ANONYMOUS_SUBMISSION_CHANNEL_NAME } from "../constants";
-import { ChannelCache } from "../controllers";
+import { ChannelCache, InteractionController } from "../controllers";
 import {
   ChannelCommandMessage,
   Command,
   CommandOption,
   CommandOptionType,
-  Discord,
   Log,
 } from "../core";
 
@@ -46,29 +45,29 @@ export class Submit implements Command {
     const submissionChannelId: string | null =
       await this.__getSubmissionChannelId(message);
     if (submissionChannelId === null) {
-      await message.update({
-        content: `Could not find exactly one \`${ANONYMOUS_SUBMISSION_CHANNEL_NAME}\` text channel. Please check the server configuration.`,
-      });
+      await InteractionController.informError(
+        message,
+        `Could not find exactly one \`${ANONYMOUS_SUBMISSION_CHANNEL_NAME}\` text channel. Please check the server configuration.`,
+      );
       return;
     }
-    const formattedSubmission: string = `New Submission:\n${codeBlock(
-      escapeCodeBlock(submittedMessage),
-    )}`;
     try {
-      await Discord.sendChannelMessage(submissionChannelId, {
-        content: formattedSubmission,
-      });
+      await InteractionController.announceSubmission(
+        submissionChannelId,
+        codeBlock(escapeCodeBlock(submittedMessage)),
+      );
     } catch (reason: unknown) {
       Log.error("Could not send anonymous submission.", reason);
-      await message.update({
-        content:
-          "Could not send your submission. Please check the server configuration and try again.",
-      });
+      await InteractionController.informError(
+        message,
+        "Could not send your submission. Please shorten it or check the server configuration and try again.",
+      );
       return;
     }
-    await message.update({
-      content: "Your message was submitted anonymously.",
-    });
+    await InteractionController.informSuccess(
+      message,
+      "Your message was submitted anonymously.",
+    );
   }
 
   private async __getSubmissionChannelId(

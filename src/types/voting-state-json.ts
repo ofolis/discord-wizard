@@ -1,4 +1,4 @@
-export type PollStateJson = {
+export type VotingStateJson = {
   readonly channelId: string;
   readonly guildId: string;
   readonly isOpen: boolean;

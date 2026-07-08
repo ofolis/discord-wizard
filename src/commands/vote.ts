@@ -1,16 +1,16 @@
-import { DataController } from "../controllers";
+import { DataController, InteractionController } from "../controllers";
 import {
   ChannelCommandMessage,
   Command,
   CommandOption,
   CommandOptionType,
 } from "../core";
-import { PollState } from "../saveables";
+import { VotingState } from "../saveables";
 
 const letterOptionName: string = "letter";
 
 export class Vote implements Command {
-  public readonly description: string = "Votes in the open poll.";
+  public readonly description: string = "Submits your anonymous vote.";
 
   public readonly isGlobal: boolean = false;
 
@@ -22,7 +22,7 @@ export class Vote implements Command {
 
   public readonly options: CommandOption[] = [
     {
-      description: "The poll option letter.",
+      description: "The vote option letter.",
       isRequired: true,
       maxLength: 1,
       minLength: 1,
@@ -32,13 +32,13 @@ export class Vote implements Command {
   ];
 
   public async execute(message: ChannelCommandMessage): Promise<void> {
-    const pollState: PollState | null = DataController.loadActivePollState(
-      message.member.guild.id,
-    );
-    if (pollState === null) {
-      await message.update({
-        content: "There is no open poll.",
-      });
+    const votingState: VotingState | null =
+      DataController.loadActiveVotingState(message.member.guild.id);
+    if (votingState === null) {
+      await InteractionController.informError(
+        message,
+        "There is no open vote.",
+      );
       return;
     }
 
@@ -46,23 +46,26 @@ export class Vote implements Command {
       message.getCommandOption(letterOptionName, CommandOptionType.STRING),
     );
     if (letter === null) {
-      await message.update({
-        content: "Vote must be a single letter.",
-      });
+      await InteractionController.informError(
+        message,
+        "Vote must be a single letter.",
+      );
       return;
     }
-    if (!pollState.containsLetter(letter)) {
-      await message.update({
-        content: "That is not one of the poll option letters.",
-      });
+    if (!votingState.containsLetter(letter)) {
+      await InteractionController.informError(
+        message,
+        "That is not one of the vote option letters.",
+      );
       return;
     }
 
-    const option: string = pollState.castVote(message.user.id, letter);
-    DataController.savePollState(pollState);
-    await message.update({
-      content: `Your vote was cast for \`${option}\`.`,
-    });
+    const option: string = votingState.castVote(message.user.id, letter);
+    DataController.saveVotingState(votingState);
+    await InteractionController.informSuccess(
+      message,
+      `Your vote was cast for \`${option}\`.`,
+    );
   }
 
   private __parseLetter(value: string | undefined): string | null {

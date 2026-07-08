@@ -1,15 +1,15 @@
 import { IO, Json, Log } from "../core";
-import { ChannelState, PollState } from "../saveables";
-import { PollStateJson } from "../types";
+import { ChannelState, VotingState } from "../saveables";
+import { VotingStateJson } from "../types";
 
 export class DataController {
-  public static loadActivePollState(guildId: string): PollState | null {
-    Log.debug("Loading active poll state.");
-    const pollState: PollState | null = this.loadPollState(guildId);
-    if (pollState === null || !pollState.isOpen) {
+  public static loadActiveVotingState(guildId: string): VotingState | null {
+    Log.debug("Loading active voting state.");
+    const votingState: VotingState | null = this.loadVotingState(guildId);
+    if (votingState === null || !votingState.isOpen) {
       return null;
     }
-    return pollState;
+    return votingState;
   }
 
   public static loadChannelState(channelId: string): ChannelState | null {
@@ -21,15 +21,15 @@ export class DataController {
     return new ChannelState(channelStateJson);
   }
 
-  public static loadPollState(guildId: string): PollState | null {
-    Log.debug("Loading poll state.");
-    const pollStateJson: Json | null = IO.loadData(
-      this.__getPollStateId(guildId),
+  public static loadVotingState(guildId: string): VotingState | null {
+    Log.debug("Loading voting state.");
+    const votingStateJson: Json | null = IO.loadData(
+      this.__getVotingStateId(guildId),
     );
-    if (pollStateJson === null) {
+    if (votingStateJson === null) {
       return null;
     }
-    return new PollState(pollStateJson as PollStateJson);
+    return new VotingState(votingStateJson as VotingStateJson);
   }
 
   public static saveChannelState(channelState: ChannelState): void {
@@ -37,12 +37,15 @@ export class DataController {
     IO.saveData(channelState.channelId, channelState.toJson());
   }
 
-  public static savePollState(pollState: PollState): void {
-    Log.debug("Saving poll state.");
-    IO.saveData(this.__getPollStateId(pollState.guildId), pollState.toJson());
+  public static saveVotingState(votingState: VotingState): void {
+    Log.debug("Saving voting state.");
+    IO.saveData(
+      this.__getVotingStateId(votingState.guildId),
+      votingState.toJson(),
+    );
   }
 
-  private static __getPollStateId(guildId: string): string {
-    return `poll-${guildId}`;
+  private static __getVotingStateId(guildId: string): string {
+    return `vote-${guildId}`;
   }
 }
