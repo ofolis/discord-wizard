@@ -11,9 +11,9 @@ import {
 
 const commands: Command[] = [
   new Submit(),
-  new VoteStart(),
   new Vote(),
   new VoteEnd(),
+  new VoteStart(),
 ];
 const channelCacheRefreshDelayMs: number = 1500;
 const channelCacheRefreshTimeoutsByGuildId: Map<
