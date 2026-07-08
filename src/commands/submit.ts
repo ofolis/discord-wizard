@@ -79,7 +79,7 @@ export class Submit implements Command {
       message.member.guild.id,
       ANONYMOUS_SUBMISSION_CHANNEL_NAME,
     );
-    if (channelIds.length === 0) {
+    if (channelIds.length !== 1) {
       try {
         await ChannelCache.cacheGuild(message.member.guild);
       } catch (reason: unknown) {
