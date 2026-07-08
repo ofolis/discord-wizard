@@ -6,5 +6,4 @@ export const ICONS: Record<IconName, string> = {
   [IconName.SUCCESS]: "✅",
   [IconName.VOTE_RESULTS]: "🏁",
   [IconName.VOTE_START]: "🗳️",
-  [IconName.WAVE]: "👋",
 };

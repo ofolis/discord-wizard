@@ -4,5 +4,4 @@ export enum IconName {
   SUCCESS = "success",
   VOTE_RESULTS = "voteResults",
   VOTE_START = "voteStart",
-  WAVE = "wave",
 }
