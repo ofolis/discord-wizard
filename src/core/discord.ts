@@ -171,6 +171,24 @@ export class Discord {
     return channelMessage;
   }
 
+  public static async updateChannelMessage(
+    channelId: string,
+    messageId: string,
+    options: discordJs.MessageEditOptions,
+  ): Promise<void> {
+    const safeOptions: discordJs.MessageEditOptions =
+      this.__sanitizeBaseMessageOptions(options);
+    Log.debug("Updating Discord channel message...", {
+      channelId,
+      messageId,
+      options: safeOptions,
+    });
+    const channel: discordJs.TextChannel = await this.__getChannel(channelId);
+    const message: discordJs.Message = await channel.messages.fetch(messageId);
+    await message.edit(safeOptions);
+    Log.debug("Discord channel message updated successfully.");
+  }
+
   private static async __deployGlobalCommands(
     rest: discordJs.REST,
     commands: discordJs.SlashCommandBuilder[],
@@ -261,6 +279,18 @@ export class Discord {
     );
   }
 
+  private static __sanitizeBaseMessageOptions<
+    T extends { allowedMentions?: discordJs.MessageMentionOptions },
+  >(options: T): T {
+    return {
+      ...options,
+      allowedMentions: {
+        ...(options.allowedMentions ?? {}),
+        parse: [],
+      },
+    } as T;
+  }
+
   private static __sanitizeMessageCreateOptions(
     messageCreateOptions: discordJs.MessageCreateOptions,
   ): discordJs.MessageCreateOptions {
@@ -277,12 +307,6 @@ export class Discord {
         },
       );
     }
-    return {
-      ...messageCreateOptions,
-      allowedMentions: {
-        ...(messageCreateOptions.allowedMentions ?? {}),
-        parse: [],
-      },
-    };
+    return this.__sanitizeBaseMessageOptions(messageCreateOptions);
   }
 }

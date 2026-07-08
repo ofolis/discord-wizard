@@ -3,6 +3,7 @@ import {
   AppError,
   AppErrorCode,
   ChannelCommandMessage,
+  ChannelMessage,
   Command,
   CommandOption,
   CommandOptionType,
@@ -68,9 +69,20 @@ export class VoteStart implements Command {
       guildId: message.member.guild.id,
       options: parsedOptions,
     });
-    DataController.saveVotingState(votingState);
     try {
-      await InteractionController.announceVoteStart(
+      DataController.saveVotingState(votingState);
+    } catch (reason: unknown) {
+      Log.error("Could not save new voting state.", reason);
+      await InteractionController.informError(
+        message,
+        "Could not start the vote. Contact an admin.",
+      );
+      return;
+    }
+
+    let voteMessage: ChannelMessage;
+    try {
+      voteMessage = await InteractionController.announceVoteStart(
         message.channelId,
         votingState,
       );
@@ -80,17 +92,46 @@ export class VoteStart implements Command {
         reason,
         AppErrorCode.DISCORD_CARD_DESCRIPTION_TOO_LONG,
       );
+      let didCloseFailedVote: boolean = true;
       votingState.close();
-      DataController.saveVotingState(votingState);
+      try {
+        DataController.saveVotingState(votingState);
+      } catch (rollbackReason: unknown) {
+        didCloseFailedVote = false;
+        Log.error("Could not close failed vote.", rollbackReason);
+      }
       await InteractionController.informError(
         message,
-        isTooLong
-          ? "Vote options are too long to display. Please shorten the options and try again."
-          : "Could not post the vote. Contact an admin.",
+        this.__formatPostVoteError(isTooLong, didCloseFailedVote),
+      );
+      return;
+    }
+
+    votingState.messageId = voteMessage.id;
+    try {
+      DataController.saveVotingState(votingState);
+    } catch (reason: unknown) {
+      Log.error("Could not save vote message ID.", reason);
+      await InteractionController.informSuccess(
+        message,
+        "Vote started, but total vote updates will not be available. Contact an admin.",
       );
       return;
     }
     await InteractionController.informSuccess(message, "Vote started.");
+  }
+
+  private __formatPostVoteError(
+    isTooLong: boolean,
+    didCloseFailedVote: boolean,
+  ): string {
+    if (!didCloseFailedVote) {
+      return "Could not post the vote, and the failed vote could not be closed. Contact an admin.";
+    }
+    if (isTooLong) {
+      return "Vote options are too long to display. Please shorten the options and try again.";
+    }
+    return "Could not post the vote. Contact an admin.";
   }
 
   private __parseOptions(optionString: string | undefined): string[] {

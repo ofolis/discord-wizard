@@ -1,9 +1,12 @@
 import { DataController, InteractionController } from "../controllers";
 import {
+  AppError,
+  AppErrorCode,
   ChannelCommandMessage,
   Command,
   CommandOption,
   CommandOptionType,
+  Log,
 } from "../core";
 import { VotingState } from "../saveables";
 
@@ -54,7 +57,32 @@ export class Vote implements Command {
       return;
     }
 
-    DataController.saveVotingState(votingState);
+    try {
+      DataController.saveVotingState(votingState);
+    } catch (reason: unknown) {
+      Log.error("Could not save vote.", reason);
+      await InteractionController.informError(
+        message,
+        "Could not save your vote. Contact an admin.",
+      );
+      return;
+    }
+    try {
+      await InteractionController.updateVoteStart(votingState);
+    } catch (reason: unknown) {
+      Log.error("Could not update vote total.", reason);
+      const isMissingChannel: boolean = AppError.is(
+        reason,
+        AppErrorCode.DISCORD_CHANNEL_NOT_FOUND,
+      );
+      await InteractionController.informError(
+        message,
+        isMissingChannel
+          ? "Your vote was cast, but the vote channel was not found. Contact an admin."
+          : "Your vote was cast, but the vote message could not be updated. Contact an admin.",
+      );
+      return;
+    }
     await InteractionController.informSuccess(
       message,
       `Your vote was cast for \`${option}\`.`,
