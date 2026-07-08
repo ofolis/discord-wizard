@@ -75,7 +75,8 @@ export class VoteStart implements Command {
     } catch (reason: unknown) {
       Log.error("Could not post vote.", reason);
       const isTooLong: boolean =
-        reason instanceof Error && reason.message.includes("Description is too long");
+        reason instanceof Error &&
+        reason.message.includes("Description is too long");
       await InteractionController.informError(
         message,
         isTooLong
