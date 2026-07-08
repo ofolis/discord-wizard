@@ -33,7 +33,6 @@ export class VoteStart implements Command {
   ];
 
   public async execute(message: ChannelCommandMessage): Promise<void> {
-    // TODO: If concurrent vote starts become a practical risk, replace this check-then-save flow with a per-guild lock or atomic create-if-absent persistence primitive.
     if (
       DataController.loadActiveVotingState(message.member.guild.id) !== null
     ) {
@@ -69,6 +68,7 @@ export class VoteStart implements Command {
       guildId: message.member.guild.id,
       options: parsedOptions,
     });
+    DataController.saveVotingState(votingState);
     try {
       await InteractionController.announceVoteStart(
         message.channelId,
@@ -80,6 +80,8 @@ export class VoteStart implements Command {
         reason,
         AppErrorCode.DISCORD_CARD_DESCRIPTION_TOO_LONG,
       );
+      votingState.close();
+      DataController.saveVotingState(votingState);
       await InteractionController.informError(
         message,
         isTooLong
@@ -88,7 +90,6 @@ export class VoteStart implements Command {
       );
       return;
     }
-    DataController.saveVotingState(votingState);
     await InteractionController.informSuccess(message, "Vote started.");
   }
 

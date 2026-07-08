@@ -61,11 +61,13 @@ export class Submit implements Command {
         reason,
         AppErrorCode.DISCORD_CARD_DESCRIPTION_TOO_LONG,
       );
+      const isMissingChannel: boolean = AppError.is(
+        reason,
+        AppErrorCode.DISCORD_CHANNEL_NOT_FOUND,
+      );
       await InteractionController.informError(
         message,
-        isTooLong
-          ? "Your submission is too long to post. Please shorten it and try again."
-          : "Could not send your submission. Contact an admin.",
+        this.__formatSubmissionError(isTooLong, isMissingChannel),
       );
       return;
     }
@@ -73,6 +75,19 @@ export class Submit implements Command {
       message,
       "Your message was submitted anonymously.",
     );
+  }
+
+  private __formatSubmissionError(
+    isTooLong: boolean,
+    isMissingChannel: boolean,
+  ): string {
+    if (isTooLong) {
+      return "Your submission is too long to post. Please shorten it and try again.";
+    }
+    if (isMissingChannel) {
+      return "Could not send your submission because the submission channel was not found. Contact an admin.";
+    }
+    return "Could not send your submission. Contact an admin.";
   }
 
   private async __getSubmissionChannelId(
