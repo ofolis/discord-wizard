@@ -204,9 +204,6 @@ export class InteractionController {
     embedData: discordJs.EmbedData,
   ): Promise<void> {
     await message.update({
-      allowedMentions: {
-        parse: [],
-      },
       embeds: [this.__buildCard(embedData)],
     });
   }
