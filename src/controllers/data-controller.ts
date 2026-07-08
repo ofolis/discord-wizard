@@ -30,8 +30,8 @@ export class DataController {
       return null;
     }
 
-    const options: unknown = votingStateJson["options"];
-    const votesByUserId: unknown = votingStateJson["votesByUserId"];
+    const options: unknown = votingStateJson.options;
+    const votesByUserId: unknown = votingStateJson.votesByUserId;
     const hasValidVotesByUserId: boolean =
       votesByUserId === undefined ||
       (typeof votesByUserId === "object" &&
@@ -42,18 +42,21 @@ export class DataController {
         ));
 
     if (
-      typeof votingStateJson["channelId"] !== "string" ||
-      typeof votingStateJson["guildId"] !== "string" ||
-      votingStateJson["guildId"] !== guildId ||
-      typeof votingStateJson["isOpen"] !== "boolean" ||
+      typeof votingStateJson.channelId !== "string" ||
+      typeof votingStateJson.guildId !== "string" ||
+      votingStateJson.guildId !== guildId ||
+      typeof votingStateJson.isOpen !== "boolean" ||
       !Array.isArray(options) ||
       !options.every(option => typeof option === "string") ||
       !hasValidVotesByUserId
     ) {
-      Log.throw("Cannot load voting state. Stored voting state JSON is invalid.", {
-        guildId,
-        votingStateJson,
-      });
+      Log.throw(
+        "Cannot load voting state. Stored voting state JSON is invalid.",
+        {
+          guildId,
+          votingStateJson,
+        },
+      );
     }
 
     return new VotingState(votingStateJson as unknown as VotingStateJson);
