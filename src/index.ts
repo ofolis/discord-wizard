@@ -1,4 +1,3 @@
-import * as discordJs from "discord.js";
 import { Submit, Vote, VoteEnd, VoteStart } from "./commands";
 import { ChannelCache } from "./controllers";
 import {
@@ -15,40 +14,6 @@ const commands: Command[] = [
   new VoteEnd(),
   new VoteStart(),
 ];
-const channelCacheRefreshDelayMs: number = 1500;
-const channelCacheRefreshTimeoutsByGuildId: Map<
-  string,
-  ReturnType<typeof setTimeout>
-> = new Map();
-
-function scheduleGuildChannelCacheRefresh(
-  guild: discordJs.Guild,
-  context: Record<string, unknown>,
-): void {
-  const existingTimeout: ReturnType<typeof setTimeout> | undefined =
-    channelCacheRefreshTimeoutsByGuildId.get(guild.id);
-  if (existingTimeout !== undefined) {
-    clearTimeout(existingTimeout);
-  }
-  channelCacheRefreshTimeoutsByGuildId.set(
-    guild.id,
-    setTimeout(() => {
-      channelCacheRefreshTimeoutsByGuildId.delete(guild.id);
-      ChannelCache.cacheGuild(guild).catch((reason: unknown) => {
-        Log.error("Failed to refresh guild channel cache.", reason, context);
-      });
-    }, channelCacheRefreshDelayMs),
-  );
-}
-
-function toChannelLogContext(
-  channel: Pick<discordJs.Channel, "id" | "type">,
-): Record<string, unknown> {
-  return {
-    id: channel.id,
-    type: channel.type,
-  };
-}
 
 function initializeApp(): void {
   if (Environment.config.devMode) {
@@ -86,37 +51,6 @@ function initializeApp(): void {
           guild,
         });
       });
-  });
-
-  // Channel Create Event
-  Discord.client.on("channelCreate", channel => {
-    if (!("guild" in channel)) {
-      return;
-    }
-    scheduleGuildChannelCacheRefresh(channel.guild, {
-      channel: toChannelLogContext(channel),
-    });
-  });
-
-  // Channel Delete Event
-  Discord.client.on("channelDelete", channel => {
-    if (!("guild" in channel)) {
-      return;
-    }
-    scheduleGuildChannelCacheRefresh(channel.guild, {
-      channel: toChannelLogContext(channel),
-    });
-  });
-
-  // Channel Update Event
-  Discord.client.on("channelUpdate", (oldChannel, newChannel) => {
-    if (!("guild" in newChannel)) {
-      return;
-    }
-    scheduleGuildChannelCacheRefresh(newChannel.guild, {
-      newChannel: toChannelLogContext(newChannel),
-      oldChannel: toChannelLogContext(oldChannel),
-    });
   });
 
   // Interaction Create Event

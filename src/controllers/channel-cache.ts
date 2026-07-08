@@ -44,24 +44,6 @@ export class ChannelCache {
     }
   }
 
-  public static getChannelId(guildId: string, channelName: string): string {
-    const channelIds: string[] = this.getChannelIds(guildId, channelName);
-    if (channelIds.length === 0) {
-      Log.throw("Cannot get cached channel ID. Channel name was not found.", {
-        channelName,
-        guildId,
-      });
-    }
-    if (channelIds.length > 1) {
-      Log.throw("Cannot get cached channel ID. Channel name is not unique.", {
-        channelIds,
-        channelName,
-        guildId,
-      });
-    }
-    return channelIds[0];
-  }
-
   public static getChannelIds(guildId: string, channelName: string): string[] {
     return [
       ...(this.__channelIdsByGuildIdByChannelName

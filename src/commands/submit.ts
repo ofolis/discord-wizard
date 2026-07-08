@@ -40,7 +40,7 @@ export class Submit implements Command {
       Log.throw("Cannot submit anonymous message. Message option is missing.");
     }
     const submissionChannelId: string | null =
-      await this.__getSubmissionChannelId(message);
+      this.__getSubmissionChannelId(message);
     if (submissionChannelId === null) {
       await InteractionController.informError(
         message,
@@ -67,25 +67,13 @@ export class Submit implements Command {
     );
   }
 
-  private async __getSubmissionChannelId(
+  private __getSubmissionChannelId(
     message: ChannelCommandMessage,
-  ): Promise<string | null> {
-    let channelIds: string[] = ChannelCache.getChannelIds(
+  ): string | null {
+    const channelIds: string[] = ChannelCache.getChannelIds(
       message.member.guild.id,
       ANONYMOUS_SUBMISSION_CHANNEL_NAME,
     );
-    if (channelIds.length === 0) {
-      try {
-        await ChannelCache.cacheGuild(message.member.guild);
-      } catch (reason: unknown) {
-        Log.error("Could not refresh guild channel cache.", reason);
-        return null;
-      }
-      channelIds = ChannelCache.getChannelIds(
-        message.member.guild.id,
-        ANONYMOUS_SUBMISSION_CHANNEL_NAME,
-      );
-    }
     if (channelIds.length !== 1) {
       Log.error("Could not resolve submission channel.", {
         channelIds,
