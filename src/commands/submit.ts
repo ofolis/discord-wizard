@@ -2,6 +2,8 @@ import { codeBlock, escapeCodeBlock } from "discord.js";
 import { ANONYMOUS_SUBMISSION_CHANNEL_NAME } from "../constants";
 import { ChannelCache, InteractionController } from "../controllers";
 import {
+  AppError,
+  AppErrorCode,
   ChannelCommandMessage,
   Command,
   CommandOption,
@@ -55,9 +57,10 @@ export class Submit implements Command {
       );
     } catch (reason: unknown) {
       Log.error("Could not send anonymous submission.", reason);
-      const isTooLong: boolean =
-        reason instanceof Error &&
-        reason.message.includes("Description is too long");
+      const isTooLong: boolean = AppError.is(
+        reason,
+        AppErrorCode.DISCORD_CARD_DESCRIPTION_TOO_LONG,
+      );
       await InteractionController.informError(
         message,
         isTooLong

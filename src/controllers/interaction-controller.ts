@@ -1,6 +1,12 @@
 import * as discordJs from "discord.js";
 import { ICONS } from "../constants";
-import { ChannelCommandMessage, Discord, Log, Utils } from "../core";
+import {
+  AppErrorCode,
+  ChannelCommandMessage,
+  Discord,
+  Log,
+  Utils,
+} from "../core";
 import { IconName } from "../enums";
 import { VotingState } from "../saveables";
 
@@ -133,10 +139,14 @@ export class InteractionController {
       embedData.description !== undefined &&
       embedData.description.length > Discord.embedDescriptionMaxLength
     ) {
-      Log.throw("Cannot build Discord card. Description is too long.", {
-        embedData,
-        maxLength: Discord.embedDescriptionMaxLength,
-      });
+      Log.throwError(
+        AppErrorCode.DISCORD_CARD_DESCRIPTION_TOO_LONG,
+        "Cannot build Discord card. Description is too long.",
+        {
+          embedData,
+          maxLength: Discord.embedDescriptionMaxLength,
+        },
+      );
     }
     return new discordJs.EmbedBuilder(embedData);
   }

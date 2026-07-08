@@ -1,5 +1,7 @@
 import { DataController, InteractionController } from "../controllers";
 import {
+  AppError,
+  AppErrorCode,
   ChannelCommandMessage,
   Command,
   CommandOption,
@@ -74,9 +76,10 @@ export class VoteStart implements Command {
       );
     } catch (reason: unknown) {
       Log.error("Could not post vote.", reason);
-      const isTooLong: boolean =
-        reason instanceof Error &&
-        reason.message.includes("Description is too long");
+      const isTooLong: boolean = AppError.is(
+        reason,
+        AppErrorCode.DISCORD_CARD_DESCRIPTION_TOO_LONG,
+      );
       await InteractionController.informError(
         message,
         isTooLong

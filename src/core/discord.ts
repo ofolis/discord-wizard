@@ -1,5 +1,11 @@
 import * as discordJs from "discord.js";
-import { ChannelMessage, CommandOptionType, Environment, Log } from ".";
+import {
+  AppErrorCode,
+  ChannelMessage,
+  CommandOptionType,
+  Environment,
+  Log,
+} from ".";
 import { Command } from "../core";
 
 export class Discord {
@@ -215,10 +221,14 @@ export class Discord {
       channel = await this.client.channels.fetch(channelId);
     } catch (reason: unknown) {
       if (this.__isUnknownChannelError(reason)) {
-        Log.throw("Cannot get Discord channel. ID was not found.", {
-          channelId,
-          reason,
-        });
+        Log.throwError(
+          AppErrorCode.DISCORD_CHANNEL_NOT_FOUND,
+          "Cannot get Discord channel. ID was not found.",
+          {
+            channelId,
+            reason,
+          },
+        );
       }
       Log.throw("Cannot get Discord channel. Failed to fetch channel.", {
         channelId,
@@ -226,7 +236,11 @@ export class Discord {
       });
     }
     if (channel === null) {
-      Log.throw("Cannot get Discord channel. ID was not found.", { channelId });
+      Log.throwError(
+        AppErrorCode.DISCORD_CHANNEL_NOT_FOUND,
+        "Cannot get Discord channel. ID was not found.",
+        { channelId },
+      );
     }
     if (channel.type !== discordJs.ChannelType.GuildText) {
       Log.throw(
@@ -254,10 +268,14 @@ export class Discord {
       messageCreateOptions.content !== undefined &&
       messageCreateOptions.content.length > this.messageContentMaxLength
     ) {
-      Log.throw("Cannot send Discord message. Content is too long.", {
-        maxLength: this.messageContentMaxLength,
-        messageCreateOptions,
-      });
+      Log.throwError(
+        AppErrorCode.DISCORD_MESSAGE_CONTENT_TOO_LONG,
+        "Cannot send Discord message. Content is too long.",
+        {
+          maxLength: this.messageContentMaxLength,
+          messageCreateOptions,
+        },
+      );
     }
     return {
       ...messageCreateOptions,

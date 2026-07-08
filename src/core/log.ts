@@ -1,5 +1,7 @@
 import * as util from "util";
+import { AppErrorCode } from "./enums";
 import { Environment } from "./environment";
+import { AppError } from "./errors";
 
 export class Log {
   public static debug(context: unknown, ...data: unknown[]): void {
@@ -21,16 +23,21 @@ export class Log {
   }
 
   public static throw(context: unknown, ...data: unknown[]): never {
-    data.reverse().forEach(item => {
-      if (item !== "_NOT_SET_") {
-        console.error(this.__formatUnknown(item));
-      }
-    });
+    this.__logThrowData(data);
     if (typeof context === "string") {
       throw new Error(context);
     } else {
       throw context;
     }
+  }
+
+  public static throwError(
+    code: AppErrorCode,
+    message: string,
+    ...data: unknown[]
+  ): never {
+    this.__logThrowData(data);
+    throw new AppError(code, message, data);
   }
 
   private static __formatPrefix(): string {
@@ -61,6 +68,14 @@ export class Log {
     data.forEach(item => {
       if (item !== "_NOT_SET_") {
         console[method](this.__formatUnknown(item));
+      }
+    });
+  }
+
+  private static __logThrowData(data: readonly unknown[]): void {
+    [...data].reverse().forEach(item => {
+      if (item !== "_NOT_SET_") {
+        console.error(this.__formatUnknown(item));
       }
     });
   }
