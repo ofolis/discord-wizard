@@ -47,8 +47,12 @@ function initializeApp(): void {
 
   // Guild Create Event
   Discord.client.on("guildCreate", guild => {
-    ChannelCache.cacheGuild(guild)
-      .then(() => Discord.deployCommands(commands, [guild.id]))
+    ChannelCache.cacheGuild(guild).catch((reason: unknown) => {
+      Log.error("Failed to cache guild channels on guild create.", reason, {
+        guild,
+      });
+    });
+    Discord.deployCommands(commands, [guild.id])
       .then(() => {
         Log.success("Discord bot deployed to new guild.", { guild });
       })
