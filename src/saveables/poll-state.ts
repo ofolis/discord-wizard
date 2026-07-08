@@ -31,7 +31,7 @@ export class PollState implements Saveable {
       this.guildId = stateOrJson.guildId;
       this.__isOpen = stateOrJson.isOpen;
       this.__options = [...stateOrJson.options];
-      this.__votesByUserId = { ...stateOrJson.votesByUserId };
+      this.__votesByUserId = { ...(stateOrJson.votesByUserId ?? {}) };
     } else {
       this.channelId = stateOrJson.channelId;
       this.guildId = stateOrJson.guildId;

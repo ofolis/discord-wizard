@@ -4,6 +4,7 @@ import {
   Command,
   CommandOption,
   Discord,
+  Log,
 } from "../core";
 import { PollState } from "../saveables";
 
@@ -45,12 +46,21 @@ export class PollClose implements Command {
       });
       return;
     }
-    await Discord.sendChannelMessage(pollState.channelId, {
-      allowedMentions: {
-        parse: [],
-      },
-      content: pollResultsMessage,
-    });
+    try {
+      await Discord.sendChannelMessage(pollState.channelId, {
+        allowedMentions: {
+          parse: [],
+        },
+        content: pollResultsMessage,
+      });
+    } catch (reason: unknown) {
+      Log.error("Could not post poll results.", reason);
+      await message.update({
+        content:
+          "Could not post the poll results. The poll is still open. Please check the channel configuration and try again.",
+      });
+      return;
+    }
     pollState.close();
     DataController.savePollState(pollState);
     await message.update({

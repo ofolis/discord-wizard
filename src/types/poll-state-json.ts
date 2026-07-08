@@ -3,5 +3,5 @@ export type PollStateJson = {
   readonly guildId: string;
   readonly isOpen: boolean;
   readonly options: string[];
-  readonly votesByUserId: Record<string, string>;
+  readonly votesByUserId?: Record<string, string>;
 };

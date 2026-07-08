@@ -61,6 +61,9 @@ function initializeApp(): void {
 
   // Channel Create Event
   Discord.client.on("channelCreate", channel => {
+    if (!("guild" in channel)) {
+      return;
+    }
     refreshGuildChannelCache(channel.guild, { channel });
   });
 

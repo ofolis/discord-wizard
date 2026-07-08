@@ -141,7 +141,7 @@ export class Discord {
       channelId,
       messageCreateOptions,
     });
-    const channel: discordJs.TextChannel = this.__getChannel(channelId);
+    const channel: discordJs.TextChannel = await this.__getChannel(channelId);
     const message: discordJs.Message = await channel.send(messageCreateOptions);
     Log.debug("Discord message sent successfully.", { message });
     const channelMessage: ChannelMessage = new ChannelMessage(
@@ -192,15 +192,14 @@ export class Discord {
     Log.debug("Discord guild commands deployed successfully.");
   }
 
-  private static __getChannel(channelId: string): discordJs.TextChannel {
+  private static async __getChannel(
+    channelId: string,
+  ): Promise<discordJs.TextChannel> {
     Log.debug("Retrieving Discord channel...", { channelId });
-    const channel: discordJs.Channel | undefined =
-      this.client.channels.cache.get(channelId);
-    if (channel === undefined) {
-      Log.throw(
-        "Cannot get Discord channel. ID was not found in the channel cache.",
-        { channelId },
-      );
+    const channel: discordJs.Channel | null =
+      await this.client.channels.fetch(channelId);
+    if (channel === null) {
+      Log.throw("Cannot get Discord channel. ID was not found.", { channelId });
     }
     if (channel.type !== discordJs.ChannelType.GuildText) {
       Log.throw(

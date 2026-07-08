@@ -44,14 +44,9 @@ export class Submit implements Command {
     if (submittedMessage === undefined) {
       Log.throw("Cannot submit anonymous message. Message option is missing.");
     }
-    let submissionChannelId: string;
-    try {
-      submissionChannelId = ChannelCache.getChannelId(
-        message.member.guild.id,
-        ANONYMOUS_SUBMISSION_CHANNEL_NAME,
-      );
-    } catch (reason: unknown) {
-      Log.error("Could not resolve submission channel.", reason);
+    const submissionChannelId: string | null =
+      await this.__getSubmissionChannelId(message);
+    if (submissionChannelId === null) {
       await message.update({
         content: `Could not find exactly one \`${ANONYMOUS_SUBMISSION_CHANNEL_NAME}\` text channel. Please check the server configuration.`,
       });
@@ -67,14 +62,53 @@ export class Submit implements Command {
       });
       return;
     }
-    await Discord.sendChannelMessage(submissionChannelId, {
-      allowedMentions: {
-        parse: [],
-      },
-      content: formattedSubmission,
-    });
+    try {
+      await Discord.sendChannelMessage(submissionChannelId, {
+        allowedMentions: {
+          parse: [],
+        },
+        content: formattedSubmission,
+      });
+    } catch (reason: unknown) {
+      Log.error("Could not send anonymous submission.", reason);
+      await message.update({
+        content:
+          "Could not send your submission. Please check the server configuration and try again.",
+      });
+      return;
+    }
     await message.update({
       content: "Your message was submitted anonymously.",
     });
+  }
+
+  private async __getSubmissionChannelId(
+    message: ChannelCommandMessage,
+  ): Promise<string | null> {
+    let channelIds: string[] = ChannelCache.getChannelIds(
+      message.member.guild.id,
+      ANONYMOUS_SUBMISSION_CHANNEL_NAME,
+    );
+    if (channelIds.length === 0) {
+      try {
+        await ChannelCache.cacheGuild(message.member.guild);
+      } catch (reason: unknown) {
+        Log.error("Could not refresh guild channel cache.", reason);
+        return null;
+      }
+      channelIds = ChannelCache.getChannelIds(
+        message.member.guild.id,
+        ANONYMOUS_SUBMISSION_CHANNEL_NAME,
+      );
+    }
+    if (channelIds.length !== 1) {
+      Log.error("Could not resolve submission channel.", {
+        channelIds,
+        channelName: ANONYMOUS_SUBMISSION_CHANNEL_NAME,
+        guildId: message.member.guild.id,
+      });
+      return null;
+    }
+    return channelIds[0];
   }
 }
