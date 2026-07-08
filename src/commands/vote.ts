@@ -57,7 +57,16 @@ export class Vote implements Command {
       return;
     }
 
-    DataController.saveVotingState(votingState);
+    try {
+      DataController.saveVotingState(votingState);
+    } catch (reason: unknown) {
+      Log.error("Could not save vote.", reason);
+      await InteractionController.informError(
+        message,
+        "Could not save your vote. Contact an admin.",
+      );
+      return;
+    }
     try {
       await InteractionController.updateVoteStart(votingState);
     } catch (reason: unknown) {

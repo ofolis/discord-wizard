@@ -70,24 +70,51 @@ export class VoteStart implements Command {
       options: parsedOptions,
     });
     try {
-      const voteMessage: ChannelMessage =
-        await InteractionController.announceVoteStart(
-          message.channelId,
-          votingState,
-        );
-      votingState.messageId = voteMessage.id;
       DataController.saveVotingState(votingState);
+    } catch (reason: unknown) {
+      Log.error("Could not save vote.", reason);
+      await InteractionController.informError(
+        message,
+        "Could not start the vote. Contact an admin.",
+      );
+      return;
+    }
+
+    let voteMessage: ChannelMessage;
+    try {
+      voteMessage = await InteractionController.announceVoteStart(
+        message.channelId,
+        votingState,
+      );
     } catch (reason: unknown) {
       Log.error("Could not post vote.", reason);
       const isTooLong: boolean = AppError.is(
         reason,
         AppErrorCode.DISCORD_CARD_DESCRIPTION_TOO_LONG,
       );
+      votingState.close();
+      try {
+        DataController.saveVotingState(votingState);
+      } catch (rollbackReason: unknown) {
+        Log.error("Could not close failed vote.", rollbackReason);
+      }
       await InteractionController.informError(
         message,
         isTooLong
           ? "Vote options are too long to display. Please shorten the options and try again."
           : "Could not post the vote. Contact an admin.",
+      );
+      return;
+    }
+
+    votingState.messageId = voteMessage.id;
+    try {
+      DataController.saveVotingState(votingState);
+    } catch (reason: unknown) {
+      Log.error("Could not save vote message ID.", reason);
+      await InteractionController.informError(
+        message,
+        "Vote started, but the vote message could not be saved for total updates. Contact an admin.",
       );
       return;
     }
