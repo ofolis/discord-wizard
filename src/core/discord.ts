@@ -174,9 +174,9 @@ export class Discord {
   public static async updateChannelMessage(
     channelId: string,
     messageId: string,
-    options: discordJs.BaseMessageOptions,
+    options: discordJs.MessageEditOptions,
   ): Promise<void> {
-    const safeOptions: discordJs.BaseMessageOptions =
+    const safeOptions: discordJs.MessageEditOptions =
       this.__sanitizeBaseMessageOptions(options);
     Log.debug("Updating Discord channel message...", {
       channelId,
@@ -279,16 +279,16 @@ export class Discord {
     );
   }
 
-  private static __sanitizeBaseMessageOptions(
-    options: discordJs.BaseMessageOptions,
-  ): discordJs.BaseMessageOptions {
+  private static __sanitizeBaseMessageOptions<
+    T extends { allowedMentions?: discordJs.MessageMentionOptions },
+  >(options: T): T {
     return {
       ...options,
       allowedMentions: {
         ...(options.allowedMentions ?? {}),
         parse: [],
       },
-    };
+    } as T;
   }
 
   private static __sanitizeMessageCreateOptions(

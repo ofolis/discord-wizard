@@ -92,17 +92,17 @@ export class VoteStart implements Command {
         reason,
         AppErrorCode.DISCORD_CARD_DESCRIPTION_TOO_LONG,
       );
+      let didCloseFailedVote: boolean = true;
       votingState.close();
       try {
         DataController.saveVotingState(votingState);
       } catch (rollbackReason: unknown) {
+        didCloseFailedVote = false;
         Log.error("Could not close failed vote.", rollbackReason);
       }
       await InteractionController.informError(
         message,
-        isTooLong
-          ? "Vote options are too long to display. Please shorten the options and try again."
-          : "Could not post the vote. Contact an admin.",
+        this.__formatPostVoteError(isTooLong, didCloseFailedVote),
       );
       return;
     }
@@ -119,6 +119,19 @@ export class VoteStart implements Command {
       return;
     }
     await InteractionController.informSuccess(message, "Vote started.");
+  }
+
+  private __formatPostVoteError(
+    isTooLong: boolean,
+    didCloseFailedVote: boolean,
+  ): string {
+    if (!didCloseFailedVote) {
+      return "Could not post the vote, and the failed vote could not be closed. Contact an admin.";
+    }
+    if (isTooLong) {
+      return "Vote options are too long to display. Please shorten the options and try again.";
+    }
+    return "Could not post the vote. Contact an admin.";
   }
 
   private __parseOptions(optionString: string | undefined): string[] {
