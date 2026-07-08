@@ -88,7 +88,7 @@ export abstract class Message {
     return {
       ...options,
       allowedMentions: {
-        ...options.allowedMentions,
+        ...(options.allowedMentions ?? {}),
         parse: [],
       },
     };

@@ -280,7 +280,7 @@ export class Discord {
     return {
       ...messageCreateOptions,
       allowedMentions: {
-        ...messageCreateOptions.allowedMentions,
+        ...(messageCreateOptions.allowedMentions ?? {}),
         parse: [],
       },
     };
