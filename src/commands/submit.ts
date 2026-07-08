@@ -11,6 +11,7 @@ import {
 } from "../core";
 
 const messageOptionName: string = "message";
+const discordMessageMaxLength: number = 2000;
 const submissionMessageMaxLength: number = 1900;
 
 export class Submit implements Command {
@@ -47,8 +48,21 @@ export class Submit implements Command {
       message.member.guild.id,
       ANONYMOUS_SUBMISSION_CHANNEL_NAME,
     );
+    const formattedSubmission: string = `New Submission:\n${codeBlock(
+      escapeCodeBlock(submittedMessage),
+    )}`;
+    if (formattedSubmission.length > discordMessageMaxLength) {
+      await message.update({
+        content:
+          "Your message was too long to submit after formatting. Please shorten it and try again.",
+      });
+      return;
+    }
     await Discord.sendChannelMessage(submissionChannelId, {
-      content: `New Submission:\n${codeBlock(escapeCodeBlock(submittedMessage))}`,
+      allowedMentions: {
+        parse: [],
+      },
+      content: formattedSubmission,
     });
     await message.update({
       content: "Your message was submitted anonymously.",

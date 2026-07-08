@@ -15,7 +15,10 @@ export class ChannelCache {
     > = await guild.channels.fetch();
     const channelIdsByName: Map<string, string[]> = new Map();
     channels.forEach(channel => {
-      if (channel === null) {
+      if (
+        channel === null ||
+        channel.type !== discordJs.ChannelType.GuildText
+      ) {
         return;
       }
       const channelIds: string[] = channelIdsByName.get(channel.name) ?? [];
@@ -32,7 +35,13 @@ export class ChannelCache {
   public static async cacheGuilds(
     guilds: Iterable<discordJs.Guild>,
   ): Promise<void> {
-    await Promise.all(Array.from(guilds).map(guild => this.cacheGuild(guild)));
+    for (const guild of guilds) {
+      try {
+        await this.cacheGuild(guild);
+      } catch (reason: unknown) {
+        Log.error("Could not cache guild channels.", reason, { guild });
+      }
+    }
   }
 
   public static getChannelId(guildId: string, channelName: string): string {

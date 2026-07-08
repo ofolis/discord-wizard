@@ -1,3 +1,4 @@
+import * as discordJs from "discord.js";
 import { PollClose, PollOpen, Submit, Vote } from "./commands";
 import { ChannelCache } from "./controllers";
 import {
@@ -14,6 +15,15 @@ const commands: Command[] = [
   new Vote(),
   new PollClose(),
 ];
+
+function refreshGuildChannelCache(
+  guild: discordJs.Guild,
+  context: Record<string, unknown>,
+): void {
+  ChannelCache.cacheGuild(guild).catch((reason: unknown) => {
+    Log.error("Failed to refresh guild channel cache.", reason, context);
+  });
+}
 
 function initializeApp(): void {
   if (Environment.config.devMode) {
@@ -47,6 +57,27 @@ function initializeApp(): void {
           guild,
         });
       });
+  });
+
+  // Channel Create Event
+  Discord.client.on("channelCreate", channel => {
+    refreshGuildChannelCache(channel.guild, { channel });
+  });
+
+  // Channel Delete Event
+  Discord.client.on("channelDelete", channel => {
+    if (!("guild" in channel)) {
+      return;
+    }
+    refreshGuildChannelCache(channel.guild, { channel });
+  });
+
+  // Channel Update Event
+  Discord.client.on("channelUpdate", (oldChannel, newChannel) => {
+    if (!("guild" in newChannel)) {
+      return;
+    }
+    refreshGuildChannelCache(newChannel.guild, { newChannel, oldChannel });
   });
 
   // Interaction Create Event
