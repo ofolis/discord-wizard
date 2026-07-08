@@ -246,7 +246,8 @@ export class Discord {
     }
     return {
       ...messageCreateOptions,
-      allowedMentions: messageCreateOptions.allowedMentions ?? {
+      allowedMentions: {
+        ...messageCreateOptions.allowedMentions,
         parse: [],
       },
     };
