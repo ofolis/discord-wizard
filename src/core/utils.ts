@@ -1,4 +1,5 @@
-import { Json, Log } from ".";
+import type { Json } from ".";
+import { Log } from ".";
 
 export class Utils {
   public static emptyArray(array: unknown[]): void {

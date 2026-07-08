@@ -61,16 +61,18 @@ export abstract class Message {
   }
 
   public async update(options: discordJs.BaseMessageOptions): Promise<void> {
-    Log.debug("Updating Discord message...", { options });
+    const safeOptions: discordJs.BaseMessageOptions =
+      this.__sanitizeBaseMessageOptions(options);
+    Log.debug("Updating Discord message...", { options: safeOptions });
     if (
       this._currentEntity instanceof discordJs.InteractionResponse ||
       this._currentEntity instanceof discordJs.Message
     ) {
-      await this._currentEntity.edit(options);
+      await this._currentEntity.edit(safeOptions);
     } else if (
       this._currentEntity instanceof discordJs.MessageComponentInteraction
     ) {
-      this._currentEntity = await this._currentEntity.update(options);
+      this._currentEntity = await this._currentEntity.update(safeOptions);
     } else {
       Log.throw(
         "Cannot update message. Current entity is not an interaction response, message, or message component interaction.",
@@ -78,5 +80,17 @@ export abstract class Message {
       );
     }
     Log.debug("Discord message updated successfully.");
+  }
+
+  private __sanitizeBaseMessageOptions(
+    options: discordJs.BaseMessageOptions,
+  ): discordJs.BaseMessageOptions {
+    return {
+      ...options,
+      allowedMentions: {
+        ...(options.allowedMentions ?? {}),
+        parse: [],
+      },
+    };
   }
 }

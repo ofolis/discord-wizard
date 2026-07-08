@@ -1,6 +1,7 @@
 import * as discordJs from "discord.js";
 import { ChannelMessage } from ".";
-import { CommandOptionType, CommandOptionTypeMap, Log } from "../..";
+import type { CommandOptionTypeMap } from "../..";
+import { CommandOptionType, Log } from "../..";
 
 export class ChannelCommandMessage extends ChannelMessage {
   private __commandOptions: discordJs.CommandInteractionOption[] | undefined;

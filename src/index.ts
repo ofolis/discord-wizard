@@ -1,4 +1,5 @@
-import { Ping } from "./commands";
+import { Submit, Vote, VoteEnd, VoteStart } from "./commands";
+import { ChannelCache } from "./controllers";
 import {
   ChannelCommandMessage,
   Command,
@@ -7,7 +8,12 @@ import {
   Log,
 } from "./core";
 
-const commands: Command[] = [new Ping()];
+const commands: Command[] = [
+  new Submit(),
+  new Vote(),
+  new VoteEnd(),
+  new VoteStart(),
+];
 
 function initializeApp(): void {
   if (Environment.config.devMode) {
@@ -19,6 +25,11 @@ function initializeApp(): void {
 
   // Ready Event
   Discord.client.once("ready", () => {
+    ChannelCache.cacheGuilds(Discord.client.guilds.cache.values()).catch(
+      (reason: unknown) => {
+        Log.error("Failed to cache guild channels on ready.", reason);
+      },
+    );
     Discord.deployCommands(commands)
       .then(() => {
         Log.success("Discord bot is ready.");
@@ -30,6 +41,11 @@ function initializeApp(): void {
 
   // Guild Create Event
   Discord.client.on("guildCreate", guild => {
+    ChannelCache.cacheGuild(guild).catch((reason: unknown) => {
+      Log.error("Failed to cache guild channels on guild create.", reason, {
+        guild,
+      });
+    });
     Discord.deployCommands(commands, [guild.id])
       .then(() => {
         Log.success("Discord bot deployed to new guild.", { guild });
@@ -39,6 +55,11 @@ function initializeApp(): void {
           guild,
         });
       });
+  });
+
+  // Guild Delete Event
+  Discord.client.on("guildDelete", guild => {
+    ChannelCache.removeGuild(guild.id);
   });
 
   // Interaction Create Event

@@ -1,7 +1,8 @@
 import * as discordJs from "discord.js";
 import { UserState } from ".";
-import { ChannelCommandMessage, Json, Log, Saveable, Utils } from "../core";
-import { ChannelStateJson, UserStateJson } from "../types";
+import type { Json, Saveable } from "../core";
+import { ChannelCommandMessage, Log, Utils } from "../core";
+import type { ChannelStateJson, UserStateJson } from "../types";
 
 export class ChannelState implements Saveable {
   public readonly channelId: string;

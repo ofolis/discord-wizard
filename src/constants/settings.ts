@@ -1,1 +1,1 @@
-export const PONG_RESPONSE: string = "PONG!";
+export const ANONYMOUS_SUBMISSION_CHANNEL_NAME: string = "submissions";

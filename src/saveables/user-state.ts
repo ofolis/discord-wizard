@@ -1,6 +1,7 @@
 import * as discordJs from "discord.js";
-import { Json, Saveable, Utils } from "../core";
-import { UserStateJson } from "../types";
+import type { Json, Saveable } from "../core";
+import { Utils } from "../core";
+import type { UserStateJson } from "../types";
 
 export class UserState implements Saveable {
   public readonly id: string;

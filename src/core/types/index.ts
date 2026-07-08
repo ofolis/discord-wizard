@@ -1,4 +1,4 @@
-export { CommandOption, CommandOptionTypeMap } from "./command-option";
-export { Config } from "./config";
-export { Json } from "./json";
-export { PackageContext } from "./package-context";
+export type { CommandOption, CommandOptionTypeMap } from "./command-option";
+export type { Config } from "./config";
+export type { Json } from "./json";
+export type { PackageContext } from "./package-context";

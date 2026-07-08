@@ -1,8 +1,18 @@
 import * as discordJs from "discord.js";
-import { ChannelMessage, CommandOptionType, Environment, Log } from ".";
+import {
+  AppErrorCode,
+  ChannelMessage,
+  CommandOptionType,
+  Environment,
+  Log,
+} from ".";
 import { Command } from "../core";
 
 export class Discord {
+  public static readonly embedDescriptionMaxLength: number = 4096;
+
+  public static readonly messageContentMaxLength: number = 2000;
+
   private static __client: discordJs.Client | null = null;
 
   public static get client(): discordJs.Client {
@@ -64,14 +74,20 @@ export class Discord {
             );
             break;
           case CommandOptionType.STRING:
-            slashCommandBuilder.addStringOption(stringOption =>
-              stringOption
-                .setName(option.name)
-                .setDescription(option.description)
-                .setRequired(option.isRequired)
-                .setMaxLength(option.maxLength)
-                .setMinLength(option.minLength),
-            );
+            slashCommandBuilder.addStringOption(stringOption => {
+              const stringOptionBuilder: discordJs.SlashCommandStringOption =
+                stringOption
+                  .setName(option.name)
+                  .setDescription(option.description)
+                  .setRequired(option.isRequired);
+              if (option.maxLength !== undefined) {
+                stringOptionBuilder.setMaxLength(option.maxLength);
+              }
+              if (option.minLength !== undefined) {
+                stringOptionBuilder.setMinLength(option.minLength);
+              }
+              return stringOptionBuilder;
+            });
             break;
           default:
             Log.throw("Cannot build command. Unknown command option type.", {
@@ -137,12 +153,16 @@ export class Discord {
     channelId: string,
     messageCreateOptions: discordJs.MessageCreateOptions,
   ): Promise<ChannelMessage> {
+    const safeMessageCreateOptions: discordJs.MessageCreateOptions =
+      this.__sanitizeMessageCreateOptions(messageCreateOptions);
     Log.debug("Sending Discord channel message...", {
       channelId,
-      messageCreateOptions,
+      messageCreateOptions: safeMessageCreateOptions,
     });
-    const channel: discordJs.TextChannel = this.__getChannel(channelId);
-    const message: discordJs.Message = await channel.send(messageCreateOptions);
+    const channel: discordJs.TextChannel = await this.__getChannel(channelId);
+    const message: discordJs.Message = await channel.send(
+      safeMessageCreateOptions,
+    );
     Log.debug("Discord message sent successfully.", { message });
     const channelMessage: ChannelMessage = new ChannelMessage(
       message,
@@ -192,13 +212,33 @@ export class Discord {
     Log.debug("Discord guild commands deployed successfully.");
   }
 
-  private static __getChannel(channelId: string): discordJs.TextChannel {
+  private static async __getChannel(
+    channelId: string,
+  ): Promise<discordJs.TextChannel> {
     Log.debug("Retrieving Discord channel...", { channelId });
-    const channel: discordJs.Channel | undefined =
-      this.client.channels.cache.get(channelId);
-    if (channel === undefined) {
-      Log.throw(
-        "Cannot get Discord channel. ID was not found in the channel cache.",
+    let channel: discordJs.Channel | null;
+    try {
+      channel = await this.client.channels.fetch(channelId);
+    } catch (reason: unknown) {
+      if (this.__isUnknownChannelError(reason)) {
+        Log.throwError(
+          AppErrorCode.DISCORD_CHANNEL_NOT_FOUND,
+          "Cannot get Discord channel. ID was not found.",
+          {
+            channelId,
+            reason,
+          },
+        );
+      }
+      Log.throw("Cannot get Discord channel. Failed to fetch channel.", {
+        channelId,
+        reason,
+      });
+    }
+    if (channel === null) {
+      Log.throwError(
+        AppErrorCode.DISCORD_CHANNEL_NOT_FOUND,
+        "Cannot get Discord channel. ID was not found.",
         { channelId },
       );
     }
@@ -210,5 +250,39 @@ export class Discord {
     }
     Log.debug("Discord channel retrieved successfully.", { channel });
     return channel;
+  }
+
+  private static __isUnknownChannelError(reason: unknown): boolean {
+    return (
+      typeof reason === "object" &&
+      reason !== null &&
+      "code" in reason &&
+      reason.code === 10003
+    );
+  }
+
+  private static __sanitizeMessageCreateOptions(
+    messageCreateOptions: discordJs.MessageCreateOptions,
+  ): discordJs.MessageCreateOptions {
+    if (
+      messageCreateOptions.content !== undefined &&
+      messageCreateOptions.content.length > this.messageContentMaxLength
+    ) {
+      Log.throwError(
+        AppErrorCode.DISCORD_MESSAGE_CONTENT_TOO_LONG,
+        "Cannot send Discord message. Content is too long.",
+        {
+          maxLength: this.messageContentMaxLength,
+          messageCreateOptions,
+        },
+      );
+    }
+    return {
+      ...messageCreateOptions,
+      allowedMentions: {
+        ...(messageCreateOptions.allowedMentions ?? {}),
+        parse: [],
+      },
+    };
   }
 }

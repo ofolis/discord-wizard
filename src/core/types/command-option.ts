@@ -18,8 +18,8 @@ export type CommandOption =
   | {
       readonly description: string;
       readonly isRequired: boolean;
-      readonly maxLength: number;
-      readonly minLength: number;
+      readonly maxLength?: number;
+      readonly minLength?: number;
       readonly name: string;
       readonly type: CommandOptionType.STRING;
     };
