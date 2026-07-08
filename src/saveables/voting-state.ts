@@ -1,5 +1,6 @@
-import { Json, Log, Saveable } from "../core";
-import { VotingStateJson } from "../types";
+import type { Json, Saveable } from "../core";
+import { Log } from "../core";
+import type { VotingStateJson } from "../types";
 
 type VotingOptionResult = {
   readonly letter: string;

@@ -1,4 +1,5 @@
-import { IO, Json, Log } from "../core";
+import type { Json } from "../core";
+import { IO, Log } from "../core";
 import { ChannelState, VotingState } from "../saveables";
 
 export class DataController {

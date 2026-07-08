@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import { Environment } from "./environment";
 import { Log } from "./log";
-import { Json } from "./types";
+import type { Json } from "./types";
 
 export class IO {
   public static loadData(id: string): Json | null {

@@ -1,5 +1,5 @@
 import { ChannelCommandMessage } from ".";
-import { CommandOption } from "../types";
+import type { CommandOption } from "../types";
 
 export abstract class Command {
   abstract description: string;

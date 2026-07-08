@@ -1,6 +1,7 @@
 import * as discordJs from "discord.js";
 import { DirectMessage } from ".";
-import { CommandOptionType, CommandOptionTypeMap, Log } from "../..";
+import type { CommandOptionTypeMap } from "../..";
+import { CommandOptionType, Log } from "../..";
 
 export class DirectCommandMessage extends DirectMessage {
   private __commandOptions: discordJs.CommandInteractionOption[] | undefined;
