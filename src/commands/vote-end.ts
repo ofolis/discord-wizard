@@ -55,7 +55,16 @@ export class VoteEnd implements Command {
       );
       if (isMissingChannel) {
         votingState.close();
-        DataController.saveVotingState(votingState);
+        try {
+          DataController.saveVotingState(votingState);
+        } catch (saveReason: unknown) {
+          Log.error("Could not close vote after missing channel.", saveReason);
+          await InteractionController.informError(
+            message,
+            "Could not post the vote results, and the vote could not be ended. Contact an admin.",
+          );
+          return;
+        }
         await InteractionController.informError(
           message,
           "Could not post the vote results because the vote channel no longer exists. The vote has been ended.",
@@ -74,7 +83,16 @@ export class VoteEnd implements Command {
       return;
     }
     votingState.close();
-    DataController.saveVotingState(votingState);
+    try {
+      DataController.saveVotingState(votingState);
+    } catch (reason: unknown) {
+      Log.error("Could not close vote after posting results.", reason);
+      await InteractionController.informError(
+        message,
+        "Vote results were posted, but the vote could not be ended. Contact an admin.",
+      );
+      return;
+    }
     await InteractionController.informSuccess(message, "Vote ended.");
   }
 }
