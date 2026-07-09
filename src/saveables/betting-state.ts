@@ -324,6 +324,13 @@ export class BettingState implements Saveable {
         userId,
       });
     }
+    const betOption: {
+      readonly letter: string;
+      readonly option: string;
+    } | null = this.__getBetOption(letter);
+    if (betOption === null) {
+      return null;
+    }
     if (amountCents === 0) {
       const existingBet: Bet | null = Object.hasOwn(this.__betsByUserId, userId)
         ? this.__betsByUserId[userId]
@@ -334,13 +341,6 @@ export class BettingState implements Saveable {
         return "";
       }
       return this.__options[this.__letterToIndex(existingBet.letter)];
-    }
-    const betOption: {
-      readonly letter: string;
-      readonly option: string;
-    } | null = this.__getBetOption(letter);
-    if (betOption === null) {
-      return null;
     }
     this.__betsByUserId[userId] = {
       amountCents,
