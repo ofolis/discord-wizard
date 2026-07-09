@@ -8,6 +8,10 @@ import {
 } from ".";
 import { Command } from "../core";
 
+type GuildMembersOptions = {
+  readonly includeBots?: boolean;
+};
+
 export class Discord {
   public static readonly embedDescriptionMaxLength: number = 4096;
 
@@ -157,10 +161,11 @@ export class Discord {
     return user.globalName ?? user.username;
   }
 
-  public static async getHumanGuildMembers(
+  public static async getGuildMembers(
     guildId: string,
+    options: GuildMembersOptions = {},
   ): Promise<discordJs.GuildMember[]> {
-    Log.debug("Retrieving Discord guild human members...", { guildId });
+    Log.debug("Retrieving Discord guild members...", { guildId, options });
     const guild: discordJs.Guild = await this.client.guilds.fetch(guildId);
     const members: discordJs.Collection<string, discordJs.GuildMember> =
       new discordJs.Collection();
@@ -178,22 +183,24 @@ export class Discord {
       after = page.last()?.id;
     } while (page.size === 1000 && after !== undefined);
 
-    const humanMembers: discordJs.GuildMember[] = members
-      .filter(member => !member.user.bot)
+    const filteredMembers: discordJs.GuildMember[] = members
+      .filter(member => options.includeBots === true || !member.user.bot)
       .map(member => member);
-    Log.debug("Discord guild human members retrieved successfully.", {
+    Log.debug("Discord guild members retrieved successfully.", {
       guildId,
-      memberCount: humanMembers.length,
+      memberCount: filteredMembers.length,
     });
-    return humanMembers;
+    return filteredMembers;
   }
 
-  public static async getHumanGuildMembersByIds(
+  public static async getGuildMembersByIds(
     guildId: string,
     userIds: string[],
+    options: GuildMembersOptions = {},
   ): Promise<discordJs.GuildMember[]> {
-    Log.debug("Retrieving Discord guild human members by id...", {
+    Log.debug("Retrieving Discord guild members by id...", {
       guildId,
+      options,
       userIds,
     });
     const guild: discordJs.Guild = await this.client.guilds.fetch(guildId);
@@ -205,7 +212,7 @@ export class Discord {
           force: true,
           user: userId,
         });
-        if (!member.user.bot) {
+        if (options.includeBots === true || !member.user.bot) {
           members.push(member);
         }
       } catch (reason: unknown) {
@@ -216,7 +223,7 @@ export class Discord {
         });
       }
     }
-    Log.debug("Discord guild human members retrieved successfully.", {
+    Log.debug("Discord guild members retrieved successfully.", {
       guildId,
       memberCount: members.length,
     });

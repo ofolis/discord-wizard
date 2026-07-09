@@ -42,9 +42,9 @@ export class Money implements Command {
     const rankingUserIds: string[] = [...new Set([...rankedUserIds, userId])];
     const rankingUserIdSet: Set<string> = new Set(rankingUserIds);
 
-    let members: Awaited<ReturnType<typeof Discord.getHumanGuildMembersByIds>>;
+    let members: Awaited<ReturnType<typeof Discord.getGuildMembersByIds>>;
     try {
-      members = await Discord.getHumanGuildMembersByIds(
+      members = await Discord.getGuildMembersByIds(
         message.member.guild.id,
         rankingUserIds,
       );
