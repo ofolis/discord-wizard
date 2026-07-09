@@ -6,7 +6,7 @@ import {
 import { ChannelCommandMessage, Command, CommandOption, Log } from "../core";
 import { MoneyState } from "../saveables";
 
-const maxMoneyRankingEntries: number = 25;
+const maxMoneyRankingEntries: number = 100;
 type BalanceEntry = ReturnType<MoneyState["getBalanceEntries"]>[number];
 type GuildMembers = Awaited<
   ReturnType<typeof GuildMemberController.getGuildMembersByIds>
@@ -54,16 +54,8 @@ export class Money implements Command {
       );
       return;
     }
-    const displayedUserIdSet: Set<string> = new Set(
-      members.map(member => member.id),
-    );
 
     await InteractionController.showMoney(message, {
-      hiddenRankingEntryCount: Math.max(
-        0,
-        balanceEntries.filter(entry => !displayedUserIdSet.has(entry.userId))
-          .length,
-      ),
       members,
       moneyState,
       userId,

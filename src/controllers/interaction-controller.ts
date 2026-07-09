@@ -215,7 +215,6 @@ export class InteractionController {
   public static async showMoney(
     message: ChannelCommandMessage,
     data: {
-      readonly hiddenRankingEntryCount: number;
       readonly members: discordJs.GuildMember[];
       readonly moneyState: MoneyState;
       readonly userId: string;
@@ -227,11 +226,7 @@ export class InteractionController {
         "### Your Balance",
         `# ${MoneyUtils.format(data.moneyState.getBalance(data.userId))}`,
         "### Server Ranking",
-        this.__formatMoneyRankingsString(
-          data.members,
-          data.moneyState,
-          data.hiddenRankingEntryCount,
-        ),
+        this.__formatMoneyRankingsString(data.members, data.moneyState),
       ]),
     });
   }
@@ -391,7 +386,6 @@ export class InteractionController {
   private static __formatMoneyRankingsString(
     members: discordJs.GuildMember[],
     moneyState: MoneyState,
-    hiddenEntryCount: number,
   ): string {
     const rankedEntries: MoneyRankingEntry[] = members
       .map(member => ({
@@ -418,9 +412,6 @@ export class InteractionController {
         }
         return `- **${entry.displayName}**${badges.length > 0 ? ` ${badges.join(" ")}` : ""} - \`${MoneyUtils.format(entry.balanceCents)}\``;
       }),
-      hiddenEntryCount > 0
-        ? `- ...and ${hiddenEntryCount.toString()} more.`
-        : null,
     ]);
   }
 
