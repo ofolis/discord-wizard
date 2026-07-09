@@ -47,6 +47,13 @@ export class BetEnd implements Command {
     const winnerLetters: string[] = this.__parseWinners(
       message.getCommandOption(winnersOptionName, CommandOptionType.STRING),
     );
+    if (winnerLetters.length === 0) {
+      await InteractionController.informError(
+        message,
+        "Enter at least one winning option letter.",
+      );
+      return;
+    }
     let payouts: ReturnType<BettingState["calculatePayouts"]>;
     try {
       payouts = bettingState.calculatePayouts(winnerLetters);

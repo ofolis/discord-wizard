@@ -28,20 +28,20 @@ export class Bet implements Command {
 
   public readonly options: CommandOption[] = [
     {
-      description: "The bet option letter.",
-      isRequired: true,
-      maxLength: 1,
-      minLength: 1,
-      name: letterOptionName,
-      type: CommandOptionType.STRING,
-    },
-    {
       description: "The money amount to wager. Use 0 to remove your wager.",
       isRequired: true,
       maxValue: Number.MAX_SAFE_INTEGER / 100,
       minValue: 0,
       name: amountOptionName,
       type: CommandOptionType.NUMBER,
+    },
+    {
+      description: "The bet option letter.",
+      isRequired: false,
+      maxLength: 1,
+      minLength: 1,
+      name: letterOptionName,
+      type: CommandOptionType.STRING,
     },
   ];
 
@@ -67,6 +67,17 @@ export class Bet implements Command {
       );
       return;
     }
+    const letter: string | undefined = message.getCommandOption(
+      letterOptionName,
+      CommandOptionType.STRING,
+    );
+    if (amountCents > 0 && letter === undefined) {
+      await InteractionController.informError(
+        message,
+        "Choose a bet option letter.",
+      );
+      return;
+    }
 
     const userId: string = message.user.id;
     const previousWagerCents: number =
@@ -87,7 +98,7 @@ export class Bet implements Command {
 
     const option: string | null = bettingState.placeWager(
       userId,
-      message.getCommandOption(letterOptionName, CommandOptionType.STRING),
+      letter,
       amountCents,
     );
     if (option === null) {

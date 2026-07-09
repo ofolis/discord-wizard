@@ -57,6 +57,13 @@ export class BetAll implements Command {
     const previousMoneyStateJson: Json = moneyState.toJson();
     const amountCents: number =
       moneyState.getBalance(userId) + previousWagerCents;
+    if (amountCents === 0 && previousWagerCents === 0) {
+      await InteractionController.informError(
+        message,
+        "You do not have any money to wager.",
+      );
+      return;
+    }
 
     const option: string | null = bettingState.placeWager(
       userId,
