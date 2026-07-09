@@ -8,6 +8,7 @@ import {
   CommandOption,
   CommandOptionType,
   Log,
+  Utils,
 } from "../core";
 import { BettingState } from "../saveables";
 import { AdminUtils } from "./admin-utils";
@@ -49,7 +50,7 @@ export class BetStart implements Command {
       return;
     }
 
-    const parsedOptions: string[] = this.__parseOptions(
+    const parsedOptions: string[] = Utils.parseCommaSeparatedList(
       message.getCommandOption(optionsOptionName, CommandOptionType.STRING),
     );
     if (parsedOptions.length < BettingState.minOptionCount) {
@@ -94,7 +95,7 @@ export class BetStart implements Command {
       Log.error("Could not post bet.", reason);
       const isTooLong: boolean = AppError.is(
         reason,
-        AppErrorCode.DISCORD_CARD_DESCRIPTION_TOO_LONG,
+        AppErrorCode.DISCORD_EMBED_DESCRIPTION_TOO_LONG,
       );
       let didCloseFailedBet: boolean = true;
       bettingState.close();
@@ -136,15 +137,5 @@ export class BetStart implements Command {
       return "Bet options are too long to display. Please shorten the options and try again.";
     }
     return "Could not post the bet. Contact an admin.";
-  }
-
-  private __parseOptions(optionString: string | undefined): string[] {
-    if (optionString === undefined) {
-      return [];
-    }
-    return optionString
-      .split(",")
-      .map(option => option.trim())
-      .filter(option => option.length > 0);
   }
 }

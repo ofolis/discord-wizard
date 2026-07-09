@@ -6,6 +6,7 @@ import {
   CommandOptionType,
   Json,
   Log,
+  Utils,
 } from "../core";
 import { BettingState, MoneyState } from "../saveables";
 import { AdminUtils } from "./admin-utils";
@@ -44,7 +45,7 @@ export class BetEnd implements Command {
       return;
     }
 
-    const winnerLetters: string[] = this.__parseWinners(
+    const winnerLetters: string[] = Utils.parseCommaSeparatedList(
       message.getCommandOption(winnersOptionName, CommandOptionType.STRING),
     );
     if (winnerLetters.length === 0) {
@@ -155,15 +156,5 @@ export class BetEnd implements Command {
         letter: summary.letter,
         option: summary.option,
       }));
-  }
-
-  private __parseWinners(winnerString: string | undefined): string[] {
-    if (winnerString === undefined) {
-      return [];
-    }
-    return winnerString
-      .split(",")
-      .map(winner => winner.trim())
-      .filter(winner => winner.length > 0);
   }
 }

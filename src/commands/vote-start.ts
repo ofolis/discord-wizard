@@ -8,6 +8,7 @@ import {
   CommandOption,
   CommandOptionType,
   Log,
+  Utils,
 } from "../core";
 import { VotingState } from "../saveables";
 import { AdminUtils } from "./admin-utils";
@@ -49,11 +50,9 @@ export class VoteStart implements Command {
       return;
     }
 
-    const optionString: string | undefined = message.getCommandOption(
-      optionsOptionName,
-      CommandOptionType.STRING,
+    const parsedOptions: string[] = Utils.parseCommaSeparatedList(
+      message.getCommandOption(optionsOptionName, CommandOptionType.STRING),
     );
-    const parsedOptions: string[] = this.__parseOptions(optionString);
     if (parsedOptions.length < VotingState.minOptionCount) {
       await InteractionController.informError(
         message,
@@ -95,7 +94,7 @@ export class VoteStart implements Command {
       Log.error("Could not post vote.", reason);
       const isTooLong: boolean = AppError.is(
         reason,
-        AppErrorCode.DISCORD_CARD_DESCRIPTION_TOO_LONG,
+        AppErrorCode.DISCORD_EMBED_DESCRIPTION_TOO_LONG,
       );
       let didCloseFailedVote: boolean = true;
       votingState.close();
@@ -137,15 +136,5 @@ export class VoteStart implements Command {
       return "Vote options are too long to display. Please shorten the options and try again.";
     }
     return "Could not post the vote. Contact an admin.";
-  }
-
-  private __parseOptions(optionString: string | undefined): string[] {
-    if (optionString === undefined) {
-      return [];
-    }
-    return optionString
-      .split(",")
-      .map(option => option.trim())
-      .filter(option => option.length > 0);
   }
 }

@@ -300,7 +300,7 @@ export class InteractionController {
       embedData.description.length > Discord.embedDescriptionMaxLength
     ) {
       Log.throwError(
-        AppErrorCode.DISCORD_CARD_DESCRIPTION_TOO_LONG,
+        AppErrorCode.DISCORD_EMBED_DESCRIPTION_TOO_LONG,
         "Cannot build Discord card. Description is too long.",
         {
           embedData,
