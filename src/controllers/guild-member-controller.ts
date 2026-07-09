@@ -73,11 +73,7 @@ export class GuildMemberController {
         this.__guildMemberRefreshesByGuildId.get(guildId);
       const missingMembers: discordJs.GuildMember[] =
         activeRefresh === undefined
-          ? await this.__fetchGuildMembersByIds(
-              guildId,
-              missingUserIds,
-              options,
-            )
+          ? await this.__fetchGuildMembersByIds(guildId, missingUserIds)
           : this.__getMembersByIds(
               await activeRefresh,
               missingUserIds,
@@ -101,7 +97,11 @@ export class GuildMemberController {
         : this.__guildMemberRefreshesByGuildId.get(guildId);
     const members: discordJs.GuildMember[] =
       activeRefresh === undefined
-        ? await this.__fetchGuildMembersByIds(guildId, userIds, options)
+        ? this.__getMembersByIds(
+            await this.__fetchGuildMembersByIds(guildId, userIds),
+            userIds,
+            options,
+          )
         : this.__getMembersByIds(await activeRefresh, userIds, options);
     Log.debug("Discord guild members retrieved successfully.", {
       guildId,
@@ -148,7 +148,6 @@ export class GuildMemberController {
   private static async __fetchGuildMembersByIds(
     guildId: string,
     userIds: string[],
-    options: GuildMembersOptions = {},
   ): Promise<discordJs.GuildMember[]> {
     const guild: discordJs.Guild = await Discord.client.guilds.fetch(guildId);
     const members: discordJs.GuildMember[] = [];
@@ -159,9 +158,7 @@ export class GuildMemberController {
           force: true,
           user: userId,
         });
-        if (options.includeBots === true || !member.user.bot) {
-          members.push(member);
-        }
+        members.push(member);
       } catch (reason: unknown) {
         Log.debug("Discord guild member was not found.", {
           guildId,
