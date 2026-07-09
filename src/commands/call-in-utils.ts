@@ -73,8 +73,8 @@ export class CallInUtils {
   }
 
   public static isHost(member: discordJs.GuildMember): boolean {
-    return member.roles.cache.some(
-      role => role.name === Environment.config.callInHostRoleName,
+    return member.roles.cache.some(role =>
+      Environment.config.callInHostRoleNames.includes(role.name),
     );
   }
 
@@ -171,7 +171,7 @@ export class CallInUtils {
     }
     await InteractionController.informError(
       message,
-      `You need the \`${Environment.config.callInHostRoleName}\` role to use this command.`,
+      `You need one of these roles to use this command: ${Environment.config.callInHostRoleNames.map(roleName => `\`${roleName}\``).join(", ")}.`,
     );
     return false;
   }
@@ -216,6 +216,15 @@ export class CallInUtils {
       return null;
     }
     return channelIds[0];
+  }
+
+  public static async resolveStartVoiceChannel(
+    message: ChannelCommandMessage,
+  ): Promise<discordJs.VoiceBasedChannel | null> {
+    if (message.member.voice.channel !== null) {
+      return message.member.voice.channel;
+    }
+    return await Discord.getVoiceChannel(message.channelId);
   }
 
   public static async unmuteForCallIn(

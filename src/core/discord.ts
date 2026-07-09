@@ -168,6 +168,19 @@ export class Discord {
     return user.globalName ?? user.username;
   }
 
+  public static async getVoiceChannel(
+    channelId: string,
+  ): Promise<discordJs.VoiceBasedChannel | null> {
+    const channel: discordJs.Channel | null = await this.__getRawChannel(
+      channelId,
+      "voice channel",
+    );
+    if (channel === null || !channel.isVoiceBased()) {
+      return null;
+    }
+    return channel;
+  }
+
   public static async sendChannelMessage(
     channelId: string,
     messageCreateOptions: discordJs.MessageCreateOptions,
@@ -178,7 +191,8 @@ export class Discord {
       channelId,
       messageCreateOptions: safeMessageCreateOptions,
     });
-    const channel: discordJs.TextChannel = await this.__getChannel(channelId);
+    const channel: discordJs.SendableChannels =
+      await this.__getSendableChannel(channelId);
     const message: discordJs.Message = await channel.send(
       safeMessageCreateOptions,
     );
@@ -253,25 +267,10 @@ export class Discord {
     channelId: string,
   ): Promise<discordJs.TextChannel> {
     Log.debug("Retrieving Discord channel...", { channelId });
-    let channel: discordJs.Channel | null;
-    try {
-      channel = await this.client.channels.fetch(channelId);
-    } catch (reason: unknown) {
-      if (this.__isUnknownChannelError(reason)) {
-        Log.throwError(
-          AppErrorCode.DISCORD_CHANNEL_NOT_FOUND,
-          "Cannot get Discord channel. ID was not found.",
-          {
-            channelId,
-            reason,
-          },
-        );
-      }
-      Log.throw("Cannot get Discord channel. Failed to fetch channel.", {
-        channelId,
-        reason,
-      });
-    }
+    const channel: discordJs.Channel | null = await this.__getRawChannel(
+      channelId,
+      "channel",
+    );
     if (channel === null) {
       Log.throwError(
         AppErrorCode.DISCORD_CHANNEL_NOT_FOUND,
@@ -286,6 +285,55 @@ export class Discord {
       );
     }
     Log.debug("Discord channel retrieved successfully.", { channel });
+    return channel;
+  }
+
+  private static async __getRawChannel(
+    channelId: string,
+    label: string,
+  ): Promise<discordJs.Channel | null> {
+    try {
+      return await this.client.channels.fetch(channelId);
+    } catch (reason: unknown) {
+      if (this.__isUnknownChannelError(reason)) {
+        Log.throwError(
+          AppErrorCode.DISCORD_CHANNEL_NOT_FOUND,
+          `Cannot get Discord ${label}. ID was not found.`,
+          {
+            channelId,
+            reason,
+          },
+        );
+      }
+      Log.throw(`Cannot get Discord ${label}. Failed to fetch channel.`, {
+        channelId,
+        reason,
+      });
+    }
+  }
+
+  private static async __getSendableChannel(
+    channelId: string,
+  ): Promise<discordJs.SendableChannels> {
+    Log.debug("Retrieving Discord sendable channel...", { channelId });
+    const channel: discordJs.Channel | null = await this.__getRawChannel(
+      channelId,
+      "sendable channel",
+    );
+    if (channel === null) {
+      Log.throwError(
+        AppErrorCode.DISCORD_CHANNEL_NOT_FOUND,
+        "Cannot get Discord sendable channel. ID was not found.",
+        { channelId },
+      );
+    }
+    if (!channel.isSendable()) {
+      Log.throw(
+        "Cannot get Discord sendable channel. Channel at ID was not sendable.",
+        { channel },
+      );
+    }
+    Log.debug("Discord sendable channel retrieved successfully.", { channel });
     return channel;
   }
 

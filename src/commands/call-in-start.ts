@@ -31,11 +31,11 @@ export class CallInStart implements Command {
       return;
     }
     const voiceChannel: discordJs.VoiceBasedChannel | null =
-      message.member.voice.channel;
+      await CallInUtils.resolveStartVoiceChannel(message);
     if (voiceChannel === null) {
       await InteractionController.informError(
         message,
-        "You need to be in a voice channel to start call-in mode.",
+        "Run this command from a voice channel chat, or join a voice channel first.",
       );
       return;
     }

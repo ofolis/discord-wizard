@@ -17,9 +17,9 @@ export class Environment {
     if (this.__config === null) {
       dotenv.config();
       this.__config = {
-        callInHostRoleName: this.__getOptionalEnvVariable(
-          "CALL_IN_HOST_ROLE_NAME",
-          "hosts",
+        callInHostRoleNames: this.__getOptionalEnvList(
+          "CALL_IN_HOST_ROLE_NAMES",
+          this.__getOptionalEnvVariable("CALL_IN_HOST_ROLE_NAME", "hosts"),
         ),
         callInHostsChannelName: this.__getOptionalEnvVariable(
           "CALL_IN_HOSTS_CHANNEL_NAME",
@@ -72,6 +72,16 @@ export class Environment {
       );
     }
     return value;
+  }
+
+  private static __getOptionalEnvList(
+    key: string,
+    defaultValue: string,
+  ): string[] {
+    return this.__getOptionalEnvVariable(key, defaultValue)
+      .split(",")
+      .map(value => value.trim())
+      .filter(value => value.length > 0);
   }
 
   private static __getOptionalEnvVariable(

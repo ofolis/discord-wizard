@@ -1,5 +1,5 @@
 export type Config = {
-  readonly callInHostRoleName: string;
+  readonly callInHostRoleNames: readonly string[];
   readonly callInHostsChannelName: string;
   readonly devMode: boolean;
   readonly discordApplicationId: string;
