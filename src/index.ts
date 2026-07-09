@@ -150,16 +150,13 @@ function initializeApp(): void {
       interaction,
       interactionCommand.shouldReplyPrivately,
     )
-      .then(privateChannelMessage => {
-        AccessUtils.authorizeCommandUse(
-          interactionCommand,
-          privateChannelMessage,
-        )
+      .then(commandMessage => {
+        AccessUtils.authorizeCommandUse(interactionCommand, commandMessage)
           .then(hasAccess => {
             if (!hasAccess) {
               return;
             }
-            return interactionCommand.execute(privateChannelMessage);
+            return interactionCommand.execute(commandMessage);
           })
           .then(() => {
             Log.success(`Completed interaction ${interaction.id}.`);

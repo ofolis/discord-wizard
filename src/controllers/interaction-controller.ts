@@ -459,10 +459,15 @@ export class InteractionController {
     callInState: CallInState,
     userLabelsById: Record<string, string>,
   ): string {
+    const heading: string = "# Call-in Queue";
     return Utils.linesToString([
-      "# Call-in Queue",
+      heading,
       callInState.queuedUserIds.length > 0
-        ? this.__formatCallInQueueString(callInState, userLabelsById)
+        ? this.__formatCallInQueueString(
+            callInState,
+            userLabelsById,
+            Discord.embedDescriptionMaxLength - heading.length - 1,
+          )
         : "The queue is empty.",
     ]);
   }
@@ -470,13 +475,28 @@ export class InteractionController {
   private static __formatCallInQueueString(
     callInState: CallInState,
     userLabelsById: Record<string, string>,
+    maxLength: number,
   ): string {
-    return Utils.linesToString(
-      callInState.queuedUserIds.map(
-        (userId, index) =>
-          `${(index + 1).toString()}. ${this.__formatUserLabel(userId, userLabelsById)}`,
-      ),
-    );
+    const lines: string[] = [];
+    for (
+      let index: number = 0;
+      index < callInState.queuedUserIds.length;
+      index++
+    ) {
+      const userId: string = callInState.queuedUserIds[index];
+      const line: string = `${(index + 1).toString()}. ${this.__formatUserLabel(userId, userLabelsById)}`;
+      if (Utils.linesToString([...lines, line]).length <= maxLength) {
+        lines.push(line);
+        continue;
+      }
+      const remainingCount: number = callInState.queuedUserIds.length - index;
+      const truncationLine: string = `...and ${remainingCount.toString()} more.`;
+      if (Utils.linesToString([...lines, truncationLine]).length <= maxLength) {
+        lines.push(truncationLine);
+      }
+      break;
+    }
+    return Utils.linesToString(lines);
   }
 
   private static __formatLetterEmoji(letter: string): string {
