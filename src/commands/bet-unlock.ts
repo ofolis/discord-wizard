@@ -9,6 +9,7 @@ import {
 } from "../core";
 import { BettingState } from "../saveables";
 import { AdminUtils } from "./admin-utils";
+import { BetUtils } from "./bet-utils";
 
 export class BetUnlock implements Command {
   public readonly description: string = "Unlocks the open bet.";
@@ -55,7 +56,10 @@ export class BetUnlock implements Command {
     }
 
     try {
-      await InteractionController.updateBetStart(bettingState, {});
+      await InteractionController.updateBetStart(
+        bettingState,
+        await BetUtils.getParticipantLabels(bettingState),
+      );
     } catch (reason: unknown) {
       Log.error("Could not update unlocked bet.", reason);
       const isMissingChannel: boolean = AppError.is(

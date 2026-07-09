@@ -11,6 +11,7 @@ import {
 } from "../core";
 import { MoneyUtils } from "../money-utils";
 import { BettingState, MoneyState } from "../saveables";
+import { BetUtils } from "./bet-utils";
 
 const letterOptionName: string = "letter";
 
@@ -102,9 +103,10 @@ export class BetAll implements Command {
     }
 
     try {
-      await InteractionController.updateBetStart(bettingState, {
-        [userId]: message.member.displayName,
-      });
+      await InteractionController.updateBetStart(
+        bettingState,
+        await BetUtils.getParticipantLabels(bettingState),
+      );
     } catch (reason: unknown) {
       Log.error("Could not update bet total.", reason);
       const isMissingChannel: boolean = AppError.is(
