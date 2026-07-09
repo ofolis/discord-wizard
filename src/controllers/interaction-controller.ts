@@ -215,7 +215,7 @@ export class InteractionController {
   ): Promise<void> {
     await InteractionUtils.createChannelCard(channelId, {
       color: CardColor.INFO,
-      description: `# ${ICONS[IconName.MONEY_GIVE]} ${data.senderName} gave ${data.recipientName} ${MoneyUtils.format(data.amountCents)}.`,
+      description: `# ${ICONS[IconName.MONEY_GIVE]} ${data.senderName} gave ${data.recipientName} \`${MoneyUtils.format(data.amountCents)}\`.`,
     });
   }
 
@@ -514,7 +514,7 @@ export class InteractionController {
     const rankedEntries: MoneyRankingEntry[] = members
       .map(member => ({
         balanceCents: moneyState.getBalance(member.id),
-        displayName: member.displayName,
+        displayName: Discord.formatGuildMemberNameString(member),
         userId: member.id,
       }))
       .sort((a, b) => {
@@ -560,7 +560,8 @@ export class InteractionController {
     userLabelsById: Record<string, string>,
   ): string {
     return (
-      userLabelsById[userId] ?? Discord.formatUserMentionString({ id: userId })
+      userLabelsById[userId] ??
+      Discord.formatUnknownUserNameString({ id: userId })
     );
   }
 

@@ -45,14 +45,12 @@ export class MoneyRemoveUser implements Command {
   public readonly shouldReplyPrivately: boolean = true;
 
   public async execute(message: ChannelCommandMessage): Promise<void> {
-    const user: discordJs.User | undefined = message.getCommandOption(
-      userOptionName,
-      CommandOptionType.USER,
-    );
+    const member: discordJs.GuildMember | undefined =
+      await message.getGuildMemberCommandOption(userOptionName);
     const amountCents: number | null = MoneyUtils.parseAmountCents(
       message.getCommandOption(amountOptionName, CommandOptionType.NUMBER),
     );
-    if (user === undefined || user.bot) {
+    if (member === undefined || member.user.bot) {
       await InteractionController.informError(
         message,
         "Money can only be removed from human users.",
@@ -70,15 +68,15 @@ export class MoneyRemoveUser implements Command {
     const moneyState: MoneyState = DataController.loadOrCreateMoneyState(
       message.member.guild.id,
     );
-    const currentBalanceCents: number = moneyState.getBalance(user.id);
+    const currentBalanceCents: number = moneyState.getBalance(member.user.id);
     if (amountCents > currentBalanceCents) {
       await InteractionController.informError(
         message,
-        `${Discord.formatUserNameString(user)} only has \`${MoneyUtils.format(currentBalanceCents)}\`.`,
+        `${Discord.formatGuildMemberNameString(member)} only has \`${MoneyUtils.format(currentBalanceCents)}\`.`,
       );
       return;
     }
-    moneyState.addBalance(user.id, -amountCents);
+    moneyState.addBalance(member.user.id, -amountCents);
 
     try {
       DataController.saveMoneyState(moneyState);
@@ -93,7 +91,7 @@ export class MoneyRemoveUser implements Command {
 
     await InteractionController.informSuccess(
       message,
-      `Removed \`${MoneyUtils.format(amountCents)}\` from ${Discord.formatUserNameString(user)}. New balance: \`${MoneyUtils.format(moneyState.getBalance(user.id))}\`.`,
+      `Removed \`${MoneyUtils.format(amountCents)}\` from ${Discord.formatGuildMemberNameString(member)}. New balance: \`${MoneyUtils.format(moneyState.getBalance(member.user.id))}\`.`,
     );
   }
 }

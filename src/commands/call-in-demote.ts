@@ -6,6 +6,7 @@ import {
   CommandOption,
   CommandOptionType,
   CommandRegistrationType,
+  Discord,
   Log,
 } from "../core";
 import { CallInState } from "../saveables";
@@ -76,7 +77,7 @@ export class CallInDemote implements Command {
       await CallInUtils.muteForCallIn(member, callInState);
       DataController.saveCallInState(callInState);
       await InteractionController.announceCallInOffAir(callInState.channelId, {
-        userName: member.displayName,
+        userName: Discord.formatGuildMemberNameString(member),
       });
     } catch (reason: unknown) {
       Log.error("Could not demote call-in user.", reason);
@@ -88,7 +89,7 @@ export class CallInDemote implements Command {
     }
     await InteractionController.informSuccess(
       message,
-      `${member.displayName} was demoted.`,
+      `${Discord.formatGuildMemberNameString(member)} was demoted.`,
     );
   }
 }

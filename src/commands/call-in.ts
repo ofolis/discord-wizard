@@ -66,7 +66,7 @@ export class CallIn implements Command {
       await InteractionController.announceCallInQueueAdd(
         callInState.channelId,
         {
-          userName: message.member.displayName,
+          userName: Discord.formatGuildMemberNameString(message.member),
         },
       );
     } catch (reason: unknown) {

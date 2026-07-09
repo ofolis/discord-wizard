@@ -45,14 +45,12 @@ export class MoneySetUser implements Command {
   public readonly shouldReplyPrivately: boolean = true;
 
   public async execute(message: ChannelCommandMessage): Promise<void> {
-    const user: discordJs.User | undefined = message.getCommandOption(
-      userOptionName,
-      CommandOptionType.USER,
-    );
+    const member: discordJs.GuildMember | undefined =
+      await message.getGuildMemberCommandOption(userOptionName);
     const amountCents: number | null = MoneyUtils.parseAmountCents(
       message.getCommandOption(amountOptionName, CommandOptionType.NUMBER),
     );
-    if (user === undefined || user.bot) {
+    if (member === undefined || member.user.bot) {
       await InteractionController.informError(
         message,
         "Money can only be set for human users.",
@@ -70,7 +68,7 @@ export class MoneySetUser implements Command {
     const moneyState: MoneyState = DataController.loadOrCreateMoneyState(
       message.member.guild.id,
     );
-    moneyState.setBalance(user.id, amountCents);
+    moneyState.setBalance(member.user.id, amountCents);
 
     try {
       DataController.saveMoneyState(moneyState);
@@ -85,7 +83,7 @@ export class MoneySetUser implements Command {
 
     await InteractionController.informSuccess(
       message,
-      `Set ${Discord.formatUserNameString(user)} to \`${MoneyUtils.format(amountCents)}\`.`,
+      `Set ${Discord.formatGuildMemberNameString(member)} to \`${MoneyUtils.format(amountCents)}\`.`,
     );
   }
 }

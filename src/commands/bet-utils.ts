@@ -1,4 +1,5 @@
 import { GuildMemberController } from "../controllers";
+import { Discord } from "../core";
 import { BettingState } from "../saveables";
 
 export class BetUtils {
@@ -12,7 +13,10 @@ export class BetUtils {
       bettingState.getParticipantUserIds(),
     );
     return Object.fromEntries(
-      members.map(member => [member.id, member.displayName]),
+      members.map(member => [
+        member.id,
+        Discord.formatGuildMemberNameString(member),
+      ]),
     );
   }
 }

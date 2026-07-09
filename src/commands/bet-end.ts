@@ -10,6 +10,7 @@ import {
   Utils,
 } from "../core";
 import { BettingState, MoneyState } from "../saveables";
+import { BetUtils } from "./bet-utils";
 
 const winnersOptionName: string = "winners";
 
@@ -108,9 +109,7 @@ export class BetEnd implements Command {
         bettingState.channelId,
         payouts,
         this.__getWinningOptions(bettingState, winnerLetters),
-        {
-          [message.user.id]: message.member.displayName,
-        },
+        await BetUtils.getParticipantLabels(bettingState),
         this.__getBalancesByUserId(moneyState, payouts),
       );
     } catch (reason: unknown) {

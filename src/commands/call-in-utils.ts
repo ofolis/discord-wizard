@@ -272,9 +272,11 @@ export class CallInUtils {
     for (const userId of userIds) {
       try {
         const member: discordJs.GuildMember = await guild.members.fetch(userId);
-        labelsById[userId] = member.displayName;
+        labelsById[userId] = Discord.formatGuildMemberNameString(member);
       } catch {
-        labelsById[userId] = Discord.formatUserMentionString({ id: userId });
+        labelsById[userId] = Discord.formatUnknownUserNameString({
+          id: userId,
+        });
       }
     }
     return labelsById;

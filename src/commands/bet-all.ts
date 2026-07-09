@@ -7,6 +7,7 @@ import {
   CommandOption,
   CommandOptionType,
   CommandRegistrationType,
+  Discord,
   Json,
   Log,
 } from "../core";
@@ -127,7 +128,7 @@ export class BetAll implements Command {
     try {
       await InteractionController.announceAllIn(message.channelId, {
         option,
-        userName: message.member.displayName,
+        userName: Discord.formatGuildMemberNameString(message.member),
       });
     } catch (reason: unknown) {
       Log.error("Could not announce all-in wager.", reason);

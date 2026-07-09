@@ -45,21 +45,19 @@ export class MoneyGive implements Command {
   public readonly shouldReplyPrivately: boolean = true;
 
   public async execute(message: ChannelCommandMessage): Promise<void> {
-    const recipient: discordJs.User | undefined = message.getCommandOption(
-      userOptionName,
-      CommandOptionType.USER,
-    );
+    const recipient: discordJs.GuildMember | undefined =
+      await message.getGuildMemberCommandOption(userOptionName);
     const amountCents: number | null = MoneyUtils.parseAmountCents(
       message.getCommandOption(amountOptionName, CommandOptionType.NUMBER),
     );
-    if (recipient === undefined || recipient.bot) {
+    if (recipient === undefined || recipient.user.bot) {
       await InteractionController.informError(
         message,
         "Money can only be given to human users.",
       );
       return;
     }
-    if (recipient.id === message.user.id) {
+    if (recipient.user.id === message.user.id) {
       await InteractionController.informError(
         message,
         "You cannot give money to yourself.",
@@ -88,7 +86,7 @@ export class MoneyGive implements Command {
 
     try {
       moneyState.addBalance(message.user.id, -amountCents);
-      moneyState.addBalance(recipient.id, amountCents);
+      moneyState.addBalance(recipient.user.id, amountCents);
       DataController.saveMoneyState(moneyState);
     } catch (reason: unknown) {
       Log.error("Could not save money gift.", reason);
@@ -102,8 +100,8 @@ export class MoneyGive implements Command {
     try {
       await InteractionController.announceMoneyGift(message.channelId, {
         amountCents,
-        recipientName: Discord.formatUserNameString(recipient),
-        senderName: message.member.displayName,
+        recipientName: Discord.formatUserMentionString(recipient.user),
+        senderName: Discord.formatUserMentionString(message.member),
       });
     } catch (reason: unknown) {
       Log.error("Could not announce money gift.", reason);
@@ -116,7 +114,7 @@ export class MoneyGive implements Command {
 
     await InteractionController.informSuccess(
       message,
-      `Gave \`${MoneyUtils.format(amountCents)}\` to ${Discord.formatUserNameString(recipient)}. Your balance: \`${MoneyUtils.format(moneyState.getBalance(message.user.id))}\`.`,
+      `Gave \`${MoneyUtils.format(amountCents)}\` to **${Discord.formatGuildMemberNameString(recipient)}**. Your balance: \`${MoneyUtils.format(moneyState.getBalance(message.user.id))}\`.`,
     );
   }
 }

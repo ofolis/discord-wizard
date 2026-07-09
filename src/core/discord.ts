@@ -163,6 +163,18 @@ export class Discord {
     return "@everyone";
   }
 
+  public static formatGuildMemberNameString(
+    member: Pick<discordJs.GuildMember, "displayName">,
+  ): string {
+    return member.displayName;
+  }
+
+  public static formatUnknownUserNameString(
+    user: Pick<discordJs.User, "id">,
+  ): string {
+    return `Unknown user (${user.id})`;
+  }
+
   public static formatUserMentionString(
     user: Pick<discordJs.User, "id">,
   ): string {

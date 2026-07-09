@@ -116,4 +116,37 @@ export class ChannelCommandMessage extends ChannelMessage {
     }
     return option.value as CommandOptionTypeMap[T];
   }
+
+  public async getGuildMemberCommandOption(
+    name: string,
+  ): Promise<discordJs.GuildMember | undefined> {
+    if (this.__commandOptions === undefined) {
+      Log.throw(
+        "Cannot get command option. Command options have not been set.",
+      );
+    }
+    const option: discordJs.CommandInteractionOption | undefined =
+      this.__commandOptions.find(opt => opt.name === name);
+    if (
+      option === undefined ||
+      ChannelCommandMessage.__isMissingOptionValue(
+        option,
+        CommandOptionType.USER,
+      )
+    ) {
+      return undefined;
+    }
+    if (
+      option.type !== discordJs.ApplicationCommandOptionType.User ||
+      !(option.user instanceof discordJs.User)
+    ) {
+      Log.throw("Cannot get guild member command option. Type mismatch.", {
+        receivedData: option,
+      });
+    }
+    if (option.member instanceof discordJs.GuildMember) {
+      return option.member;
+    }
+    return await this.__guildMember.guild.members.fetch(option.user.id);
+  }
 }

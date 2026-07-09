@@ -4,6 +4,7 @@ import {
   Command,
   CommandOption,
   CommandRegistrationType,
+  Discord,
   Log,
 } from "../core";
 import { CallInState } from "../saveables";
@@ -61,7 +62,7 @@ export class HangUp implements Command {
       }
       DataController.saveCallInState(callInState);
       await InteractionController.announceCallInOffAir(callInState.channelId, {
-        userName: message.member.displayName,
+        userName: Discord.formatGuildMemberNameString(message.member),
       });
     } catch (reason: unknown) {
       Log.error("Could not hang up call-in user.", reason);
@@ -92,7 +93,7 @@ export class HangUp implements Command {
       await InteractionController.announceCallInQueueRemove(
         callInState.channelId,
         {
-          userName: message.member.displayName,
+          userName: Discord.formatGuildMemberNameString(message.member),
         },
       );
     } catch (reason: unknown) {
