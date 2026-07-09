@@ -71,9 +71,7 @@ export class MoneySetServer implements Command {
       return;
     }
 
-    const moneyState: MoneyState = DataController.loadOrCreateMoneyState(
-      message.member.guild.id,
-    );
+    const moneyState: MoneyState = new MoneyState(message.member.guild.id);
     members.forEach(member => {
       moneyState.setBalance(member.user.id, amountCents);
     });

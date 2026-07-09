@@ -84,10 +84,9 @@ export class MoneyGive implements Command {
       return;
     }
 
-    moneyState.addBalance(message.user.id, -amountCents);
-    moneyState.addBalance(recipient.id, amountCents);
-
     try {
+      moneyState.addBalance(message.user.id, -amountCents);
+      moneyState.addBalance(recipient.id, amountCents);
       DataController.saveMoneyState(moneyState);
     } catch (reason: unknown) {
       Log.error("Could not save money gift.", reason);

@@ -74,11 +74,11 @@ export class MoneyAddServer implements Command {
     const moneyState: MoneyState = DataController.loadOrCreateMoneyState(
       message.member.guild.id,
     );
-    members.forEach(member => {
-      moneyState.addBalance(member.user.id, amountCents);
-    });
 
     try {
+      members.forEach(member => {
+        moneyState.addBalance(member.user.id, amountCents);
+      });
       DataController.saveMoneyState(moneyState);
     } catch (reason: unknown) {
       Log.error("Could not save server money add.", reason);

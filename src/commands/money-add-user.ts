@@ -73,9 +73,9 @@ export class MoneyAddUser implements Command {
     const moneyState: MoneyState = DataController.loadOrCreateMoneyState(
       message.member.guild.id,
     );
-    moneyState.addBalance(user.id, amountCents);
 
     try {
+      moneyState.addBalance(user.id, amountCents);
       DataController.saveMoneyState(moneyState);
     } catch (reason: unknown) {
       Log.error("Could not save user money add.", reason);
