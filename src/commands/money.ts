@@ -68,16 +68,42 @@ export class Money implements Command {
     });
   }
 
+  private async __getGuildMembersById(
+    guildId: string,
+    currentUserId: string,
+  ): Promise<Map<string, GuildMembers[number]>> {
+    const guildMembers: GuildMembers =
+      await GuildMemberController.getGuildMembers(guildId);
+    let guildMembersById: Map<string, GuildMembers[number]> =
+      this.__mapGuildMembersById(guildMembers);
+    if (guildMembersById.has(currentUserId)) {
+      return guildMembersById;
+    }
+
+    const refreshedGuildMembers: GuildMembers =
+      await GuildMemberController.getGuildMembers(guildId, {
+        forceRefresh: true,
+      });
+    guildMembersById = this.__mapGuildMembersById(refreshedGuildMembers);
+    if (!guildMembersById.has(currentUserId)) {
+      Log.throw(
+        "Cannot load money ranking. Current user is not a guild member.",
+        {
+          currentUserId,
+          guildId,
+        },
+      );
+    }
+    return guildMembersById;
+  }
+
   private async __getRankingMembers(
     guildId: string,
     balanceEntries: BalanceEntry[],
     currentUserId: string,
   ): Promise<RankingMembersResult> {
-    const guildMembers: GuildMembers =
-      await GuildMemberController.getGuildMembers(guildId);
-    const guildMembersById: Map<string, GuildMembers[number]> = new Map(
-      guildMembers.map(member => [member.id, member]),
-    );
+    const guildMembersById: Map<string, GuildMembers[number]> =
+      await this.__getGuildMembersById(guildId, currentUserId);
     const membersById: Map<string, GuildMembers[number]> = new Map();
     let isCapped: boolean = false;
     let rankedMemberCount: number = 0;
@@ -111,5 +137,11 @@ export class Money implements Command {
       isCapped,
       members: [...membersById.values()],
     };
+  }
+
+  private __mapGuildMembersById(
+    guildMembers: GuildMembers,
+  ): Map<string, GuildMembers[number]> {
+    return new Map(guildMembers.map(member => [member.id, member]));
   }
 }
