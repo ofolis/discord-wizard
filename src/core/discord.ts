@@ -7,11 +7,16 @@ import {
   Log,
 } from ".";
 import { Command } from "../core";
+import {
+  DISCORD_MESSAGE_CONTENT_MAX_LENGTH,
+  sanitizeBaseMessageOptions,
+} from "./message-options";
 
 export class Discord {
   public static readonly embedDescriptionMaxLength: number = 4096;
 
-  public static readonly messageContentMaxLength: number = 2000;
+  public static readonly messageContentMaxLength: number =
+    DISCORD_MESSAGE_CONTENT_MAX_LENGTH;
 
   private static __client: discordJs.Client | null = null;
 
@@ -162,7 +167,7 @@ export class Discord {
     messageCreateOptions: discordJs.MessageCreateOptions,
   ): Promise<ChannelMessage> {
     const safeMessageCreateOptions: discordJs.MessageCreateOptions =
-      this.__sanitizeMessageCreateOptions(messageCreateOptions);
+      sanitizeBaseMessageOptions(messageCreateOptions);
     Log.debug("Sending Discord channel message...", {
       channelId,
       messageCreateOptions: safeMessageCreateOptions,
@@ -185,7 +190,7 @@ export class Discord {
     options: discordJs.MessageEditOptions,
   ): Promise<void> {
     const safeOptions: discordJs.MessageEditOptions =
-      this.__sanitizeBaseMessageOptions(options);
+      sanitizeBaseMessageOptions(options);
     Log.debug("Updating Discord channel message...", {
       channelId,
       messageId,
@@ -285,36 +290,5 @@ export class Discord {
       "code" in reason &&
       reason.code === 10003
     );
-  }
-
-  private static __sanitizeBaseMessageOptions<
-    T extends { allowedMentions?: discordJs.MessageMentionOptions },
-  >(options: T): T {
-    return {
-      ...options,
-      allowedMentions: {
-        ...(options.allowedMentions ?? {}),
-        parse: [],
-      },
-    } as T;
-  }
-
-  private static __sanitizeMessageCreateOptions(
-    messageCreateOptions: discordJs.MessageCreateOptions,
-  ): discordJs.MessageCreateOptions {
-    if (
-      messageCreateOptions.content !== undefined &&
-      messageCreateOptions.content.length > this.messageContentMaxLength
-    ) {
-      Log.throwError(
-        AppErrorCode.DISCORD_MESSAGE_CONTENT_TOO_LONG,
-        "Cannot send Discord message. Content is too long.",
-        {
-          maxLength: this.messageContentMaxLength,
-          messageCreateOptions,
-        },
-      );
-    }
-    return this.__sanitizeBaseMessageOptions(messageCreateOptions);
   }
 }

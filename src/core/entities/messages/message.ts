@@ -1,5 +1,6 @@
 import * as discordJs from "discord.js";
 import { Log } from "../..";
+import { sanitizeBaseMessageOptions } from "../../message-options";
 
 export abstract class Message {
   protected _buttonInteractionFilter:
@@ -62,7 +63,7 @@ export abstract class Message {
 
   public async update(options: discordJs.BaseMessageOptions): Promise<void> {
     const safeOptions: discordJs.BaseMessageOptions =
-      this.__sanitizeBaseMessageOptions(options);
+      sanitizeBaseMessageOptions(options);
     Log.debug("Updating Discord message...", { options: safeOptions });
     if (
       this._currentEntity instanceof discordJs.InteractionResponse ||
@@ -80,17 +81,5 @@ export abstract class Message {
       );
     }
     Log.debug("Discord message updated successfully.");
-  }
-
-  private __sanitizeBaseMessageOptions(
-    options: discordJs.BaseMessageOptions,
-  ): discordJs.BaseMessageOptions {
-    return {
-      ...options,
-      allowedMentions: {
-        ...(options.allowedMentions ?? {}),
-        parse: [],
-      },
-    };
   }
 }
