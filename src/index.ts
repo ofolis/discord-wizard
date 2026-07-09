@@ -1,4 +1,23 @@
-import { Submit, Vote, VoteEnd, VoteStart } from "./commands";
+import {
+  Bet,
+  BetAll,
+  BetEnd,
+  BetLock,
+  BetStart,
+  BetUnlock,
+  Money,
+  MoneyAddServer,
+  MoneyAddUser,
+  MoneyGive,
+  MoneyRemoveServer,
+  MoneyRemoveUser,
+  MoneySetServer,
+  MoneySetUser,
+  Submit,
+  Vote,
+  VoteEnd,
+  VoteStart,
+} from "./commands";
 import { ChannelCache } from "./controllers";
 import {
   ChannelCommandMessage,
@@ -9,6 +28,20 @@ import {
 } from "./core";
 
 const commands: Command[] = [
+  new Bet(),
+  new BetAll(),
+  new BetEnd(),
+  new BetLock(),
+  new BetStart(),
+  new BetUnlock(),
+  new Money(),
+  new MoneyAddServer(),
+  new MoneyAddUser(),
+  new MoneyGive(),
+  new MoneyRemoveServer(),
+  new MoneyRemoveUser(),
+  new MoneySetServer(),
+  new MoneySetUser(),
   new Submit(),
   new Vote(),
   new VoteEnd(),

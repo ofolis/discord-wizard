@@ -83,12 +83,18 @@ export class ChannelCommandMessage extends ChannelMessage {
         typeof option.value === "number") ||
       (type === CommandOptionType.STRING &&
         option.type === discordJs.ApplicationCommandOptionType.String &&
-        typeof option.value === "string");
+        typeof option.value === "string") ||
+      (type === CommandOptionType.USER &&
+        option.type === discordJs.ApplicationCommandOptionType.User &&
+        option.user instanceof discordJs.User);
     if (!isValidType) {
       Log.throw("Cannot get command option. Type mismatch.", {
         expectedType: type,
         receivedData: option,
       });
+    }
+    if (type === CommandOptionType.USER) {
+      return option.user as CommandOptionTypeMap[T];
     }
     return option.value as CommandOptionTypeMap[T];
   }

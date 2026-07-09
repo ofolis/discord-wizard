@@ -19,7 +19,7 @@ export class Discord {
     if (this.__client === null) {
       Log.debug("Creating Discord client...");
       this.__client = new discordJs.Client({
-        intents: ["DirectMessages", "Guilds", "GuildMessages"],
+        intents: ["DirectMessages", "GuildMembers", "Guilds", "GuildMessages"],
       });
       Log.debug("Discord client created successfully.", {
         client: this.__client,
@@ -89,6 +89,14 @@ export class Discord {
               return stringOptionBuilder;
             });
             break;
+          case CommandOptionType.USER:
+            slashCommandBuilder.addUserOption(userOption =>
+              userOption
+                .setName(option.name)
+                .setDescription(option.description)
+                .setRequired(option.isRequired),
+            );
+            break;
           default:
             Log.throw("Cannot build command. Unknown command option type.", {
               option,
@@ -147,6 +155,37 @@ export class Discord {
     user: Pick<discordJs.User, "globalName" | "username">,
   ): string {
     return user.globalName ?? user.username;
+  }
+
+  public static async getHumanGuildMembers(
+    guildId: string,
+  ): Promise<discordJs.GuildMember[]> {
+    Log.debug("Retrieving Discord guild human members...", { guildId });
+    const guild: discordJs.Guild = await this.client.guilds.fetch(guildId);
+    const members: discordJs.Collection<string, discordJs.GuildMember> =
+      new discordJs.Collection();
+    let after: string | undefined;
+    let page: discordJs.Collection<string, discordJs.GuildMember>;
+    do {
+      page = await guild.members.list({
+        after,
+        cache: false,
+        limit: 1000,
+      });
+      page.forEach(member => {
+        members.set(member.id, member);
+      });
+      after = page.last()?.id;
+    } while (page.size === 1000 && after !== undefined);
+
+    const humanMembers: discordJs.GuildMember[] = members
+      .filter(member => !member.user.bot)
+      .map(member => member);
+    Log.debug("Discord guild human members retrieved successfully.", {
+      guildId,
+      memberCount: humanMembers.length,
+    });
+    return humanMembers;
   }
 
   public static async sendChannelMessage(
