@@ -8,6 +8,7 @@ import {
   Log,
 } from "../core";
 import { BettingState } from "../saveables";
+import { AdminUtils } from "./admin-utils";
 
 export class BetUnlock implements Command {
   public readonly description: string = "Unlocks the open bet.";
@@ -23,6 +24,10 @@ export class BetUnlock implements Command {
   public readonly options: CommandOption[] = [];
 
   public async execute(message: ChannelCommandMessage): Promise<void> {
+    if (!(await AdminUtils.requireAdministrator(message))) {
+      return;
+    }
+
     const bettingState: BettingState | null =
       DataController.loadActiveBettingState(message.member.guild.id);
     if (bettingState === null) {

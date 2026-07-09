@@ -10,6 +10,7 @@ import {
   Log,
 } from "../core";
 import { VotingState } from "../saveables";
+import { AdminUtils } from "./admin-utils";
 
 const optionsOptionName: string = "options";
 
@@ -34,6 +35,10 @@ export class VoteStart implements Command {
   ];
 
   public async execute(message: ChannelCommandMessage): Promise<void> {
+    if (!(await AdminUtils.requireAdministrator(message))) {
+      return;
+    }
+
     if (
       DataController.loadActiveVotingState(message.member.guild.id) !== null
     ) {

@@ -9,6 +9,7 @@ import {
 } from "../core";
 import { MoneyUtils } from "../money-utils";
 import { MoneyState } from "../saveables";
+import { AdminUtils } from "./admin-utils";
 
 const amountOptionName: string = "amount";
 const userOptionName: string = "user";
@@ -42,6 +43,10 @@ export class MoneyRemoveUser implements Command {
   ];
 
   public async execute(message: ChannelCommandMessage): Promise<void> {
+    if (!(await AdminUtils.requireAdministrator(message))) {
+      return;
+    }
+
     const user: discordJs.User | undefined = message.getCommandOption(
       userOptionName,
       CommandOptionType.USER,

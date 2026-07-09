@@ -10,6 +10,7 @@ import {
   Log,
 } from "../core";
 import { BettingState } from "../saveables";
+import { AdminUtils } from "./admin-utils";
 
 const optionsOptionName: string = "options";
 
@@ -34,6 +35,10 @@ export class BetStart implements Command {
   ];
 
   public async execute(message: ChannelCommandMessage): Promise<void> {
+    if (!(await AdminUtils.requireAdministrator(message))) {
+      return;
+    }
+
     if (
       DataController.loadActiveBettingState(message.member.guild.id) !== null
     ) {

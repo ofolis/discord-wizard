@@ -8,6 +8,7 @@ import {
   Log,
 } from "../core";
 import { BettingState, MoneyState } from "../saveables";
+import { AdminUtils } from "./admin-utils";
 
 const winnersOptionName: string = "winners";
 
@@ -32,6 +33,10 @@ export class BetEnd implements Command {
   ];
 
   public async execute(message: ChannelCommandMessage): Promise<void> {
+    if (!(await AdminUtils.requireAdministrator(message))) {
+      return;
+    }
+
     const bettingState: BettingState | null =
       DataController.loadActiveBettingState(message.member.guild.id);
     if (bettingState === null) {

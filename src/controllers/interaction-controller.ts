@@ -66,6 +66,8 @@ const numberEmojis: string[] = [
   "🔟",
 ];
 
+const maxMoneyRankingEntries: number = 25;
+
 enum CardColor {
   ERROR = 0xdd2e44,
   INFO = 0x808080,
@@ -397,8 +399,12 @@ export class InteractionController {
       });
     const highestBalanceCents: number | null =
       rankedEntries[0]?.balanceCents ?? null;
-    return Utils.linesToString(
-      rankedEntries.map(entry => {
+    const hiddenEntryCount: number = Math.max(
+      0,
+      rankedEntries.length - maxMoneyRankingEntries,
+    );
+    return Utils.linesToString([
+      ...rankedEntries.slice(0, maxMoneyRankingEntries).map(entry => {
         const badges: string[] = [];
         if (entry.balanceCents === highestBalanceCents) {
           badges.push("👑");
@@ -408,7 +414,10 @@ export class InteractionController {
         }
         return `- **${entry.member.displayName}**${badges.length > 0 ? ` ${badges.join(" ")}` : ""} - \`${MoneyUtils.format(entry.balanceCents)}\``;
       }),
-    );
+      hiddenEntryCount > 0
+        ? `- ...and ${hiddenEntryCount.toString()} more.`
+        : null,
+    ]);
   }
 
   private static __formatRankEmoji(rank: number): string {

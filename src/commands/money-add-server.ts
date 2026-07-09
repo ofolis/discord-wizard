@@ -9,6 +9,7 @@ import {
 } from "../core";
 import { MoneyUtils } from "../money-utils";
 import { MoneyState } from "../saveables";
+import { AdminUtils } from "./admin-utils";
 
 const amountOptionName: string = "amount";
 
@@ -36,6 +37,10 @@ export class MoneyAddServer implements Command {
   ];
 
   public async execute(message: ChannelCommandMessage): Promise<void> {
+    if (!(await AdminUtils.requireAdministrator(message))) {
+      return;
+    }
+
     const amountCents: number | null = MoneyUtils.parseAmountCents(
       message.getCommandOption(amountOptionName, CommandOptionType.NUMBER),
     );

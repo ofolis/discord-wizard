@@ -8,6 +8,7 @@ import {
   Log,
 } from "../core";
 import { VotingState } from "../saveables";
+import { AdminUtils } from "./admin-utils";
 
 export class VoteEnd implements Command {
   public readonly description: string = "Ends the open vote.";
@@ -23,6 +24,10 @@ export class VoteEnd implements Command {
   public readonly options: CommandOption[] = [];
 
   public async execute(message: ChannelCommandMessage): Promise<void> {
+    if (!(await AdminUtils.requireAdministrator(message))) {
+      return;
+    }
+
     const votingState: VotingState | null =
       DataController.loadActiveVotingState(message.member.guild.id);
     if (votingState === null) {
