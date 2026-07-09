@@ -124,7 +124,9 @@ export class BettingState implements Saveable {
             bet !== null &&
             !Array.isArray(bet) &&
             typeof (bet as Record<string, unknown>).letter === "string" &&
-            Number.isInteger((bet as Record<string, unknown>).amountCents) &&
+            Number.isSafeInteger(
+              (bet as Record<string, unknown>).amountCents,
+            ) &&
             ((bet as Record<string, unknown>).amountCents as number) > 0,
         ));
 
@@ -262,7 +264,7 @@ export class BettingState implements Saveable {
     if (!this.__isOpen || this.__isLocked) {
       Log.throw("Cannot place wager. Bet is not accepting wagers.");
     }
-    if (!Number.isInteger(amountCents) || amountCents < 0) {
+    if (!Number.isSafeInteger(amountCents) || amountCents < 0) {
       Log.throw("Cannot place wager. Amount is invalid.", {
         amountCents,
         userId,

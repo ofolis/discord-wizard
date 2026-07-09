@@ -5,6 +5,7 @@ import {
   Command,
   CommandOption,
   CommandOptionType,
+  Discord,
   Log,
 } from "../core";
 import { MoneyUtils } from "../money-utils";
@@ -87,7 +88,7 @@ export class MoneyAddUser implements Command {
 
     await InteractionController.informSuccess(
       message,
-      `Changed ${user.displayName} by \`${MoneyUtils.format(amountCents)}\`. New balance: \`${MoneyUtils.format(moneyState.getBalance(user.id))}\`.`,
+      `Changed ${Discord.formatUserNameString(user)} by \`${MoneyUtils.format(amountCents)}\`. New balance: \`${MoneyUtils.format(moneyState.getBalance(user.id))}\`.`,
     );
   }
 }

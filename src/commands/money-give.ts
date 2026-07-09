@@ -5,6 +5,7 @@ import {
   Command,
   CommandOption,
   CommandOptionType,
+  Discord,
   Log,
 } from "../core";
 import { MoneyUtils } from "../money-utils";
@@ -100,7 +101,7 @@ export class MoneyGive implements Command {
     try {
       await InteractionController.announceMoneyGift(message.channelId, {
         amountCents,
-        recipientName: recipient.displayName,
+        recipientName: Discord.formatUserNameString(recipient),
         senderName: message.member.displayName,
       });
     } catch (reason: unknown) {
@@ -114,7 +115,7 @@ export class MoneyGive implements Command {
 
     await InteractionController.informSuccess(
       message,
-      `Gave \`${MoneyUtils.format(amountCents)}\` to ${recipient.displayName}. Your balance: \`${MoneyUtils.format(moneyState.getBalance(message.user.id))}\`.`,
+      `Gave \`${MoneyUtils.format(amountCents)}\` to ${Discord.formatUserNameString(recipient)}. Your balance: \`${MoneyUtils.format(moneyState.getBalance(message.user.id))}\`.`,
     );
   }
 }
