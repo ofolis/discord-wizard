@@ -333,9 +333,7 @@ export class InteractionController {
   ): string {
     return Utils.linesToString([
       `# ${ICONS[IconName.BET_START]} Bet Started`,
-      bettingState.isLocked
-        ? "Betting is locked."
-        : "Use the `/bet` command to wager on an option below.",
+      "Use the `/bet` command to wager on an option below.",
       "### Options",
       Utils.linesToString(
         bettingState
@@ -345,6 +343,9 @@ export class InteractionController {
           ),
       ),
       `### Total Pool: \`${MoneyUtils.format(bettingState.totalPoolCents)}\``,
+      bettingState.isLocked
+        ? "### Betting Is: `Locked` 🔴"
+        : "### Betting Is: `Open` 🟢",
     ]);
   }
 
