@@ -215,18 +215,29 @@ export class InteractionController {
   public static async showMoney(
     message: ChannelCommandMessage,
     data: {
+      readonly isRankingCapped: boolean;
+      readonly maxRankingEntries: number;
       readonly members: discordJs.GuildMember[];
       readonly moneyState: MoneyState;
       readonly userId: string;
     },
   ): Promise<void> {
+    const descriptionPrefix: string = Utils.linesToString([
+      "### Your Balance",
+      `# ${MoneyUtils.format(data.moneyState.getBalance(data.userId))}`,
+      "### Server Ranking",
+    ]);
     await this.__setMessageCard(message, {
       color: CardColor.INFO,
       description: Utils.linesToString([
-        "### Your Balance",
-        `# ${MoneyUtils.format(data.moneyState.getBalance(data.userId))}`,
-        "### Server Ranking",
-        this.__formatMoneyRankingsString(data.members, data.moneyState),
+        descriptionPrefix,
+        this.__formatMoneyRankingsString(
+          data.members,
+          data.moneyState,
+          data.isRankingCapped,
+          data.maxRankingEntries,
+          Discord.embedDescriptionMaxLength - descriptionPrefix.length - 1,
+        ),
       ]),
     });
   }
@@ -386,6 +397,9 @@ export class InteractionController {
   private static __formatMoneyRankingsString(
     members: discordJs.GuildMember[],
     moneyState: MoneyState,
+    isCapped: boolean,
+    maxRankingEntries: number,
+    maxLength: number,
   ): string {
     const rankedEntries: MoneyRankingEntry[] = members
       .map(member => ({
@@ -401,18 +415,30 @@ export class InteractionController {
       });
     const highestBalanceCents: number | null =
       rankedEntries[0]?.balanceCents ?? null;
-    return Utils.linesToString([
-      ...rankedEntries.map(entry => {
-        const badges: string[] = [];
-        if (entry.balanceCents === highestBalanceCents) {
-          badges.push("👑");
-        }
-        if (entry.balanceCents === 0) {
-          badges.push("💀");
-        }
-        return `- **${entry.displayName}**${badges.length > 0 ? ` ${badges.join(" ")}` : ""} - \`${MoneyUtils.format(entry.balanceCents)}\``;
-      }),
-    ]);
+    const lines: string[] = [];
+    if (isCapped) {
+      this.__pushMoneyRankingLine(
+        lines,
+        `Only showing the top **${maxRankingEntries.toString()}** users, plus you if you are outside that group.`,
+        maxLength,
+      );
+    }
+
+    for (const entry of rankedEntries) {
+      const badges: string[] = [];
+      if (entry.balanceCents === highestBalanceCents) {
+        badges.push("👑");
+      }
+      if (entry.balanceCents === 0) {
+        badges.push("💀");
+      }
+
+      const line: string = `- **${entry.displayName}**${badges.length > 0 ? ` ${badges.join(" ")}` : ""} - \`${MoneyUtils.format(entry.balanceCents)}\``;
+      if (!this.__pushMoneyRankingLine(lines, line, maxLength)) {
+        break;
+      }
+    }
+    return Utils.linesToString(lines);
   }
 
   private static __formatRankEmoji(rank: number): string {
@@ -483,6 +509,24 @@ export class InteractionController {
 
   private static __hasVotes(results: VotingResult[]): boolean {
     return results.length > 0 && results[0].voteCount > 0;
+  }
+
+  private static __pushMoneyRankingLine(
+    lines: string[],
+    line: string,
+    maxLength: number,
+  ): boolean {
+    const nextValue: string = Utils.linesToString([...lines, line]);
+    if (nextValue.length <= maxLength) {
+      lines.push(line);
+      return true;
+    }
+
+    const truncationLine: string = "...";
+    if (Utils.linesToString([...lines, truncationLine]).length <= maxLength) {
+      lines.push(truncationLine);
+    }
+    return false;
   }
 
   private static async __setMessageCard(

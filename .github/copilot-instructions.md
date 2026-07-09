@@ -1,5 +1,23 @@
 # Copilot Review Instructions
 
+## Review Calibration
+
+This project favors simple, powerful solutions sized to the current bot and its
+small-server use case. Flag meaningful correctness, safety, and maintainability
+risks, but avoid recommending generalized infrastructure or preventative
+machinery for hypothetical future scale.
+
+Treat review comments as prompts for engineering judgment. If an issue is mostly
+theoretical at this project's scale, call out the tradeoff instead of presenting
+the larger solution as required.
+
+For shared stateful behavior such as caching, retries, persistence, or
+validation, prefer comments that clarify ownership and simplify the mental model.
+Avoid pushing caller-specific policy branches unless they address a demonstrated
+need.
+
+## Discord Context
+
 This is an owner-operated Discord bot for a small, informal server. Logging Discord
 user IDs, submitted content, embeds, and message payloads is intentional for audit
 and moderation troubleshooting.

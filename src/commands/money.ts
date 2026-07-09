@@ -9,8 +9,12 @@ import { MoneyState } from "../saveables";
 const maxMoneyRankingEntries: number = 100;
 type BalanceEntry = ReturnType<MoneyState["getBalanceEntries"]>[number];
 type GuildMembers = Awaited<
-  ReturnType<typeof GuildMemberController.getGuildMembersByIds>
+  ReturnType<typeof GuildMemberController.getGuildMembers>
 >;
+type RankingMembersResult = {
+  readonly isCapped: boolean;
+  readonly members: GuildMembers;
+};
 
 export class Money implements Command {
   public readonly description: string = "Shows your money and server ranking.";
@@ -39,9 +43,9 @@ export class Money implements Command {
         return a.userId.localeCompare(b.userId);
       });
 
-    let members: GuildMembers;
+    let rankingMembersResult: RankingMembersResult;
     try {
-      members = await this.__getRankingMembers(
+      rankingMembersResult = await this.__getRankingMembers(
         message.member.guild.id,
         balanceEntries,
         userId,
@@ -56,47 +60,88 @@ export class Money implements Command {
     }
 
     await InteractionController.showMoney(message, {
-      members,
+      isRankingCapped: rankingMembersResult.isCapped,
+      maxRankingEntries: maxMoneyRankingEntries,
+      members: rankingMembersResult.members,
       moneyState,
       userId,
     });
+  }
+
+  private async __getGuildMembersById(
+    guildId: string,
+    currentUserId: string,
+  ): Promise<Map<string, GuildMembers[number]>> {
+    const guildMembers: GuildMembers =
+      await GuildMemberController.getGuildMembers(guildId);
+    let guildMembersById: Map<string, GuildMembers[number]> =
+      this.__mapGuildMembersById(guildMembers);
+    if (guildMembersById.has(currentUserId)) {
+      return guildMembersById;
+    }
+
+    const refreshedGuildMembers: GuildMembers =
+      await GuildMemberController.getGuildMembers(guildId, {
+        forceRefresh: true,
+      });
+    guildMembersById = this.__mapGuildMembersById(refreshedGuildMembers);
+    if (!guildMembersById.has(currentUserId)) {
+      Log.throw(
+        "Cannot load money ranking. Current user is not a guild member.",
+        {
+          currentUserId,
+          guildId,
+        },
+      );
+    }
+    return guildMembersById;
   }
 
   private async __getRankingMembers(
     guildId: string,
     balanceEntries: BalanceEntry[],
     currentUserId: string,
-  ): Promise<GuildMembers> {
+  ): Promise<RankingMembersResult> {
+    const guildMembersById: Map<string, GuildMembers[number]> =
+      await this.__getGuildMembersById(guildId, currentUserId);
     const membersById: Map<string, GuildMembers[number]> = new Map();
-    for (
-      let index: number = 0;
-      index < balanceEntries.length &&
-      membersById.size < maxMoneyRankingEntries;
-      index += maxMoneyRankingEntries
-    ) {
-      const candidateUserIds: string[] = balanceEntries
-        .slice(index, index + maxMoneyRankingEntries)
-        .map(entry => entry.userId)
-        .filter(userId => !membersById.has(userId));
-      const members: GuildMembers =
-        await GuildMemberController.getGuildMembersByIds(
-          guildId,
-          candidateUserIds,
-        );
-      members.forEach(member => {
+    let isCapped: boolean = false;
+    let rankedMemberCount: number = 0;
+
+    for (const balanceEntry of balanceEntries) {
+      const member: GuildMembers[number] | undefined = guildMembersById.get(
+        balanceEntry.userId,
+      );
+      if (member === undefined) {
+        continue;
+      }
+      rankedMemberCount += 1;
+      if (rankedMemberCount > maxMoneyRankingEntries) {
+        isCapped = true;
+        break;
+      }
+      if (!membersById.has(member.id)) {
         membersById.set(member.id, member);
-      });
+      }
     }
 
     if (!membersById.has(currentUserId)) {
-      const currentUserMembers: GuildMembers =
-        await GuildMemberController.getGuildMembersByIds(guildId, [
-          currentUserId,
-        ]);
-      currentUserMembers.forEach(member => {
+      const member: GuildMembers[number] | undefined =
+        guildMembersById.get(currentUserId);
+      if (member !== undefined) {
         membersById.set(member.id, member);
-      });
+      }
     }
-    return [...membersById.values()];
+
+    return {
+      isCapped,
+      members: [...membersById.values()],
+    };
+  }
+
+  private __mapGuildMembersById(
+    guildMembers: GuildMembers,
+  ): Map<string, GuildMembers[number]> {
+    return new Map(guildMembers.map(member => [member.id, member]));
   }
 }
