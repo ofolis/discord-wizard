@@ -8,6 +8,7 @@ type GuildMembersOptions = {
 
 type GuildMemberCacheEntry = {
   readonly expiresAtMs: number;
+  readonly isComplete: boolean;
   readonly members: discordJs.GuildMember[];
 };
 
@@ -45,11 +46,12 @@ export class GuildMemberController {
       options,
       userIds,
     });
-    const cachedMembers: discordJs.GuildMember[] | null =
+    const cacheEntry: GuildMemberCacheEntry | null =
       options.forceRefresh === true
         ? null
-        : this.__getValidCachedGuildMembers(guildId);
-    if (cachedMembers !== null) {
+        : this.__getValidGuildMemberCacheEntry(guildId);
+    if (cacheEntry !== null) {
+      const cachedMembers: discordJs.GuildMember[] = cacheEntry.members;
       const cachedMemberIds: Set<string> = new Set(
         cachedMembers.map(member => member.id),
       );
@@ -79,6 +81,9 @@ export class GuildMemberController {
               missingUserIds,
               options,
             );
+      if (activeRefresh === undefined) {
+        this.__mergeCachedGuildMembers(guildId, missingMembers);
+      }
       const members: discordJs.GuildMember[] = this.__getMembersByIds(
         [...cachedMembers, ...missingMembers],
         userIds,
@@ -95,14 +100,18 @@ export class GuildMemberController {
       options.forceRefresh === true
         ? undefined
         : this.__guildMemberRefreshesByGuildId.get(guildId);
-    const members: discordJs.GuildMember[] =
+    const fetchedMembers: discordJs.GuildMember[] =
       activeRefresh === undefined
-        ? this.__getMembersByIds(
-            await this.__fetchGuildMembersByIds(guildId, userIds),
-            userIds,
-            options,
-          )
-        : this.__getMembersByIds(await activeRefresh, userIds, options);
+        ? await this.__fetchGuildMembersByIds(guildId, userIds)
+        : await activeRefresh;
+    if (activeRefresh === undefined) {
+      this.__mergeCachedGuildMembers(guildId, fetchedMembers);
+    }
+    const members: discordJs.GuildMember[] = this.__getMembersByIds(
+      fetchedMembers,
+      userIds,
+      options,
+    );
     Log.debug("Discord guild members retrieved successfully.", {
       guildId,
       memberCount: members.length,
@@ -136,6 +145,7 @@ export class GuildMemberController {
     );
     this.__guildMemberCacheByGuildId.set(guildId, {
       expiresAtMs: Date.now() + guildMemberCacheTtlMs,
+      isComplete: true,
       members: fetchedMembers,
     });
     Log.debug("Discord guild member cache refreshed successfully.", {
@@ -185,7 +195,7 @@ export class GuildMemberController {
   ): Promise<discordJs.GuildMember[]> {
     if (options.forceRefresh !== true) {
       const cachedMembers: discordJs.GuildMember[] | null =
-        this.__getValidCachedGuildMembers(guildId);
+        this.__getValidCompleteCachedGuildMembers(guildId);
       if (cachedMembers !== null) {
         Log.debug("Using cached Discord guild members.", {
           guildId,
@@ -229,9 +239,17 @@ export class GuildMemberController {
     });
   }
 
-  private static __getValidCachedGuildMembers(
+  private static __getValidCompleteCachedGuildMembers(
     guildId: string,
   ): discordJs.GuildMember[] | null {
+    const cacheEntry: GuildMemberCacheEntry | null =
+      this.__getValidGuildMemberCacheEntry(guildId);
+    return cacheEntry?.isComplete === true ? cacheEntry.members : null;
+  }
+
+  private static __getValidGuildMemberCacheEntry(
+    guildId: string,
+  ): GuildMemberCacheEntry | null {
     const cacheEntry: GuildMemberCacheEntry | undefined =
       this.__guildMemberCacheByGuildId.get(guildId);
     if (cacheEntry === undefined) {
@@ -241,6 +259,30 @@ export class GuildMemberController {
       this.__guildMemberCacheByGuildId.delete(guildId);
       return null;
     }
-    return cacheEntry.members;
+    return cacheEntry;
+  }
+
+  private static __mergeCachedGuildMembers(
+    guildId: string,
+    members: discordJs.GuildMember[],
+  ): void {
+    if (members.length === 0) {
+      return;
+    }
+
+    const cacheEntry: GuildMemberCacheEntry | null =
+      this.__getValidGuildMemberCacheEntry(guildId);
+    const membersById: Map<string, discordJs.GuildMember> = new Map(
+      cacheEntry?.members.map(member => [member.id, member]),
+    );
+    members.forEach(member => {
+      membersById.set(member.id, member);
+    });
+    this.__guildMemberCacheByGuildId.set(guildId, {
+      expiresAtMs:
+        cacheEntry?.expiresAtMs ?? Date.now() + guildMemberCacheTtlMs,
+      isComplete: cacheEntry?.isComplete === true,
+      members: [...membersById.values()],
+    });
   }
 }
