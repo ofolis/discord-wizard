@@ -74,8 +74,14 @@ export class MoneyRemoveServer implements Command {
     const moneyState: MoneyState = DataController.loadOrCreateMoneyState(
       message.member.guild.id,
     );
+    let totalRemovedCents: number = 0;
     members.forEach(member => {
-      moneyState.addBalance(member.user.id, -amountCents);
+      const removedCents: number = Math.min(
+        moneyState.getBalance(member.user.id),
+        amountCents,
+      );
+      totalRemovedCents += removedCents;
+      moneyState.addBalance(member.user.id, -removedCents);
     });
 
     try {
@@ -91,7 +97,7 @@ export class MoneyRemoveServer implements Command {
 
     await InteractionController.informSuccess(
       message,
-      `Removed \`${MoneyUtils.format(amountCents)}\` from ${members.length.toString()} users.`,
+      `Removed up to \`${MoneyUtils.format(amountCents)}\` from ${members.length.toString()} users. Total removed: \`${MoneyUtils.format(totalRemovedCents)}\`.`,
     );
   }
 }

@@ -73,6 +73,14 @@ export class MoneyRemoveUser implements Command {
     const moneyState: MoneyState = DataController.loadOrCreateMoneyState(
       message.member.guild.id,
     );
+    const currentBalanceCents: number = moneyState.getBalance(user.id);
+    if (amountCents > currentBalanceCents) {
+      await InteractionController.informError(
+        message,
+        `${Discord.formatUserNameString(user)} only has \`${MoneyUtils.format(currentBalanceCents)}\`.`,
+      );
+      return;
+    }
     moneyState.addBalance(user.id, -amountCents);
 
     try {
