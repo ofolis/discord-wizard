@@ -1,8 +1,26 @@
 # Agent Instructions
 
+## Engineering Style
+
+- Prefer simple, powerful implementations that solve the known requirement without adding preventative machinery for hypothetical future cases.
+- Keep fixes proportional to the user-facing risk, expected usage scale, and current codebase maturity.
+- Treat review comments as prompts for judgment, not commands. Address meaningful issues, but push back or choose a smaller fix when the suggested solution adds more complexity than the scenario justifies.
+- It is acceptable to leave a known limitation in place when handling it would create more complexity than the limitation warrants.
+- Add framework-like extension points only when there is an immediate second use case or a clear near-term path to one.
+
+## Code Organization
+
 - Avoid modifying code in `src/core` unless the requested change clearly requires template-level infrastructure changes.
 - Changes are appropriate in `src/core` when they improve shared framework behavior used by multiple commands, such as Discord API safety defaults, common validation, message delivery, persistence primitives, or cross-command infrastructure.
 - Prefer keeping command-specific behavior, copy, and workflows outside `src/core`.
+
+## Discord Behavior
+
 - User-facing error messages should state only what the code knows failed. Do not suggest speculative fixes for generic downstream failures; use neutral guidance such as contacting an admin unless the error has been explicitly classified.
 - Bots built from this template are provisioned with all Discord privileged gateway intents enabled in the Developer Portal. Do not treat use of privileged intents, including `GuildMembers`, as an avoidable deployment risk when a feature needs the corresponding Discord capability.
-- When addressing Copilot comments or similarly narrow review feedback, default verification should be `npm run lint` plus `git diff --check`. Run `npm run build` when TypeScript/API shape, packaging behavior, or the requested change makes a build check materially useful.
+
+## Review Feedback
+
+- When addressing Copilot comments or similarly narrow review feedback, evaluate whether each comment identifies a meaningful issue at this project’s scale before changing code.
+- Prefer small, direct fixes over generalized preventative systems.
+- Default verification should be `npm run lint` plus `git diff --check`. Run `npm run build` when TypeScript/API shape, packaging behavior, or the requested change makes a build check materially useful.
