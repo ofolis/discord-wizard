@@ -121,6 +121,10 @@ export class BettingState implements Saveable {
     return nextTotalCents;
   }
 
+  private static __isValidOption(option: string): boolean {
+    return option.trim().length > 0;
+  }
+
   private static __parseJson(
     json: Json,
     expectedGuildId: string,
@@ -129,7 +133,9 @@ export class BettingState implements Saveable {
     const messageId: unknown = json.messageId;
     const hasValidOptions: boolean =
       Array.isArray(json.options) &&
-      json.options.every(option => typeof option === "string") &&
+      json.options.every(
+        option => typeof option === "string" && this.__isValidOption(option),
+      ) &&
       json.options.length >= this.minOptionCount &&
       json.options.length <= this.maxOptionCount;
     const hasValidMessageId: boolean =
@@ -195,9 +201,10 @@ export class BettingState implements Saveable {
   private static __validateOptions(options: readonly string[]): void {
     if (
       options.length < this.minOptionCount ||
-      options.length > this.maxOptionCount
+      options.length > this.maxOptionCount ||
+      !options.every(option => this.__isValidOption(option))
     ) {
-      Log.throw("Cannot create betting state. Option count is invalid.", {
+      Log.throw("Cannot create betting state. Options are invalid.", {
         maxOptionCount: this.maxOptionCount,
         minOptionCount: this.minOptionCount,
         options,
