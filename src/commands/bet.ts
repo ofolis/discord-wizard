@@ -88,6 +88,13 @@ export class Bet implements Command {
     const previousMoneyStateJson: Json = moneyState.toJson();
     const availableCents: number =
       moneyState.getBalance(userId) + previousWagerCents;
+    if (!Number.isSafeInteger(availableCents)) {
+      await InteractionController.informError(
+        message,
+        "Could not calculate your available money. Contact an admin.",
+      );
+      return;
+    }
     if (amountCents > availableCents) {
       await InteractionController.informError(
         message,

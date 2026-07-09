@@ -74,14 +74,26 @@ export class MoneyRemoveServer implements Command {
     const moneyState: MoneyState = DataController.loadOrCreateMoneyState(
       message.member.guild.id,
     );
+    const removals: {
+      readonly amountCents: number;
+      readonly userId: string;
+    }[] = members.map(member => ({
+      amountCents: Math.min(moneyState.getBalance(member.user.id), amountCents),
+      userId: member.user.id,
+    }));
     let totalRemovedCents: number = 0;
-    members.forEach(member => {
-      const removedCents: number = Math.min(
-        moneyState.getBalance(member.user.id),
-        amountCents,
-      );
-      totalRemovedCents += removedCents;
-      moneyState.addBalance(member.user.id, -removedCents);
+    for (const removal of removals) {
+      totalRemovedCents += removal.amountCents;
+      if (!Number.isSafeInteger(totalRemovedCents)) {
+        await InteractionController.informError(
+          message,
+          "Could not calculate the server money removal. Contact an admin.",
+        );
+        return;
+      }
+    }
+    removals.forEach(removal => {
+      moneyState.addBalance(removal.userId, -removal.amountCents);
     });
 
     try {

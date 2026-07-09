@@ -57,6 +57,13 @@ export class BetAll implements Command {
     const previousMoneyStateJson: Json = moneyState.toJson();
     const amountCents: number =
       moneyState.getBalance(userId) + previousWagerCents;
+    if (!Number.isSafeInteger(amountCents)) {
+      await InteractionController.informError(
+        message,
+        "Could not calculate your available money. Contact an admin.",
+      );
+      return;
+    }
     if (amountCents === 0 && previousWagerCents === 0) {
       await InteractionController.informError(
         message,
