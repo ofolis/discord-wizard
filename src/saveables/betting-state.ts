@@ -268,17 +268,23 @@ export class BettingState implements Saveable {
         userId,
       });
     }
+    if (amountCents === 0) {
+      const existingBet: Bet | null = Object.hasOwn(this.__betsByUserId, userId)
+        ? this.__betsByUserId[userId]
+        : null;
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete -- User IDs are dynamic wager keys.
+      delete this.__betsByUserId[userId];
+      if (existingBet === null) {
+        return "";
+      }
+      return this.__options[this.__letterToIndex(existingBet.letter)];
+    }
     const betOption: {
       readonly letter: string;
       readonly option: string;
     } | null = this.__getBetOption(letter);
     if (betOption === null) {
       return null;
-    }
-    if (amountCents === 0) {
-      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete -- User IDs are dynamic wager keys.
-      delete this.__betsByUserId[userId];
-      return betOption.option;
     }
     this.__betsByUserId[userId] = {
       amountCents,

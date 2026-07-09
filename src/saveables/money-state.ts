@@ -37,7 +37,7 @@ export class MoneyState implements Saveable {
         balancesByUserId !== null &&
         !Array.isArray(balancesByUserId) &&
         Object.values(balancesByUserId as Record<string, unknown>).every(
-          balance => Number.isInteger(balance),
+          balance => Number.isSafeInteger(balance),
         ));
 
     if (
@@ -69,8 +69,8 @@ export class MoneyState implements Saveable {
   }
 
   public setBalance(userId: string, amountCents: number): void {
-    if (!Number.isInteger(amountCents)) {
-      Log.throw("Cannot set user money. Amount is not an integer.", {
+    if (!Number.isSafeInteger(amountCents)) {
+      Log.throw("Cannot set user money. Amount is not a safe integer.", {
         amountCents,
         userId,
       });

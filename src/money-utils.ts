@@ -14,6 +14,10 @@ export class MoneyUtils {
     if (amount === undefined || !Number.isFinite(amount) || amount < 0) {
       return null;
     }
-    return Math.round(amount * 100);
+    const amountCents: number = Math.round(amount * 100);
+    if (!Number.isSafeInteger(amountCents)) {
+      return null;
+    }
+    return amountCents;
   }
 }
