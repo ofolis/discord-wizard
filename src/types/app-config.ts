@@ -1,5 +1,5 @@
 export type AppConfig = {
+  readonly callInHostChannelName: string;
   readonly callInHostRoleNames: readonly string[];
-  readonly callInHostsChannelName: string;
   readonly submissionChannelName: string;
 };

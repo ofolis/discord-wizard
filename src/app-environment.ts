@@ -9,11 +9,11 @@ export class AppEnvironment {
     if (this.__config === null) {
       dotenv.config();
       this.__config = {
+        callInHostChannelName: this.__getRequiredEnvVariable(
+          "CALL_IN_HOST_CHANNEL_NAME",
+        ),
         callInHostRoleNames: this.__getRequiredEnvList(
           "CALL_IN_HOST_ROLE_NAMES",
-        ),
-        callInHostsChannelName: this.__getRequiredEnvVariable(
-          "CALL_IN_HOSTS_CHANNEL_NAME",
         ),
         submissionChannelName: this.__getRequiredEnvVariable(
           "SUBMISSION_CHANNEL_NAME",

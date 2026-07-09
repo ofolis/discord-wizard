@@ -199,7 +199,7 @@ export class CallInUtils {
   ): Promise<string | null> {
     let channelIds: string[] = ChannelCache.getChannelIds(
       guild.id,
-      AppEnvironment.config.callInHostsChannelName,
+      AppEnvironment.config.callInHostChannelName,
     );
     if (channelIds.length !== 1) {
       try {
@@ -212,13 +212,13 @@ export class CallInUtils {
       }
       channelIds = ChannelCache.getChannelIds(
         guild.id,
-        AppEnvironment.config.callInHostsChannelName,
+        AppEnvironment.config.callInHostChannelName,
       );
     }
     if (channelIds.length !== 1) {
       Log.error("Could not resolve call-in hosts channel.", {
         channelIds,
-        channelName: AppEnvironment.config.callInHostsChannelName,
+        channelName: AppEnvironment.config.callInHostChannelName,
         guildId: guild.id,
       });
       return null;
