@@ -57,12 +57,9 @@ export class ChannelCommandMessage extends ChannelMessage {
   }
 
   private static __isMissingOptionValue(
-    option: discordJs.CommandInteractionOption | undefined,
+    option: discordJs.CommandInteractionOption,
     type: CommandOptionType,
-  ): option is undefined {
-    if (option === undefined) {
-      return true;
-    }
+  ): boolean {
     if (type === CommandOptionType.USER) {
       return option.user === undefined;
     }
@@ -80,7 +77,10 @@ export class ChannelCommandMessage extends ChannelMessage {
     }
     const option: discordJs.CommandInteractionOption | undefined =
       this.__commandOptions.find(opt => opt.name === name);
-    if (ChannelCommandMessage.__isMissingOptionValue(option, type)) {
+    if (
+      option === undefined ||
+      ChannelCommandMessage.__isMissingOptionValue(option, type)
+    ) {
       // Option is intentionally undefined
       return undefined;
     }
