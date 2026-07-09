@@ -1,8 +1,22 @@
 import type { Json } from "../core";
 import { IO, Log } from "../core";
-import { ChannelState, VotingState } from "../saveables";
+import {
+  BettingState,
+  ChannelState,
+  MoneyState,
+  VotingState,
+} from "../saveables";
 
 export class DataController {
+  public static loadActiveBettingState(guildId: string): BettingState | null {
+    Log.debug("Loading active betting state.");
+    const bettingState: BettingState | null = this.loadBettingState(guildId);
+    if (bettingState === null || !bettingState.isOpen) {
+      return null;
+    }
+    return bettingState;
+  }
+
   public static loadActiveVotingState(guildId: string): VotingState | null {
     Log.debug("Loading active voting state.");
     const votingState: VotingState | null = this.loadVotingState(guildId);
@@ -12,6 +26,18 @@ export class DataController {
     return votingState;
   }
 
+  public static loadBettingState(guildId: string): BettingState | null {
+    Log.debug("Loading betting state.");
+    const bettingStateJson: Json | null = IO.loadData(
+      this.__getBettingStateId(guildId),
+    );
+    if (bettingStateJson === null) {
+      return null;
+    }
+
+    return BettingState.fromJson(bettingStateJson, guildId);
+  }
+
   public static loadChannelState(channelId: string): ChannelState | null {
     Log.debug("Loading channel state.");
     const channelStateJson: Json | null = IO.loadData(channelId);
@@ -19,6 +45,23 @@ export class DataController {
       return null;
     }
     return new ChannelState(channelStateJson);
+  }
+
+  public static loadMoneyState(guildId: string): MoneyState | null {
+    Log.debug("Loading money state.");
+    const moneyStateJson: Json | null = IO.loadData(
+      this.__getMoneyStateId(guildId),
+    );
+    if (moneyStateJson === null) {
+      return null;
+    }
+
+    return MoneyState.fromJson(moneyStateJson, guildId);
+  }
+
+  public static loadOrCreateMoneyState(guildId: string): MoneyState {
+    Log.debug("Loading or creating money state.");
+    return this.loadMoneyState(guildId) ?? new MoneyState(guildId);
   }
 
   public static loadVotingState(guildId: string): VotingState | null {
@@ -33,9 +76,47 @@ export class DataController {
     return VotingState.fromJson(votingStateJson, guildId);
   }
 
+  public static saveBetResultStateChange(
+    bettingState: BettingState,
+    moneyState: MoneyState,
+    previousBettingStateJson: Json,
+  ): void {
+    Log.debug("Saving bet result state change.");
+    this.saveBettingState(bettingState);
+    try {
+      this.saveMoneyState(moneyState);
+    } catch (reason: unknown) {
+      try {
+        IO.saveData(
+          this.__getBettingStateId(bettingState.guildId),
+          previousBettingStateJson,
+        );
+      } catch (rollbackReason: unknown) {
+        Log.error("Could not roll back betting state.", rollbackReason);
+      }
+      throw reason;
+    }
+  }
+
+  public static saveBettingState(bettingState: BettingState): void {
+    Log.debug("Saving betting state.");
+    IO.saveData(
+      this.__getBettingStateId(bettingState.guildId),
+      bettingState.toJson(),
+    );
+  }
+
   public static saveChannelState(channelState: ChannelState): void {
     Log.debug("Saving channel state.");
     IO.saveData(channelState.channelId, channelState.toJson());
+  }
+
+  public static saveMoneyState(moneyState: MoneyState): void {
+    Log.debug("Saving money state.");
+    IO.saveData(
+      this.__getMoneyStateId(moneyState.guildId),
+      moneyState.toJson(),
+    );
   }
 
   public static saveVotingState(votingState: VotingState): void {
@@ -44,6 +125,36 @@ export class DataController {
       this.__getVotingStateId(votingState.guildId),
       votingState.toJson(),
     );
+  }
+
+  public static saveWagerStateChange(
+    bettingState: BettingState,
+    moneyState: MoneyState,
+    previousMoneyStateJson: Json,
+  ): void {
+    Log.debug("Saving wager state change.");
+    this.saveMoneyState(moneyState);
+    try {
+      this.saveBettingState(bettingState);
+    } catch (reason: unknown) {
+      try {
+        IO.saveData(
+          this.__getMoneyStateId(moneyState.guildId),
+          previousMoneyStateJson,
+        );
+      } catch (rollbackReason: unknown) {
+        Log.error("Could not roll back money state.", rollbackReason);
+      }
+      throw reason;
+    }
+  }
+
+  private static __getBettingStateId(guildId: string): string {
+    return `bet-${guildId}`;
+  }
+
+  private static __getMoneyStateId(guildId: string): string {
+    return `money-${guildId}`;
   }
 
   private static __getVotingStateId(guildId: string): string {

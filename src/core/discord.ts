@@ -19,7 +19,7 @@ export class Discord {
     if (this.__client === null) {
       Log.debug("Creating Discord client...");
       this.__client = new discordJs.Client({
-        intents: ["DirectMessages", "Guilds", "GuildMessages"],
+        intents: ["DirectMessages", "GuildMembers", "Guilds", "GuildMessages"],
       });
       Log.debug("Discord client created successfully.", {
         client: this.__client,
@@ -88,6 +88,14 @@ export class Discord {
               }
               return stringOptionBuilder;
             });
+            break;
+          case CommandOptionType.USER:
+            slashCommandBuilder.addUserOption(userOption =>
+              userOption
+                .setName(option.name)
+                .setDescription(option.description)
+                .setRequired(option.isRequired),
+            );
             break;
           default:
             Log.throw("Cannot build command. Unknown command option type.", {

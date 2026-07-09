@@ -22,9 +22,9 @@ Because I am using this template for my own Discord bot projects, it will be upd
 6. In the **Bot** section:
    1. Set any desired aesthetic items.
    2. Reset the token and **save the value for later**.
-   3. Enable privileged gateway intents:
+   3. Enable all privileged gateway intents:
       - **Presence Intent**
-      - **Server Memebers Intent**
+      - **Server Members Intent**
       - **Message Content Intent**
 7. Back in the **OAuth2** section:
    1. Create a guild install OAuth2 URL with only the `bot` scope.

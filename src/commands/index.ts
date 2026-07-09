@@ -1,3 +1,17 @@
+export { Bet } from "./bet";
+export { BetAll } from "./bet-all";
+export { BetEnd } from "./bet-end";
+export { BetLock } from "./bet-lock";
+export { BetStart } from "./bet-start";
+export { BetUnlock } from "./bet-unlock";
+export { Money } from "./money";
+export { MoneyAddServer } from "./money-add-server";
+export { MoneyAddUser } from "./money-add-user";
+export { MoneyGive } from "./money-give";
+export { MoneyRemoveServer } from "./money-remove-server";
+export { MoneyRemoveUser } from "./money-remove-user";
+export { MoneySetServer } from "./money-set-server";
+export { MoneySetUser } from "./money-set-user";
 export { Submit } from "./submit";
 export { Vote } from "./vote";
 export { VoteEnd } from "./vote-end";

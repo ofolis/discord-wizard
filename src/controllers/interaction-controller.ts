@@ -9,9 +9,25 @@ import {
   Utils,
 } from "../core";
 import { IconName } from "../enums";
-import { VotingState } from "../saveables";
+import { MoneyUtils } from "../money-utils";
+import { BettingState, MoneyState, VotingState } from "../saveables";
 
 type VotingResult = ReturnType<VotingState["getSortedResults"]>[number];
+type BettingOptionSummary = ReturnType<
+  BettingState["getOptionSummaries"]
+>[number];
+type BettingPayout = NonNullable<
+  ReturnType<BettingState["calculatePayouts"]>
+>[number];
+type BettingWinningOption = {
+  readonly letter: string;
+  readonly option: string;
+};
+type MoneyRankingEntry = {
+  readonly balanceCents: number;
+  readonly displayName: string;
+  readonly userId: string;
+};
 
 const letterEmojis: string[] = [
   "🇦",
@@ -62,6 +78,74 @@ enum CardColor {
 }
 
 export class InteractionController {
+  public static async announceAllIn(
+    channelId: string,
+    data: {
+      readonly option: string;
+      readonly userName: string;
+    },
+  ): Promise<void> {
+    await this.__createChannelCard(channelId, {
+      color: CardColor.INFO,
+      description: Utils.linesToString([
+        `# ${ICONS[IconName.ALL_IN]} All In!`,
+        `**${data.userName}** bet everything on \`${data.option}\`!`,
+      ]),
+    });
+  }
+
+  public static async announceBetResults(
+    channelId: string,
+    payouts: BettingPayout[],
+    winningOptions: BettingWinningOption[],
+    userLabelsById: Record<string, string>,
+    balancesByUserId: Record<string, number>,
+  ): Promise<void> {
+    await this.__createChannelCard(channelId, {
+      color: CardColor.INFO,
+      description: Utils.linesToString([
+        `# ${ICONS[IconName.BET_RESULTS]} Bet Results`,
+        this.__formatBetWinnerString(winningOptions),
+        payouts.length > 0 ? "### Payouts" : "No wagers were placed.",
+        payouts.length > 0
+          ? this.__formatBettingPayoutsString(
+              payouts,
+              userLabelsById,
+              balancesByUserId,
+            )
+          : null,
+      ]),
+    });
+  }
+
+  public static async announceBetStart(
+    channelId: string,
+    bettingState: BettingState,
+    userLabelsById: Record<string, string>,
+  ): Promise<ChannelMessage> {
+    return await this.__createChannelCard(channelId, {
+      color: CardColor.INFO,
+      description: this.__formatBetStartDescription(
+        bettingState,
+        userLabelsById,
+      ),
+    });
+  }
+
+  public static async announceMoneyGift(
+    channelId: string,
+    data: {
+      readonly amountCents: number;
+      readonly recipientName: string;
+      readonly senderName: string;
+    },
+  ): Promise<void> {
+    await this.__createChannelCard(channelId, {
+      color: CardColor.INFO,
+      description: `# ${ICONS[IconName.MONEY_GIVE]} ${data.senderName} gave ${data.recipientName} ${MoneyUtils.format(data.amountCents)}.`,
+    });
+  }
+
   public static async announceSubmission(
     channelId: string,
     submission: string,
@@ -128,6 +212,53 @@ export class InteractionController {
     });
   }
 
+  public static async showMoney(
+    message: ChannelCommandMessage,
+    data: {
+      readonly members: discordJs.GuildMember[];
+      readonly moneyState: MoneyState;
+      readonly userId: string;
+    },
+  ): Promise<void> {
+    await this.__setMessageCard(message, {
+      color: CardColor.INFO,
+      description: Utils.linesToString([
+        "### Your Balance",
+        `# ${MoneyUtils.format(data.moneyState.getBalance(data.userId))}`,
+        "### Server Ranking",
+        this.__formatMoneyRankingsString(data.members, data.moneyState),
+      ]),
+    });
+  }
+
+  public static async updateBetStart(
+    bettingState: BettingState,
+    userLabelsById: Record<string, string>,
+  ): Promise<void> {
+    if (bettingState.messageId === null) {
+      Log.debug("Skipping bet start message update. Message ID is missing.", {
+        channelId: bettingState.channelId,
+        guildId: bettingState.guildId,
+      });
+      return;
+    }
+    await Discord.updateChannelMessage(
+      bettingState.channelId,
+      bettingState.messageId,
+      {
+        embeds: [
+          this.__buildCard({
+            color: CardColor.INFO,
+            description: this.__formatBetStartDescription(
+              bettingState,
+              userLabelsById,
+            ),
+          }),
+        ],
+      },
+    );
+  }
+
   public static async updateVoteStart(votingState: VotingState): Promise<void> {
     if (votingState.messageId === null) {
       Log.debug("Skipping vote start message update. Message ID is missing.", {
@@ -178,8 +309,123 @@ export class InteractionController {
     });
   }
 
+  private static __formatBetOptionString(
+    summary: BettingOptionSummary,
+    userLabelsById: Record<string, string>,
+  ): string {
+    return Utils.linesToString([
+      `- ${this.__formatLetterEmoji(summary.letter)} **${summary.option}** - \`${MoneyUtils.format(summary.totalCents)}\``,
+      ...summary.wagers.map(
+        wager =>
+          `  - ${this.__formatUserLabel(wager.userId, userLabelsById)}: \`${MoneyUtils.format(wager.amountCents)}\``,
+      ),
+    ]);
+  }
+
+  private static __formatBetStartDescription(
+    bettingState: BettingState,
+    userLabelsById: Record<string, string>,
+  ): string {
+    return Utils.linesToString([
+      `# ${ICONS[IconName.BET_START]} Bet Started`,
+      "Use the `/bet` command to wager on an option below.",
+      "### Options",
+      Utils.linesToString(
+        bettingState
+          .getOptionSummaries()
+          .map(summary =>
+            this.__formatBetOptionString(summary, userLabelsById),
+          ),
+      ),
+      `### Total Pool: \`${MoneyUtils.format(bettingState.totalPoolCents)}\``,
+      bettingState.isLocked
+        ? "### Betting: `Locked` 🔒"
+        : "### Betting: `Open` 🟢",
+    ]);
+  }
+
+  private static __formatBetWinnerString(
+    winningOptions: BettingWinningOption[],
+  ): string {
+    if (winningOptions.length > 1) {
+      return Utils.linesToString([
+        "The bet ended in a **tie** between...",
+        `# ${winningOptions.map(winningOption => winningOption.option).join(" / ")} 👑`,
+      ]);
+    }
+    return Utils.linesToString([
+      "The winner is...",
+      `# ${winningOptions[0].option} 👑`,
+    ]);
+  }
+
+  private static __formatBettingPayoutsString(
+    payouts: BettingPayout[],
+    userLabelsById: Record<string, string>,
+    balancesByUserId: Record<string, number>,
+  ): string {
+    return Utils.linesToString(
+      payouts
+        .sort((a, b) => b.netCents - a.netCents)
+        .map(payout => {
+          const netSign: string = payout.netCents > 0 ? "+" : "";
+          const changeEmoji: string =
+            payout.netCents > 0 ? " 🟢" : payout.netCents < 0 ? " 🔴" : "";
+          const balanceCents: number = balancesByUserId[payout.userId] ?? 0;
+          const balanceEmoji: string = balanceCents === 0 ? " 💀" : "";
+          return `- **${this.__formatUserLabel(payout.userId, userLabelsById)}:** \`${netSign}${MoneyUtils.format(payout.netCents)}\`${changeEmoji} (\`${MoneyUtils.format(balanceCents)}\`${balanceEmoji})`;
+        }),
+    );
+  }
+
+  private static __formatLetterEmoji(letter: string): string {
+    const index: number = letter.charCodeAt(0) - "A".charCodeAt(0);
+    return letterEmojis[index] ?? letter;
+  }
+
+  private static __formatMoneyRankingsString(
+    members: discordJs.GuildMember[],
+    moneyState: MoneyState,
+  ): string {
+    const rankedEntries: MoneyRankingEntry[] = members
+      .map(member => ({
+        balanceCents: moneyState.getBalance(member.id),
+        displayName: member.displayName,
+        userId: member.id,
+      }))
+      .sort((a, b) => {
+        if (a.balanceCents !== b.balanceCents) {
+          return b.balanceCents - a.balanceCents;
+        }
+        return a.userId.localeCompare(b.userId);
+      });
+    const highestBalanceCents: number | null =
+      rankedEntries[0]?.balanceCents ?? null;
+    return Utils.linesToString([
+      ...rankedEntries.map(entry => {
+        const badges: string[] = [];
+        if (entry.balanceCents === highestBalanceCents) {
+          badges.push("👑");
+        }
+        if (entry.balanceCents === 0) {
+          badges.push("💀");
+        }
+        return `- **${entry.displayName}**${badges.length > 0 ? ` ${badges.join(" ")}` : ""} - \`${MoneyUtils.format(entry.balanceCents)}\``;
+      }),
+    ]);
+  }
+
   private static __formatRankEmoji(rank: number): string {
     return numberEmojis[rank] ?? `#${rank.toString()}`;
+  }
+
+  private static __formatUserLabel(
+    userId: string,
+    userLabelsById: Record<string, string>,
+  ): string {
+    return (
+      userLabelsById[userId] ?? Discord.formatUserMentionString({ id: userId })
+    );
   }
 
   private static __formatVoteStartDescription(

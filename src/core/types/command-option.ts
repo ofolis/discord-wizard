@@ -1,3 +1,4 @@
+import type * as discordJs from "discord.js";
 import { CommandOptionType } from "..";
 
 export type CommandOption =
@@ -22,6 +23,12 @@ export type CommandOption =
       readonly minLength?: number;
       readonly name: string;
       readonly type: CommandOptionType.STRING;
+    }
+  | {
+      readonly description: string;
+      readonly isRequired: boolean;
+      readonly name: string;
+      readonly type: CommandOptionType.USER;
     };
 
 export type CommandOptionTypeMap = {
@@ -29,4 +36,5 @@ export type CommandOptionTypeMap = {
   readonly [CommandOptionType.INTEGER]: number;
   readonly [CommandOptionType.NUMBER]: number;
   readonly [CommandOptionType.STRING]: string;
+  readonly [CommandOptionType.USER]: discordJs.User;
 };
