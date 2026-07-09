@@ -134,3 +134,6 @@ data/
 
 # Binary builds
 build/
+
+# System files
+.DS_Store
