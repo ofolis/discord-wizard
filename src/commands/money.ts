@@ -1,11 +1,9 @@
-import { DataController, InteractionController } from "../controllers";
 import {
-  ChannelCommandMessage,
-  Command,
-  CommandOption,
-  Discord,
-  Log,
-} from "../core";
+  DataController,
+  GuildMemberController,
+  InteractionController,
+} from "../controllers";
+import { ChannelCommandMessage, Command, CommandOption, Log } from "../core";
 import { MoneyState } from "../saveables";
 
 const maxMoneyRankingEntries: number = 25;
@@ -41,9 +39,11 @@ export class Money implements Command {
       .map(entry => entry.userId);
     const rankingUserIds: string[] = [...new Set([...rankedUserIds, userId])];
 
-    let members: Awaited<ReturnType<typeof Discord.getGuildMembersByIds>>;
+    let members: Awaited<
+      ReturnType<typeof GuildMemberController.getGuildMembersByIds>
+    >;
     try {
-      members = await Discord.getGuildMembersByIds(
+      members = await GuildMemberController.getGuildMembersByIds(
         message.member.guild.id,
         rankingUserIds,
       );

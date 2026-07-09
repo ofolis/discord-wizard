@@ -26,6 +26,7 @@ type BettingWinningOption = {
 type MoneyRankingEntry = {
   readonly balanceCents: number;
   readonly displayName: string;
+  readonly userId: string;
 };
 
 const letterEmojis: string[] = [
@@ -395,12 +396,13 @@ export class InteractionController {
       .map(member => ({
         balanceCents: moneyState.getBalance(member.id),
         displayName: member.displayName,
+        userId: member.id,
       }))
       .sort((a, b) => {
         if (a.balanceCents !== b.balanceCents) {
           return b.balanceCents - a.balanceCents;
         }
-        return a.displayName.localeCompare(b.displayName);
+        return a.userId.localeCompare(b.userId);
       });
     const highestBalanceCents: number | null =
       rankedEntries[0]?.balanceCents ?? null;

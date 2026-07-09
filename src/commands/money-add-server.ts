@@ -1,10 +1,13 @@
-import { DataController, InteractionController } from "../controllers";
+import {
+  DataController,
+  GuildMemberController,
+  InteractionController,
+} from "../controllers";
 import {
   ChannelCommandMessage,
   Command,
   CommandOption,
   CommandOptionType,
-  Discord,
   Log,
 } from "../core";
 import { MoneyUtils } from "../money-utils";
@@ -52,9 +55,13 @@ export class MoneyAddServer implements Command {
       return;
     }
 
-    let members: Awaited<ReturnType<typeof Discord.getGuildMembers>>;
+    let members: Awaited<
+      ReturnType<typeof GuildMemberController.getGuildMembers>
+    >;
     try {
-      members = await Discord.getGuildMembers(message.member.guild.id);
+      members = await GuildMemberController.getGuildMembers(
+        message.member.guild.id,
+      );
     } catch (reason: unknown) {
       Log.error("Could not load server members for money add.", reason);
       await InteractionController.informError(
