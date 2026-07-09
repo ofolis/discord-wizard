@@ -79,22 +79,25 @@ export class Money implements Command {
       guildMembers.map(member => [member.id, member]),
     );
     const membersById: Map<string, GuildMembers[number]> = new Map();
+    let isCapped: boolean = false;
+    let rankedMemberCount: number = 0;
 
     for (const balanceEntry of balanceEntries) {
-      if (membersById.size >= maxMoneyRankingEntries) {
-        break;
-      }
       const member: GuildMembers[number] | undefined = guildMembersById.get(
         balanceEntry.userId,
       );
-      if (member !== undefined) {
+      if (member === undefined) {
+        continue;
+      }
+      rankedMemberCount += 1;
+      if (rankedMemberCount > maxMoneyRankingEntries) {
+        isCapped = true;
+        break;
+      }
+      if (!membersById.has(member.id)) {
         membersById.set(member.id, member);
       }
     }
-    const isCapped: boolean =
-      balanceEntries.filter(
-        balanceEntry => guildMembersById.get(balanceEntry.userId) !== undefined,
-      ).length > maxMoneyRankingEntries;
 
     if (!membersById.has(currentUserId)) {
       const member: GuildMembers[number] | undefined =

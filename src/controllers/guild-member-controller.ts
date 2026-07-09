@@ -62,14 +62,14 @@ export class GuildMemberController {
       return members;
     }
 
-    const members: discordJs.GuildMember[] =
+    const activeRefresh: Promise<discordJs.GuildMember[]> | undefined =
       options.forceRefresh === true
+        ? undefined
+        : this.__guildMemberRefreshesByGuildId.get(guildId);
+    const members: discordJs.GuildMember[] =
+      activeRefresh === undefined
         ? await this.__fetchGuildMembersByIds(guildId, userIds, options)
-        : this.__getMembersByIds(
-            await this.__getCachedGuildMembers(guildId, options),
-            userIds,
-            options,
-          );
+        : this.__getMembersByIds(await activeRefresh, userIds, options);
     Log.debug("Discord guild members retrieved successfully.", {
       guildId,
       memberCount: members.length,

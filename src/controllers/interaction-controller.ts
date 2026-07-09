@@ -422,7 +422,7 @@ export class InteractionController {
         return `- **${entry.displayName}**${badges.length > 0 ? ` ${badges.join(" ")}` : ""} - \`${MoneyUtils.format(entry.balanceCents)}\``;
       }),
       isCapped
-        ? `Only showing the top **${maxRankingEntries.toString()}** users (including you).`
+        ? `Only showing the top **${maxRankingEntries.toString()}** users, plus you if you are outside that group.`
         : null,
     ]);
   }
