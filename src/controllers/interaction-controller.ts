@@ -215,6 +215,8 @@ export class InteractionController {
   public static async showMoney(
     message: ChannelCommandMessage,
     data: {
+      readonly isRankingCapped: boolean;
+      readonly maxRankingEntries: number;
       readonly members: discordJs.GuildMember[];
       readonly moneyState: MoneyState;
       readonly userId: string;
@@ -226,7 +228,12 @@ export class InteractionController {
         "### Your Balance",
         `# ${MoneyUtils.format(data.moneyState.getBalance(data.userId))}`,
         "### Server Ranking",
-        this.__formatMoneyRankingsString(data.members, data.moneyState),
+        this.__formatMoneyRankingsString(
+          data.members,
+          data.moneyState,
+          data.isRankingCapped,
+          data.maxRankingEntries,
+        ),
       ]),
     });
   }
@@ -386,6 +393,8 @@ export class InteractionController {
   private static __formatMoneyRankingsString(
     members: discordJs.GuildMember[],
     moneyState: MoneyState,
+    isCapped: boolean,
+    maxRankingEntries: number,
   ): string {
     const rankedEntries: MoneyRankingEntry[] = members
       .map(member => ({
@@ -412,6 +421,9 @@ export class InteractionController {
         }
         return `- **${entry.displayName}**${badges.length > 0 ? ` ${badges.join(" ")}` : ""} - \`${MoneyUtils.format(entry.balanceCents)}\``;
       }),
+      isCapped
+        ? `Only showing the top **${maxRankingEntries.toString()}** users (including you).`
+        : null,
     ]);
   }
 

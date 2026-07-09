@@ -61,6 +61,7 @@ export class MoneyAddServer implements Command {
     try {
       members = await GuildMemberController.getGuildMembers(
         message.member.guild.id,
+        { forceRefresh: true },
       );
     } catch (reason: unknown) {
       Log.error("Could not load server members for money add.", reason);
