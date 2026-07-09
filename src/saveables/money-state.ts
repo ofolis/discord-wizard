@@ -68,6 +68,18 @@ export class MoneyState implements Saveable {
     return this.__balancesByUserId[userId] ?? 0;
   }
 
+  public getBalanceEntries(): {
+    readonly balanceCents: number;
+    readonly userId: string;
+  }[] {
+    return Object.entries(this.__balancesByUserId).map(
+      ([userId, balanceCents]) => ({
+        balanceCents,
+        userId,
+      }),
+    );
+  }
+
   public setBalance(userId: string, amountCents: number): void {
     if (!Number.isSafeInteger(amountCents)) {
       Log.throw("Cannot set user money. Amount is not a safe integer.", {

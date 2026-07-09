@@ -31,6 +31,19 @@ export class DirectCommandMessage extends DirectMessage {
     );
   }
 
+  private static __isMissingOptionValue(
+    option: discordJs.CommandInteractionOption | undefined,
+    type: CommandOptionType,
+  ): option is undefined {
+    if (option === undefined) {
+      return true;
+    }
+    if (type === CommandOptionType.USER) {
+      return option.user === undefined;
+    }
+    return option.value === undefined;
+  }
+
   public getCommandOption<T extends CommandOptionType>(
     name: string,
     type: T,
@@ -42,7 +55,7 @@ export class DirectCommandMessage extends DirectMessage {
     }
     const option: discordJs.CommandInteractionOption | undefined =
       this.__commandOptions.find(opt => opt.name === name);
-    if (option === undefined || option.value === undefined) {
+    if (DirectCommandMessage.__isMissingOptionValue(option, type)) {
       // Option is intentionally undefined
       return undefined;
     }

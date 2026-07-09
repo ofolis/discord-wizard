@@ -188,6 +188,41 @@ export class Discord {
     return humanMembers;
   }
 
+  public static async getHumanGuildMembersByIds(
+    guildId: string,
+    userIds: string[],
+  ): Promise<discordJs.GuildMember[]> {
+    Log.debug("Retrieving Discord guild human members by id...", {
+      guildId,
+      userIds,
+    });
+    const guild: discordJs.Guild = await this.client.guilds.fetch(guildId);
+    const members: discordJs.GuildMember[] = [];
+    for (const userId of userIds) {
+      try {
+        const member: discordJs.GuildMember = await guild.members.fetch({
+          cache: false,
+          force: true,
+          user: userId,
+        });
+        if (!member.user.bot) {
+          members.push(member);
+        }
+      } catch (reason: unknown) {
+        Log.debug("Discord guild member was not found.", {
+          guildId,
+          reason,
+          userId,
+        });
+      }
+    }
+    Log.debug("Discord guild human members retrieved successfully.", {
+      guildId,
+      memberCount: members.length,
+    });
+    return members;
+  }
+
   public static async sendChannelMessage(
     channelId: string,
     messageCreateOptions: discordJs.MessageCreateOptions,

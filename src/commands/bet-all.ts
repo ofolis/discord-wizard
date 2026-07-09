@@ -125,7 +125,9 @@ export class BetAll implements Command {
     await InteractionController.informSuccess(
       message,
       amountCents === 0
-        ? "Your wager was removed."
+        ? previousWagerCents === 0
+          ? "You do not have any money to wager."
+          : "Your wager was removed."
         : `Your all-in wager of \`${MoneyUtils.format(amountCents)}\` was placed on \`${option}\`.`,
     );
   }

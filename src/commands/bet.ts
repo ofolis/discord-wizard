@@ -136,7 +136,9 @@ export class Bet implements Command {
     await InteractionController.informSuccess(
       message,
       amountCents === 0
-        ? "Your wager was removed."
+        ? previousWagerCents === 0
+          ? "You did not have a wager to remove."
+          : "Your wager was removed."
         : `Your wager of \`${MoneyUtils.format(amountCents)}\` was placed on \`${option}\`.`,
     );
   }

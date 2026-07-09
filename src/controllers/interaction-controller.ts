@@ -23,6 +23,10 @@ type BettingWinningOption = {
   readonly letter: string;
   readonly option: string;
 };
+type MoneyRankingEntry = {
+  readonly balanceCents: number;
+  readonly displayName: string;
+};
 
 const letterEmojis: string[] = [
   "🇦",
@@ -65,8 +69,6 @@ const numberEmojis: string[] = [
   "9️⃣",
   "🔟",
 ];
-
-const maxMoneyRankingEntries: number = 25;
 
 enum CardColor {
   ERROR = 0xdd2e44,
@@ -212,6 +214,7 @@ export class InteractionController {
   public static async showMoney(
     message: ChannelCommandMessage,
     data: {
+      readonly hiddenRankingEntryCount: number;
       readonly members: discordJs.GuildMember[];
       readonly moneyState: MoneyState;
       readonly userId: string;
@@ -223,7 +226,11 @@ export class InteractionController {
         "### Your Balance",
         `# ${MoneyUtils.format(data.moneyState.getBalance(data.userId))}`,
         "### Server Ranking",
-        this.__formatMoneyRankingsString(data.members, data.moneyState),
+        this.__formatMoneyRankingsString(
+          data.members,
+          data.moneyState,
+          data.hiddenRankingEntryCount,
+        ),
       ]),
     });
   }
@@ -382,29 +389,23 @@ export class InteractionController {
   private static __formatMoneyRankingsString(
     members: discordJs.GuildMember[],
     moneyState: MoneyState,
+    hiddenEntryCount: number,
   ): string {
-    const rankedEntries: {
-      readonly balanceCents: number;
-      readonly member: discordJs.GuildMember;
-    }[] = members
+    const rankedEntries: MoneyRankingEntry[] = members
       .map(member => ({
-        balanceCents: moneyState.getBalance(member.user.id),
-        member,
+        balanceCents: moneyState.getBalance(member.id),
+        displayName: member.displayName,
       }))
       .sort((a, b) => {
         if (a.balanceCents !== b.balanceCents) {
           return b.balanceCents - a.balanceCents;
         }
-        return a.member.displayName.localeCompare(b.member.displayName);
+        return a.displayName.localeCompare(b.displayName);
       });
     const highestBalanceCents: number | null =
       rankedEntries[0]?.balanceCents ?? null;
-    const hiddenEntryCount: number = Math.max(
-      0,
-      rankedEntries.length - maxMoneyRankingEntries,
-    );
     return Utils.linesToString([
-      ...rankedEntries.slice(0, maxMoneyRankingEntries).map(entry => {
+      ...rankedEntries.map(entry => {
         const badges: string[] = [];
         if (entry.balanceCents === highestBalanceCents) {
           badges.push("👑");
@@ -412,7 +413,7 @@ export class InteractionController {
         if (entry.balanceCents === 0) {
           badges.push("💀");
         }
-        return `- **${entry.member.displayName}**${badges.length > 0 ? ` ${badges.join(" ")}` : ""} - \`${MoneyUtils.format(entry.balanceCents)}\``;
+        return `- **${entry.displayName}**${badges.length > 0 ? ` ${badges.join(" ")}` : ""} - \`${MoneyUtils.format(entry.balanceCents)}\``;
       }),
       hiddenEntryCount > 0
         ? `- ...and ${hiddenEntryCount.toString()} more.`
