@@ -344,8 +344,8 @@ export class InteractionController {
       ),
       `### Total Pool: \`${MoneyUtils.format(bettingState.totalPoolCents)}\``,
       bettingState.isLocked
-        ? "### Betting Is: `Locked` 🔴"
-        : "### Betting Is: `Open` 🟢",
+        ? "### Betting: `Locked` 🔒"
+        : "### Betting: `Open` 🟢",
     ]);
   }
 
