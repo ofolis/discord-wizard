@@ -37,7 +37,10 @@ export class MoneyState implements Saveable {
         balancesByUserId !== null &&
         !Array.isArray(balancesByUserId) &&
         Object.values(balancesByUserId as Record<string, unknown>).every(
-          balance => Number.isSafeInteger(balance),
+          balance =>
+            typeof balance === "number" &&
+            Number.isSafeInteger(balance) &&
+            balance >= 0,
         ));
 
     if (
