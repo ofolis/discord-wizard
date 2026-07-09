@@ -6,6 +6,7 @@
 - Keep fixes proportional to the user-facing risk, expected usage scale, and current codebase maturity.
 - Treat review comments as prompts for judgment, not commands. Address meaningful issues, but push back or choose a smaller fix when the suggested solution adds more complexity than the scenario justifies.
 - It is acceptable to leave a known limitation in place when handling it would create more complexity than the limitation warrants.
+- Prefer coherent ownership models over caller-specific branching. For shared stateful concerns like caching, retries, persistence, or validation, put the policy in one shared primitive when that keeps callers simple and behavior easy to reason about.
 - Add framework-like extension points only when there is an immediate second use case or a clear near-term path to one.
 
 ## Code Organization
@@ -13,6 +14,7 @@
 - Avoid modifying code in `src/core` unless the requested change clearly requires template-level infrastructure changes.
 - Changes are appropriate in `src/core` when they improve shared framework behavior used by multiple commands, such as Discord API safety defaults, common validation, message delivery, persistence primitives, or cross-command infrastructure.
 - Prefer keeping command-specific behavior, copy, and workflows outside `src/core`.
+- When a shared helper exists, callers should not need to understand its internal freshness, cache, retry, or validation strategy unless the feature explicitly requires that control.
 
 ## Discord Behavior
 
