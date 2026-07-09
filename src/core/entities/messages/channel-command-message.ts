@@ -61,7 +61,10 @@ export class ChannelCommandMessage extends ChannelMessage {
     type: CommandOptionType,
   ): boolean {
     if (type === CommandOptionType.USER) {
-      return option.user === undefined;
+      const userOption: discordJs.User | null | undefined = (
+        option as { readonly user?: discordJs.User | null }
+      ).user;
+      return userOption === null || userOption === undefined;
     }
     return option.value === undefined;
   }
