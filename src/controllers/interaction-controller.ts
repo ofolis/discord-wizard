@@ -372,7 +372,7 @@ export class InteractionController {
       payouts
         .sort((a, b) => b.netCents - a.netCents)
         .map(payout => {
-          const netSign: string = payout.netCents >= 0 ? "+" : "";
+          const netSign: string = payout.netCents > 0 ? "+" : "";
           const changeEmoji: string =
             payout.netCents > 0 ? " 🟢" : payout.netCents < 0 ? " 🔴" : "";
           const balanceCents: number = balancesByUserId[payout.userId] ?? 0;

@@ -113,29 +113,23 @@ export class BetAll implements Command {
       return;
     }
 
-    if (amountCents > 0) {
-      try {
-        await InteractionController.announceAllIn(message.channelId, {
-          option,
-          userName: message.member.displayName,
-        });
-      } catch (reason: unknown) {
-        Log.error("Could not announce all-in wager.", reason);
-        await InteractionController.informError(
-          message,
-          "Your wager was saved, but the all-in announcement could not be posted. Contact an admin.",
-        );
-        return;
-      }
+    try {
+      await InteractionController.announceAllIn(message.channelId, {
+        option,
+        userName: message.member.displayName,
+      });
+    } catch (reason: unknown) {
+      Log.error("Could not announce all-in wager.", reason);
+      await InteractionController.informError(
+        message,
+        "Your wager was saved, but the all-in announcement could not be posted. Contact an admin.",
+      );
+      return;
     }
 
     await InteractionController.informSuccess(
       message,
-      amountCents === 0
-        ? previousWagerCents === 0
-          ? "You do not have any money to wager."
-          : "Your wager was removed."
-        : `Your all-in wager of \`${MoneyUtils.format(amountCents)}\` was placed on \`${option}\`.`,
+      `Your all-in wager of \`${MoneyUtils.format(amountCents)}\` was placed on \`${option}\`.`,
     );
   }
 }
