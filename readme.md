@@ -46,6 +46,7 @@ Discord server members can submit messages anonymously to a configured channel, 
 4. Modify the `.env` file.
    1. Replace the `?` after `DISCORD_APPLICATION_ID=` with the value noted earlier.
    2. Replace the `?` after `DISCORD_BOT_TOKEN=` with the value noted earlier.
+   3. Optionally set `CALL_IN_HOST_ROLE_NAME` and `CALL_IN_HOSTS_CHANNEL_NAME` if your host role or private hosts text channel is not named `hosts`.
 
 **Option 2 - For Development & Usage**
 
@@ -58,6 +59,7 @@ Discord server members can submit messages anonymously to a configured channel, 
 5. Modify the `.env` file.
    1. Replace the `?` after `DISCORD_APPLICATION_ID=` with the value noted earlier.
    2. Replace the `?` after `DISCORD_BOT_TOKEN=` with the value noted earlier.
+   3. Optionally set `CALL_IN_HOST_ROLE_NAME` and `CALL_IN_HOSTS_CHANNEL_NAME` if your host role or private hosts text channel is not named `hosts`.
 6. Set up VSCode (if applicable).
    1. Install required plugins:
       - **ESLint**
@@ -72,7 +74,10 @@ Discord server members can submit messages anonymously to a configured channel, 
 ### 3. Set Up The Server
 
 1. Create exactly one text channel named `submissions` if you want to use anonymous submissions.
-2. Give administrators the Discord **Administrator** permission if they should be able to start/end votes, manage bets, or adjust money balances.
+2. Create exactly one private hosts text channel named `hosts`, or configure its name with `CALL_IN_HOSTS_CHANNEL_NAME`, if you want to use call-in mode.
+3. Create a host role named `hosts`, or configure its name with `CALL_IN_HOST_ROLE_NAME`, if you want to use call-in mode.
+4. Give the bot permission to server mute and unmute members in voice channels if you want to use call-in mode.
+5. Give administrators the Discord **Administrator** permission if they should be able to start/end votes, manage bets, or adjust money balances.
 
 ## Usage
 
@@ -98,6 +103,12 @@ Discord server members can submit messages anonymously to a configured channel, 
    - `/betlock` - lock the open bet so wagers cannot change. Administrator only.
    - `/betunlock` - unlock the open bet. Administrator only.
    - `/betend` - end the open bet and pay winners. Administrator only.
+   - `/callinstart` - start call-in mode in your current voice channel. Host only.
+   - `/callin` - join or leave the call-in queue. Non-host only.
+   - `/callinanswer` - answer a queued call-in user. Host only.
+   - `/callinhangup` - hang up a live call-in user. Host only.
+   - `/callinforce` - make a voice-channel user live even if they are not queued. Host only.
+   - `/callinend` - end call-in mode and release bot-managed mutes. Host only.
 
 ---
 

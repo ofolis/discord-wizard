@@ -17,6 +17,14 @@ export class Environment {
     if (this.__config === null) {
       dotenv.config();
       this.__config = {
+        callInHostRoleName: this.__getOptionalEnvVariable(
+          "CALL_IN_HOST_ROLE_NAME",
+          "hosts",
+        ),
+        callInHostsChannelName: this.__getOptionalEnvVariable(
+          "CALL_IN_HOSTS_CHANNEL_NAME",
+          "hosts",
+        ),
         devMode:
           this.__getEnvVariable("DEV_MODE", false).toUpperCase() === "TRUE",
         discordApplicationId: this.__getEnvVariable(
@@ -64,6 +72,14 @@ export class Environment {
       );
     }
     return value;
+  }
+
+  private static __getOptionalEnvVariable(
+    key: string,
+    defaultValue: string,
+  ): string {
+    const value: string = this.__getEnvVariable(key, false);
+    return value.length > 0 ? value : defaultValue;
   }
 
   private static __getPackageJsonProperty(

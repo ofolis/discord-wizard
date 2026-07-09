@@ -2,6 +2,7 @@ import type { Json } from "../core";
 import { IO, Log } from "../core";
 import {
   BettingState,
+  CallInState,
   ChannelState,
   MoneyState,
   VotingState,
@@ -15,6 +16,15 @@ export class DataController {
       return null;
     }
     return bettingState;
+  }
+
+  public static loadActiveCallInState(guildId: string): CallInState | null {
+    Log.debug("Loading active call-in state.");
+    const callInState: CallInState | null = this.loadCallInState(guildId);
+    if (callInState === null || !callInState.isOpen) {
+      return null;
+    }
+    return callInState;
   }
 
   public static loadActiveVotingState(guildId: string): VotingState | null {
@@ -36,6 +46,18 @@ export class DataController {
     }
 
     return BettingState.fromJson(bettingStateJson, guildId);
+  }
+
+  public static loadCallInState(guildId: string): CallInState | null {
+    Log.debug("Loading call-in state.");
+    const callInStateJson: Json | null = IO.loadData(
+      this.__getCallInStateId(guildId),
+    );
+    if (callInStateJson === null) {
+      return null;
+    }
+
+    return CallInState.fromJson(callInStateJson, guildId);
   }
 
   public static loadChannelState(channelId: string): ChannelState | null {
@@ -106,6 +128,14 @@ export class DataController {
     );
   }
 
+  public static saveCallInState(callInState: CallInState): void {
+    Log.debug("Saving call-in state.");
+    IO.saveData(
+      this.__getCallInStateId(callInState.guildId),
+      callInState.toJson(),
+    );
+  }
+
   public static saveChannelState(channelState: ChannelState): void {
     Log.debug("Saving channel state.");
     IO.saveData(channelState.channelId, channelState.toJson());
@@ -151,6 +181,10 @@ export class DataController {
 
   private static __getBettingStateId(guildId: string): string {
     return `bet-${guildId}`;
+  }
+
+  private static __getCallInStateId(guildId: string): string {
+    return `call-in-${guildId}`;
   }
 
   private static __getMoneyStateId(guildId: string): string {

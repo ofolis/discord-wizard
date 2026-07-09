@@ -5,6 +5,12 @@ import {
   BetLock,
   BetStart,
   BetUnlock,
+  CallIn,
+  CallInAnswer,
+  CallInEnd,
+  CallInForce,
+  CallInHangUp,
+  CallInStart,
   Money,
   MoneyAddServer,
   MoneyAddUser,
@@ -18,6 +24,7 @@ import {
   VoteEnd,
   VoteStart,
 } from "./commands";
+import { CallInUtils } from "./commands/call-in-utils";
 import { ChannelCache } from "./controllers";
 import {
   ChannelCommandMessage,
@@ -34,6 +41,12 @@ const commands: Command[] = [
   new BetLock(),
   new BetStart(),
   new BetUnlock(),
+  new CallIn(),
+  new CallInAnswer(),
+  new CallInEnd(),
+  new CallInForce(),
+  new CallInHangUp(),
+  new CallInStart(),
   new Money(),
   new MoneyAddServer(),
   new MoneyAddUser(),
@@ -147,6 +160,18 @@ function initializeApp(): void {
           reason,
         );
       });
+  });
+
+  // Voice State Update Event
+  Discord.client.on("voiceStateUpdate", (oldState, newState) => {
+    CallInUtils.enforceVoiceState(oldState, newState).catch(
+      (reason: unknown) => {
+        Log.error("Could not enforce call-in voice state.", reason, {
+          guildId: newState.guild.id,
+          userId: newState.member?.id ?? null,
+        });
+      },
+    );
   });
 
   // Login

@@ -1,0 +1,238 @@
+import * as discordJs from "discord.js";
+import {
+  ChannelCache,
+  DataController,
+  InteractionController,
+} from "../controllers";
+import { ChannelCommandMessage, Discord, Environment, Log } from "../core";
+import { CallInState } from "../saveables";
+
+export class CallInUtils {
+  public static async enforceVoiceState(
+    oldState: discordJs.VoiceState,
+    newState: discordJs.VoiceState,
+  ): Promise<void> {
+    const guildId: string = newState.guild.id;
+    const callInState: CallInState | null =
+      DataController.loadActiveCallInState(guildId);
+    if (callInState === null) {
+      return;
+    }
+    const member: discordJs.GuildMember | null = newState.member;
+    if (member === null || member.user.bot) {
+      return;
+    }
+
+    const wasInActiveChannel: boolean =
+      oldState.channelId === callInState.voiceChannelId;
+    const isInActiveChannel: boolean =
+      newState.channelId === callInState.voiceChannelId;
+
+    if (wasInActiveChannel && !isInActiveChannel) {
+      const didQueueChange: boolean = callInState.hasQueuedUser(member.id);
+      callInState.removeQueuedUser(member.id);
+      callInState.removeSpeakingUser(member.id);
+      callInState.removeBotMutedUser(member.id);
+      DataController.saveCallInState(callInState);
+      if (didQueueChange) {
+        await this.postQueueToHosts(newState.guild, callInState);
+      }
+      return;
+    }
+
+    if (
+      isInActiveChannel &&
+      !this.isHost(member) &&
+      !callInState.hasSpeakingUser(member.id) &&
+      newState.serverMute !== true
+    ) {
+      await this.muteForCallIn(member, callInState);
+      DataController.saveCallInState(callInState);
+    }
+  }
+
+  public static async getTargetMember(
+    message: ChannelCommandMessage,
+    user: discordJs.User,
+  ): Promise<discordJs.GuildMember | null> {
+    try {
+      return await message.member.guild.members.fetch(user.id);
+    } catch (reason: unknown) {
+      Log.error("Could not fetch call-in target member.", reason, {
+        guildId: message.member.guild.id,
+        userId: user.id,
+      });
+      return null;
+    }
+  }
+
+  public static isHost(member: discordJs.GuildMember): boolean {
+    return member.roles.cache.some(
+      role => role.name === Environment.config.callInHostRoleName,
+    );
+  }
+
+  public static isInCallInVoiceChannel(
+    member: discordJs.GuildMember,
+    callInState: CallInState,
+  ): boolean {
+    return member.voice.channelId === callInState.voiceChannelId;
+  }
+
+  public static async muteForCallIn(
+    member: discordJs.GuildMember,
+    callInState: CallInState,
+  ): Promise<void> {
+    if (this.isHost(member)) {
+      return;
+    }
+    if (member.voice.serverMute !== true) {
+      await member.voice.setMute(true, "Call-in mode");
+      callInState.addBotMutedUser(member.id);
+    }
+  }
+
+  public static async muteNonHostVoiceMembers(
+    voiceChannel: discordJs.VoiceBasedChannel,
+    callInState: CallInState,
+  ): Promise<void> {
+    for (const member of voiceChannel.members.values()) {
+      if (member.user.bot || this.isHost(member)) {
+        continue;
+      }
+      await this.muteForCallIn(member, callInState);
+    }
+  }
+
+  public static async postQueueToHosts(
+    guild: discordJs.Guild,
+    callInState: CallInState,
+  ): Promise<boolean> {
+    const hostsChannelId: string | null =
+      await this.resolveHostsChannelId(guild);
+    if (hostsChannelId === null) {
+      return false;
+    }
+    await InteractionController.showCallInQueue(
+      hostsChannelId,
+      callInState,
+      await this.__getUserLabelsById(guild, callInState.queuedUserIds),
+    );
+    return true;
+  }
+
+  public static async requireActiveCallInState(
+    message: ChannelCommandMessage,
+  ): Promise<CallInState | null> {
+    const callInState: CallInState | null =
+      DataController.loadActiveCallInState(message.member.guild.id);
+    if (callInState === null) {
+      await InteractionController.informError(
+        message,
+        "Call-in mode is not active.",
+      );
+      return null;
+    }
+    return callInState;
+  }
+
+  public static async requireHost(
+    message: ChannelCommandMessage,
+  ): Promise<boolean> {
+    if (this.isHost(message.member)) {
+      return true;
+    }
+    await InteractionController.informError(
+      message,
+      `You need the \`${Environment.config.callInHostRoleName}\` role to use this command.`,
+    );
+    return false;
+  }
+
+  public static async requireNonHost(
+    message: ChannelCommandMessage,
+  ): Promise<boolean> {
+    if (!this.isHost(message.member)) {
+      return true;
+    }
+    await InteractionController.informError(message, "Hosts cannot call in.");
+    return false;
+  }
+
+  public static async resolveHostsChannelId(
+    guild: discordJs.Guild,
+  ): Promise<string | null> {
+    let channelIds: string[] = ChannelCache.getChannelIds(
+      guild.id,
+      Environment.config.callInHostsChannelName,
+    );
+    if (channelIds.length !== 1) {
+      try {
+        await ChannelCache.cacheGuild(guild);
+      } catch (reason: unknown) {
+        Log.error("Could not refresh guild channel cache.", reason, {
+          guildId: guild.id,
+        });
+        return null;
+      }
+      channelIds = ChannelCache.getChannelIds(
+        guild.id,
+        Environment.config.callInHostsChannelName,
+      );
+    }
+    if (channelIds.length !== 1) {
+      Log.error("Could not resolve call-in hosts channel.", {
+        channelIds,
+        channelName: Environment.config.callInHostsChannelName,
+        guildId: guild.id,
+      });
+      return null;
+    }
+    return channelIds[0];
+  }
+
+  public static async unmuteForCallIn(
+    member: discordJs.GuildMember,
+    callInState: CallInState,
+  ): Promise<void> {
+    if (member.voice.serverMute === true) {
+      await member.voice.setMute(false, "Call-in mode");
+    }
+    callInState.removeBotMutedUser(member.id);
+  }
+
+  public static async unmuteTrackedMembers(
+    guild: discordJs.Guild,
+    callInState: CallInState,
+  ): Promise<void> {
+    for (const userId of callInState.botMutedUserIds) {
+      try {
+        const member: discordJs.GuildMember = await guild.members.fetch(userId);
+        if (member.voice.channelId === callInState.voiceChannelId) {
+          await member.voice.setMute(false, "Call-in mode ended");
+        }
+      } catch (reason: unknown) {
+        Log.error("Could not unmute call-in member.", reason, {
+          guildId: guild.id,
+          userId,
+        });
+      }
+    }
+  }
+
+  private static async __getUserLabelsById(
+    guild: discordJs.Guild,
+    userIds: readonly string[],
+  ): Promise<Record<string, string>> {
+    const labelsById: Record<string, string> = {};
+    for (const userId of userIds) {
+      try {
+        const member: discordJs.GuildMember = await guild.members.fetch(userId);
+        labelsById[userId] = member.displayName;
+      } catch {
+        labelsById[userId] = Discord.formatUserMentionString({ id: userId });
+      }
+    }
+    return labelsById;
+  }
+}

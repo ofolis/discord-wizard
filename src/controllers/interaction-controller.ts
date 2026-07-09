@@ -10,7 +10,12 @@ import {
 } from "../core";
 import { IconName } from "../enums";
 import { MoneyUtils } from "../money-utils";
-import { BettingState, MoneyState, VotingState } from "../saveables";
+import {
+  BettingState,
+  CallInState,
+  MoneyState,
+  VotingState,
+} from "../saveables";
 
 type VotingResult = ReturnType<VotingState["getSortedResults"]>[number];
 type BettingOptionSummary = ReturnType<
@@ -132,6 +137,44 @@ export class InteractionController {
     });
   }
 
+  public static async announceCallInAnswer(
+    channelId: string,
+    data: {
+      readonly userName: string;
+    },
+  ): Promise<void> {
+    await this.__createChannelCard(channelId, {
+      color: CardColor.INFO,
+      description: `# ${data.userName} is live on the call.`,
+    });
+  }
+
+  public static async announceCallInEnd(channelId: string): Promise<void> {
+    await this.__createChannelCard(channelId, {
+      color: CardColor.INFO,
+      description: "# Call-in mode ended.",
+    });
+  }
+
+  public static async announceCallInQueueAdd(
+    channelId: string,
+    data: {
+      readonly userName: string;
+    },
+  ): Promise<void> {
+    await this.__createChannelCard(channelId, {
+      color: CardColor.INFO,
+      description: `# ${data.userName} is calling in.`,
+    });
+  }
+
+  public static async announceCallInStart(channelId: string): Promise<void> {
+    await this.__createChannelCard(channelId, {
+      color: CardColor.INFO,
+      description: "# Call-in mode started.",
+    });
+  }
+
   public static async announceMoneyGift(
     channelId: string,
     data: {
@@ -208,6 +251,22 @@ export class InteractionController {
       description: Utils.linesToString([
         `## ${ICONS[IconName.SUCCESS]} Success`,
         description,
+      ]),
+    });
+  }
+
+  public static async showCallInQueue(
+    channelId: string,
+    callInState: CallInState,
+    userLabelsById: Record<string, string>,
+  ): Promise<void> {
+    await this.__createChannelCard(channelId, {
+      color: CardColor.INFO,
+      description: Utils.linesToString([
+        "# Call-in Queue",
+        callInState.queuedUserIds.length > 0
+          ? this.__formatCallInQueueString(callInState, userLabelsById)
+          : "The queue is empty.",
       ]),
     });
   }
@@ -386,6 +445,18 @@ export class InteractionController {
           const balanceEmoji: string = balanceCents === 0 ? " 💀" : "";
           return `- **${this.__formatUserLabel(payout.userId, userLabelsById)}:** \`${netSign}${MoneyUtils.format(payout.netCents)}\`${changeEmoji} (\`${MoneyUtils.format(balanceCents)}\`${balanceEmoji})`;
         }),
+    );
+  }
+
+  private static __formatCallInQueueString(
+    callInState: CallInState,
+    userLabelsById: Record<string, string>,
+  ): string {
+    return Utils.linesToString(
+      callInState.queuedUserIds.map(
+        (userId, index) =>
+          `${(index + 1).toString()}. ${this.__formatUserLabel(userId, userLabelsById)}`,
+      ),
     );
   }
 
