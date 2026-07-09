@@ -415,24 +415,30 @@ export class InteractionController {
       });
     const highestBalanceCents: number | null =
       rankedEntries[0]?.balanceCents ?? null;
-    return this.__linesToBoundedString(
-      [
-        ...rankedEntries.map(entry => {
-          const badges: string[] = [];
-          if (entry.balanceCents === highestBalanceCents) {
-            badges.push("👑");
-          }
-          if (entry.balanceCents === 0) {
-            badges.push("💀");
-          }
-          return `- **${entry.displayName}**${badges.length > 0 ? ` ${badges.join(" ")}` : ""} - \`${MoneyUtils.format(entry.balanceCents)}\``;
-        }),
-        isCapped
-          ? `Only showing the top **${maxRankingEntries.toString()}** users, plus you if you are outside that group.`
-          : null,
-      ].filter(line => line !== null),
-      maxLength,
-    );
+    const lines: string[] = [];
+    for (const entry of rankedEntries) {
+      const badges: string[] = [];
+      if (entry.balanceCents === highestBalanceCents) {
+        badges.push("👑");
+      }
+      if (entry.balanceCents === 0) {
+        badges.push("💀");
+      }
+
+      const line: string = `- **${entry.displayName}**${badges.length > 0 ? ` ${badges.join(" ")}` : ""} - \`${MoneyUtils.format(entry.balanceCents)}\``;
+      if (!this.__pushMoneyRankingLine(lines, line, maxLength)) {
+        break;
+      }
+    }
+
+    if (isCapped) {
+      this.__pushMoneyRankingLine(
+        lines,
+        `Only showing the top **${maxRankingEntries.toString()}** users, plus you if you are outside that group.`,
+        maxLength,
+      );
+    }
+    return Utils.linesToString(lines);
   }
 
   private static __formatRankEmoji(rank: number): string {
@@ -505,41 +511,22 @@ export class InteractionController {
     return results.length > 0 && results[0].voteCount > 0;
   }
 
-  private static __linesToBoundedString(
+  private static __pushMoneyRankingLine(
     lines: string[],
+    line: string,
     maxLength: number,
-  ): string {
-    const value: string = Utils.linesToString(lines);
-    if (value.length <= maxLength) {
-      return value;
+  ): boolean {
+    const nextValue: string = Utils.linesToString([...lines, line]);
+    if (nextValue.length <= maxLength) {
+      lines.push(line);
+      return true;
     }
 
     const truncationLine: string = "...";
-    if (maxLength <= truncationLine.length) {
-      return truncationLine.slice(0, maxLength);
+    if (Utils.linesToString([...lines, truncationLine]).length <= maxLength) {
+      lines.push(truncationLine);
     }
-
-    const boundedLines: string[] = [];
-    let boundedLength: number = 0;
-    for (const line of lines) {
-      const separatorLength: number = boundedLines.length === 0 ? 0 : 1;
-      const availableLength: number =
-        maxLength - boundedLength - separatorLength - truncationLine.length - 1;
-      if (availableLength <= 0) {
-        break;
-      }
-
-      const boundedLine: string =
-        line.length > availableLength ? line.slice(0, availableLength) : line;
-      boundedLines.push(boundedLine);
-      boundedLength += separatorLength + boundedLine.length;
-      if (boundedLine.length < line.length) {
-        break;
-      }
-    }
-
-    boundedLines.push(truncationLine);
-    return Utils.linesToString(boundedLines);
+    return false;
   }
 
   private static async __setMessageCard(
