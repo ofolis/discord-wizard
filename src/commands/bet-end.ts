@@ -47,8 +47,17 @@ export class BetEnd implements Command {
     const winnerLetters: string[] = this.__parseWinners(
       message.getCommandOption(winnersOptionName, CommandOptionType.STRING),
     );
-    const payouts: ReturnType<BettingState["calculatePayouts"]> =
-      bettingState.calculatePayouts(winnerLetters);
+    let payouts: ReturnType<BettingState["calculatePayouts"]>;
+    try {
+      payouts = bettingState.calculatePayouts(winnerLetters);
+    } catch (reason: unknown) {
+      Log.error("Could not calculate bet payouts.", reason);
+      await InteractionController.informError(
+        message,
+        "Could not calculate bet payouts. Contact an admin.",
+      );
+      return;
+    }
     if (payouts === null) {
       await InteractionController.informError(
         message,
@@ -61,9 +70,18 @@ export class BetEnd implements Command {
       message.member.guild.id,
     );
     const previousBettingStateJson: Json = bettingState.toJson();
-    payouts.forEach(payout => {
-      moneyState.addBalance(payout.userId, payout.payoutCents);
-    });
+    try {
+      payouts.forEach(payout => {
+        moneyState.addBalance(payout.userId, payout.payoutCents);
+      });
+    } catch (reason: unknown) {
+      Log.error("Could not apply bet payouts.", reason);
+      await InteractionController.informError(
+        message,
+        "Could not end the bet. Contact an admin.",
+      );
+      return;
+    }
     bettingState.close();
 
     try {

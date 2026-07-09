@@ -74,7 +74,12 @@ export class BettingState implements Saveable {
 
   public get totalPoolCents(): number {
     return Object.values(this.__betsByUserId).reduce(
-      (total, bet) => total + bet.amountCents,
+      (total, bet) =>
+        BettingState.__addSafeCents(
+          total,
+          bet.amountCents,
+          "Cannot calculate total pool. Total is not a safe integer.",
+        ),
       0,
     );
   }
@@ -98,6 +103,22 @@ export class BettingState implements Saveable {
         bettingState.__betsByUserId[userId] = bet;
       });
     return bettingState;
+  }
+
+  private static __addSafeCents(
+    totalCents: number,
+    amountCents: number,
+    errorMessage: string,
+  ): number {
+    const nextTotalCents: number = totalCents + amountCents;
+    if (!Number.isSafeInteger(nextTotalCents)) {
+      Log.throw(errorMessage, {
+        amountCents,
+        nextTotalCents,
+        totalCents,
+      });
+    }
+    return nextTotalCents;
   }
 
   private static __parseJson(
@@ -160,6 +181,17 @@ export class BettingState implements Saveable {
     };
   }
 
+  private static __toSafeInteger(value: bigint, errorMessage: string): number {
+    const maxSafeInteger: bigint = BigInt(Number.MAX_SAFE_INTEGER);
+    const minSafeInteger: bigint = BigInt(Number.MIN_SAFE_INTEGER);
+    if (value > maxSafeInteger || value < minSafeInteger) {
+      Log.throw(errorMessage, {
+        value: value.toString(),
+      });
+    }
+    return Number(value);
+  }
+
   private static __validateOptions(options: readonly string[]): void {
     if (
       options.length < this.minOptionCount ||
@@ -195,12 +227,22 @@ export class BettingState implements Saveable {
       this.__betsByUserId,
     ).filter(([, bet]) => normalizedWinningLetters.includes(bet.letter));
     const winningTotalCents: number = winningBets.reduce(
-      (total, [, bet]) => total + bet.amountCents,
+      (total, [, bet]) =>
+        BettingState.__addSafeCents(
+          total,
+          bet.amountCents,
+          "Cannot calculate winning total. Total is not a safe integer.",
+        ),
       0,
     );
+    const totalPoolCents: number = this.totalPoolCents;
     const payoutsByUserId: Record<string, number> =
       winningTotalCents > 0
-        ? this.__calculateDistributedPayouts(winningBets, winningTotalCents)
+        ? this.__calculateDistributedPayouts(
+            winningBets,
+            totalPoolCents,
+            winningTotalCents,
+          )
         : {};
 
     return Object.entries(this.__betsByUserId).map(([userId, bet]) => {
@@ -236,7 +278,12 @@ export class BettingState implements Saveable {
         letter,
         option,
         totalCents: wagers.reduce(
-          (total, wager) => total + wager.amountCents,
+          (total, wager) =>
+            BettingState.__addSafeCents(
+              total,
+              wager.amountCents,
+              "Cannot summarize bet option. Total is not a safe integer.",
+            ),
           0,
         ),
         wagers,
@@ -313,29 +360,40 @@ export class BettingState implements Saveable {
 
   private __calculateDistributedPayouts(
     winningBets: [string, Bet][],
+    totalPoolCents: number,
     winningTotalCents: number,
   ): Record<string, number> {
     const payoutEntries: {
       readonly basePayoutCents: number;
-      readonly remainder: number;
+      readonly remainder: bigint;
       readonly userId: string;
     }[] = winningBets.map(([userId, bet]) => {
-      const numerator: number = this.totalPoolCents * bet.amountCents;
+      const numerator: bigint =
+        BigInt(totalPoolCents) * BigInt(bet.amountCents);
+      const basePayoutCents: bigint = numerator / BigInt(winningTotalCents);
       return {
-        basePayoutCents: Math.floor(numerator / winningTotalCents),
-        remainder: numerator % winningTotalCents,
+        basePayoutCents: BettingState.__toSafeInteger(
+          basePayoutCents,
+          "Cannot calculate bet payout. Payout is not a safe integer.",
+        ),
+        remainder: numerator % BigInt(winningTotalCents),
         userId,
       };
     });
     const payoutsByUserId: Record<string, number> = {};
-    let distributedCents: number = 0;
+    let distributedCents: bigint = 0n;
     payoutEntries.forEach(entry => {
       payoutsByUserId[entry.userId] = entry.basePayoutCents;
-      distributedCents += entry.basePayoutCents;
+      distributedCents += BigInt(entry.basePayoutCents);
     });
-    const remainingCents: number = this.totalPoolCents - distributedCents;
+    const remainingCents: number = BettingState.__toSafeInteger(
+      BigInt(totalPoolCents) - distributedCents,
+      "Cannot calculate bet payout remainders. Remainder is not a safe integer.",
+    );
     payoutEntries
-      .sort((a, b) => b.remainder - a.remainder)
+      .sort((a, b) =>
+        a.remainder === b.remainder ? 0 : a.remainder < b.remainder ? 1 : -1,
+      )
       .slice(0, remainingCents)
       .forEach(entry => {
         payoutsByUserId[entry.userId] += 1;

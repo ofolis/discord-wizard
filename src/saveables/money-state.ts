@@ -64,7 +64,26 @@ export class MoneyState implements Saveable {
   }
 
   public addBalance(userId: string, amountCents: number): void {
-    this.setBalance(userId, this.getBalance(userId) + amountCents);
+    if (!Number.isSafeInteger(amountCents)) {
+      Log.throw("Cannot add user money. Amount is not a safe integer.", {
+        amountCents,
+        userId,
+      });
+    }
+    const currentBalanceCents: number = this.getBalance(userId);
+    const nextBalanceCents: number = currentBalanceCents + amountCents;
+    if (!Number.isSafeInteger(nextBalanceCents)) {
+      Log.throw(
+        "Cannot add user money. Balance would exceed safe integer range.",
+        {
+          amountCents,
+          currentBalanceCents,
+          nextBalanceCents,
+          userId,
+        },
+      );
+    }
+    this.setBalance(userId, nextBalanceCents);
   }
 
   public getBalance(userId: string): number {
