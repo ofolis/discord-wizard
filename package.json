@@ -5,7 +5,7 @@
     "dotenv": "^16.4.5",
     "random-js": "^2.1.0"
   },
-  "description": "A Discord bot template.",
+  "description": "A Discord bot that provides various interactive user features.",
   "devDependencies": {
     "@commitlint/cli": "^19.6.1",
     "@commitlint/config-conventional": "^19.6.0",
@@ -26,7 +26,7 @@
     "typescript-eslint": "^8.17.0"
   },
   "main": "dist/index.js",
-  "name": "discord-sabacc",
+  "name": "discord-wizard",
   "private": true,
   "scripts": {
     "build": "tsup src/index.ts && pkg dist/index.js --targets node20-linux,node20-macos,node20-win --out-path build",
