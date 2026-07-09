@@ -45,33 +45,8 @@ export class GuildMemberController {
       options,
       userIds,
     });
-    const cachedMembers: discordJs.GuildMember[] | null =
-      options.forceRefresh === true
-        ? null
-        : this.__getValidCachedGuildMembers(guildId);
-    if (cachedMembers !== null) {
-      const members: discordJs.GuildMember[] = this.__getMembersByIds(
-        cachedMembers,
-        userIds,
-        options,
-      );
-      Log.debug("Discord guild members retrieved successfully.", {
-        guildId,
-        memberCount: members.length,
-      });
-      return members;
-    }
-
-    const activeRefresh: Promise<discordJs.GuildMember[]> | undefined =
-      options.forceRefresh === true
-        ? undefined
-        : this.__guildMemberRefreshesByGuildId.get(guildId);
-    const fetchedMembers: discordJs.GuildMember[] =
-      activeRefresh === undefined
-        ? await this.__fetchGuildMembersByIds(guildId, userIds)
-        : await activeRefresh;
     const members: discordJs.GuildMember[] = this.__getMembersByIds(
-      fetchedMembers,
+      await this.__getCachedGuildMembers(guildId, options),
       userIds,
       options,
     );
@@ -115,31 +90,6 @@ export class GuildMemberController {
       memberCount: fetchedMembers.length,
     });
     return fetchedMembers;
-  }
-
-  private static async __fetchGuildMembersByIds(
-    guildId: string,
-    userIds: string[],
-  ): Promise<discordJs.GuildMember[]> {
-    const guild: discordJs.Guild = await Discord.client.guilds.fetch(guildId);
-    const members: discordJs.GuildMember[] = [];
-    for (const userId of userIds) {
-      try {
-        const member: discordJs.GuildMember = await guild.members.fetch({
-          cache: false,
-          force: true,
-          user: userId,
-        });
-        members.push(member);
-      } catch (reason: unknown) {
-        Log.debug("Discord guild member was not found.", {
-          guildId,
-          reason,
-          userId,
-        });
-      }
-    }
-    return members;
   }
 
   private static __filterGuildMembers(

@@ -416,6 +416,14 @@ export class InteractionController {
     const highestBalanceCents: number | null =
       rankedEntries[0]?.balanceCents ?? null;
     const lines: string[] = [];
+    if (isCapped) {
+      this.__pushMoneyRankingLine(
+        lines,
+        `Only showing the top **${maxRankingEntries.toString()}** users, plus you if you are outside that group.`,
+        maxLength,
+      );
+    }
+
     for (const entry of rankedEntries) {
       const badges: string[] = [];
       if (entry.balanceCents === highestBalanceCents) {
@@ -429,14 +437,6 @@ export class InteractionController {
       if (!this.__pushMoneyRankingLine(lines, line, maxLength)) {
         break;
       }
-    }
-
-    if (isCapped) {
-      this.__pushMoneyRankingLine(
-        lines,
-        `Only showing the top **${maxRankingEntries.toString()}** users, plus you if you are outside that group.`,
-        maxLength,
-      );
     }
     return Utils.linesToString(lines);
   }
