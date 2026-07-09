@@ -1,7 +1,7 @@
-import dotenv from "dotenv";
 import { MersenneTwister19937, Random } from "random-js";
 import * as packageJson from "../../package.json";
 import { Log } from "../core";
+import { EnvironmentUtils } from "./environment-utils";
 import type { Config, PackageContext } from "./types";
 
 export class Environment {
@@ -15,16 +15,17 @@ export class Environment {
 
   public static get config(): Config {
     if (this.__config === null) {
-      dotenv.config();
       this.__config = {
         devMode:
-          this.__getEnvVariable("DEV_MODE", false).toUpperCase() === "TRUE",
-        discordApplicationId: this.__getEnvVariable(
+          EnvironmentUtils.getOptionalEnvVariable("DEV_MODE").toUpperCase() ===
+          "TRUE",
+        discordApplicationId: EnvironmentUtils.getRequiredEnvVariable(
           "DISCORD_APPLICATION_ID",
-          true,
         ),
-        discordBotToken: this.__getEnvVariable("DISCORD_BOT_TOKEN", true),
-        managerRoleNames: this.__getOptionalEnvList("MANAGER_ROLE_NAMES"),
+        discordBotToken:
+          EnvironmentUtils.getRequiredEnvVariable("DISCORD_BOT_TOKEN"),
+        managerRoleNames:
+          EnvironmentUtils.getOptionalEnvList("MANAGER_ROLE_NAMES"),
       };
     }
     return this.__config;
@@ -48,34 +49,6 @@ export class Environment {
 
   public static get random(): Random {
     return this.__random;
-  }
-
-  private static __getEnvList(value: string): string[] {
-    return value
-      .split(",")
-      .map(value => value.trim())
-      .filter(value => value.length > 0);
-  }
-
-  private static __getEnvVariable(key: string, required: boolean): string {
-    const value: string | undefined = process.env[key];
-    if (value === undefined) {
-      if (!required) {
-        return "";
-      }
-      Log.throw(
-        "Cannot get environment variable. Requested key was not defined.",
-        {
-          env: process.env,
-          key,
-        },
-      );
-    }
-    return value;
-  }
-
-  private static __getOptionalEnvList(key: string): string[] {
-    return this.__getEnvList(this.__getEnvVariable(key, false));
   }
 
   private static __getPackageJsonProperty(
