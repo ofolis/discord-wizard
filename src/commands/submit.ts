@@ -1,4 +1,5 @@
 import { codeBlock, escapeCodeBlock } from "discord.js";
+import { AppEnvironment } from "../app-environment";
 import { ChannelCache, InteractionController } from "../controllers";
 import {
   AppError,
@@ -8,7 +9,6 @@ import {
   CommandOption,
   CommandOptionType,
   CommandRegistrationType,
-  Environment,
   Log,
 } from "../core";
 
@@ -48,7 +48,7 @@ export class Submit implements Command {
     if (submissionChannelId === null) {
       await InteractionController.informError(
         message,
-        `Could not find exactly one \`${Environment.config.submissionChannelName}\` text channel. Contact an admin.`,
+        `Could not find exactly one \`${AppEnvironment.config.submissionChannelName}\` text channel. Contact an admin.`,
       );
       return;
     }
@@ -97,7 +97,7 @@ export class Submit implements Command {
   ): Promise<string | null> {
     let channelIds: string[] = ChannelCache.getChannelIds(
       message.member.guild.id,
-      Environment.config.submissionChannelName,
+      AppEnvironment.config.submissionChannelName,
     );
     if (channelIds.length !== 1) {
       try {
@@ -110,13 +110,13 @@ export class Submit implements Command {
       }
       channelIds = ChannelCache.getChannelIds(
         message.member.guild.id,
-        Environment.config.submissionChannelName,
+        AppEnvironment.config.submissionChannelName,
       );
     }
     if (channelIds.length !== 1) {
       Log.error("Could not resolve submission channel.", {
         channelIds,
-        channelName: Environment.config.submissionChannelName,
+        channelName: AppEnvironment.config.submissionChannelName,
         guildId: message.member.guild.id,
       });
       return null;

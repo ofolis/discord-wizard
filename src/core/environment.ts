@@ -17,12 +17,6 @@ export class Environment {
     if (this.__config === null) {
       dotenv.config();
       this.__config = {
-        callInHostRoleNames: this.__getRequiredEnvList(
-          "CALL_IN_HOST_ROLE_NAMES",
-        ),
-        callInHostsChannelName: this.__getRequiredEnvVariable(
-          "CALL_IN_HOSTS_CHANNEL_NAME",
-        ),
         devMode:
           this.__getEnvVariable("DEV_MODE", false).toUpperCase() === "TRUE",
         discordApplicationId: this.__getEnvVariable(
@@ -31,9 +25,6 @@ export class Environment {
         ),
         discordBotToken: this.__getEnvVariable("DISCORD_BOT_TOKEN", true),
         managerRoleNames: this.__getOptionalEnvList("MANAGER_ROLE_NAMES"),
-        submissionChannelName: this.__getRequiredEnvVariable(
-          "SUBMISSION_CHANNEL_NAME",
-        ),
       };
     }
     return this.__config;
@@ -104,29 +95,5 @@ export class Environment {
       );
     }
     return undefined;
-  }
-
-  private static __getRequiredEnvList(key: string): string[] {
-    const parsedValues: string[] = this.__getEnvList(
-      this.__getEnvVariable(key, true),
-    );
-    if (parsedValues.length === 0) {
-      Log.throw(
-        "Cannot get environment variable list. Requested key was not defined or had no values.",
-        { key },
-      );
-    }
-    return parsedValues;
-  }
-
-  private static __getRequiredEnvVariable(key: string): string {
-    const value: string = this.__getEnvVariable(key, true);
-    if (value.length === 0) {
-      Log.throw(
-        "Cannot get environment variable. Requested key was defined but empty.",
-        { key },
-      );
-    }
-    return value;
   }
 }

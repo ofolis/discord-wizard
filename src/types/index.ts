@@ -1,3 +1,4 @@
+export type { AppConfig } from "./app-config";
 export type { BettingStateJson } from "./betting-state-json";
 export type { CallInStateJson } from "./call-in-state-json";
 export type { ChannelStateJson } from "./channel-state-json";

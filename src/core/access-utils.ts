@@ -1,6 +1,7 @@
 import * as discordJs from "discord.js";
-import { InteractionController } from "../controllers";
-import { ChannelCommandMessage, Command, Environment } from "../core";
+import { ChannelCommandMessage, Command } from "./entities";
+import { Environment } from "./environment";
+import { InteractionUtils } from "./interaction-utils";
 
 type AccessControlledCommand = Command & {
   readonly authorizeUse?: (message: ChannelCommandMessage) => Promise<boolean>;
@@ -28,10 +29,7 @@ export class AccessUtils {
     if (this.canUseRestrictedCommands(message.member)) {
       return true;
     }
-    await InteractionController.informError(
-      message,
-      this.__formatManagerError(),
-    );
+    await this.__informAuthorizationError(message, this.__formatManagerError());
     return false;
   }
 
@@ -59,5 +57,15 @@ export class AccessUtils {
       return "You need Discord administrator permission to use this command.";
     }
     return `You need Discord administrator permission or one of these manager roles to use this command: ${Environment.config.managerRoleNames.map(roleName => `\`${roleName}\``).join(", ")}.`;
+  }
+
+  private static async __informAuthorizationError(
+    message: ChannelCommandMessage,
+    description: string,
+  ): Promise<void> {
+    await InteractionUtils.setMessageCard(message, {
+      color: 0xdd2e44,
+      description: `## Error\n${description}`,
+    });
   }
 }

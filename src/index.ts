@@ -25,10 +25,10 @@ import {
   VoteEnd,
   VoteStart,
 } from "./commands";
-import { AccessUtils } from "./commands/access-utils";
 import { CallInUtils } from "./commands/call-in-utils";
 import { ChannelCache } from "./controllers";
 import {
+  AccessUtils,
   ChannelCommandMessage,
   Command,
   Discord,
