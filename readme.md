@@ -1,8 +1,10 @@
-# discord-template
+![Logo](https://github.com/ofolis/discord-wizard/raw/main/images/wizard-logo.png "Logo")
 
-This is my command-oriented Discord bot template. It is a deeply opinionated TypeScript Node.js project that can be run using Node or built into a binary distribution (bundled and released using GitHub actions).
+# discord-wizard
 
-Because I am using this template for my own Discord bot projects, it will be updated as those projects mature and are refined.
+A Discord bot that provides anonymous submissions, anonymous voting, and play-money betting tools for a Discord server.
+
+Discord server members can submit messages anonymously to a configured channel, participate in anonymous votes, maintain server money balances, and wager those balances on administrator-created bets.
 
 ## Setup
 
@@ -11,8 +13,9 @@ Because I am using this template for my own Discord bot projects, it will be upd
 1. Open your [Discord developer portal](https://discord.com/developers/applications).
 2. Create a new application.
 3. In the **General Information** section:
-   1. Set **Name** to whatever name you want the bot to have in your server.
+   1. Set **Name** to `Wizard` (or whatever name you want the bot to have in your server).
    2. Optionally, upload an **App Icon**.
+      - Use the `wizard-logo.png` included in this project's `images` directory if you'd like.
    3. **Save the application ID value for later.**
 4. In the **Installation** section:
    1. Ensure that **Guild Install** is the only context method.
@@ -22,7 +25,7 @@ Because I am using this template for my own Discord bot projects, it will be upd
 6. In the **Bot** section:
    1. Set any desired aesthetic items.
    2. Reset the token and **save the value for later**.
-   3. Enable all privileged gateway intents:
+   3. Enable privileged gateway intents:
       - **Presence Intent**
       - **Server Members Intent**
       - **Message Content Intent**
@@ -30,32 +33,28 @@ Because I am using this template for my own Discord bot projects, it will be upd
    1. Create a guild install OAuth2 URL with only the `bot` scope.
 8. Open the generated URL and install the bot in your Discord server.
 
-### 2. Set Up GitHub
+### 2. Set Up The Application
 
-1. Create a new repository using this as the template.
-2. In your GitHub account settings, open **Developer settings**.
-3. Under **Personal access tokens** generate a new "fine-grained token".
-   1. Give it access to your new repository.
-   2. Give it the following repository permissions:
-      - **Actions:** Read and write
-      - **Contents:** Read and write
-      - **Issues:** Read and write
-      - **Metadata:** Read-only (set by default)
-      - **Pull requests:** Read and write
-4. In your new repository's settings, open **General** under **Actions**.
-5. Ensure **Allow all actions and reusable workflows** is selected.
-6. Select **Read and write permissions** under **Workflow permissions**.
-7. After saving, open **Actions** under **Secrets and variables**.
-8. Create a new repository secret named `CI_ACCESS_TOKEN` using your generated token as the value.
+> [!NOTE]
+> These step-by-step instructions are for local setup/usage. Since this is a Node.js app, you can also run the bot on a remote server, but I'm not including those specific steps in this readme.
 
-### 3. Set Up The Application
+**Option 1 - For Usage Only**
 
-1. Clone your new repository to your machine.
+1. Download the build ZIP file in [the latest release](https://github.com/ofolis/discord-wizard/releases/latest) for your system.
+2. Extract the folder somewhere on your machine.
+3. Rename the `.env.example` file to `.env`.
+4. Modify the `.env` file.
+   1. Replace the `?` after `DISCORD_APPLICATION_ID=` with the value noted earlier.
+   2. Replace the `?` after `DISCORD_BOT_TOKEN=` with the value noted earlier.
+
+**Option 2 - For Development & Usage**
+
+1. Clone this repository.
 2. Install the project's version of Node.js.
    1. [Install Node Version Manager.](https://github.com/nvm-sh/nvm?tab=readme-ov-file#installing-and-updating)
    2. Run `nvm use`.
 3. Run `npm install`.
-4. Make a copy of `.env.example` named `.env`.
+4. Rename the `.env.example` file to `.env`.
 5. Modify the `.env` file.
    1. Replace the `?` after `DISCORD_APPLICATION_ID=` with the value noted earlier.
    2. Replace the `?` after `DISCORD_BOT_TOKEN=` with the value noted earlier.
@@ -68,17 +67,38 @@ Because I am using this template for my own Discord bot projects, it will be upd
       - **Markdown All in One**
       - **npm Intellisense**
       - **Sort JSON objects**
+7. Run `npm run build`.
+
+### 3. Set Up The Server
+
+1. Create exactly one text channel named `submissions` if you want to use anonymous submissions.
+2. Give administrators the Discord **Administrator** permission if they should be able to start/end votes, manage bets, or adjust money balances.
 
 ## Usage
 
-1. Run `npm run dev`.
-2. The bot will now run and refresh as you make code changes.
-3. Make code updates and commit your changes using [the Conventional Commits format](https://www.conventionalcommits.org/en/v1.0.0/).
+1. Start the application.
+   - If you downloaded the build, run the executable file.
+   - If you cloned the repository, run `npm start`.
+2. In your Discord server channel, execute the bot's commands.
+   - `/submit` - submit a message anonymously to the `submissions` channel.
+   - `/votestart` - start an anonymous vote. Administrator only.
+   - `/vote` - submit or update your anonymous vote.
+   - `/voteend` - end the open vote and post results. Administrator only.
+   - `/money` - privately view your money balance and server ranking.
+   - `/moneygive` - give some of your money to another server member.
+   - `/moneyadduser` - add money to a user. Administrator only.
+   - `/moneyremoveuser` - remove money from a user. Administrator only.
+   - `/moneysetuser` - set a user's money. Administrator only.
+   - `/moneyaddserver` - add money to every server member. Administrator only.
+   - `/moneyremoveserver` - remove money from every server member. Administrator only.
+   - `/moneysetserver` - set every server member's money. Administrator only.
+   - `/betstart` - start a bet. Administrator only.
+   - `/bet` - place, update, or remove your wager.
+   - `/betall` - wager all of your available money.
+   - `/betlock` - lock the open bet so wagers cannot change. Administrator only.
+   - `/betunlock` - unlock the open bet. Administrator only.
+   - `/betend` - end the open bet and pay winners. Administrator only.
 
-> [!NOTE]
-> Any commits on `main` that you push to GitHub will trigger the build action. That CI process evaluates any new commits and creates a new release [if the type of change requires it](https://github.com/semantic-release/semantic-release?tab=readme-ov-file#commit-message-format).
+---
 
-## Projects Using This
-
-- [discord-sabacc](https://github.com/ofolis/discord-sabacc)
-- [discord-mariokart](https://github.com/ofolis/discord-mariokart)
+_This project uses my [Discord bot template](https://github.com/ofolis/discord-template)._
