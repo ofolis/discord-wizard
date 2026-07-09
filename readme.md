@@ -74,14 +74,14 @@ Discord server members can submit messages anonymously to a configured channel, 
 **Server-Specific `.env` Settings**
 
 - `SUBMISSION_CHANNEL_NAME` - name of the text channel that receives anonymous submissions.
-- `CALL_IN_HOSTS_CHANNEL_NAME` - name of the private text channel where the call-in queue is posted for hosts.
+- `CALL_IN_HOST_CHANNEL_NAME` - name of the private text channel where the call-in queue is posted for hosts.
 - `CALL_IN_HOST_ROLE_NAMES` - comma-separated role names for users who count as call-in hosts in voice channels.
 - `MANAGER_ROLE_NAMES` - optional comma-separated role names for users who can use restricted commands without Discord Administrator permission.
 
 ### 3. Set Up The Server
 
 1. Create one text channel for anonymous submissions, then set `SUBMISSION_CHANNEL_NAME` to that channel's name.
-2. For call-in mode, create one private text channel for hosts, then set `CALL_IN_HOSTS_CHANNEL_NAME` to that channel's name.
+2. For call-in mode, create one private text channel for hosts, then set `CALL_IN_HOST_CHANNEL_NAME` to that channel's name.
 3. For call-in mode, create the host role or roles, then list those role names in `CALL_IN_HOST_ROLE_NAMES`.
 4. Give the bot permission to server mute and unmute members in voice channels if you want to use call-in mode.
 5. Give users the Discord **Administrator** permission, or list their role in `MANAGER_ROLE_NAMES`, if they should be able to start/end votes, manage bets, or adjust money balances.
