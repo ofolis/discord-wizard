@@ -65,6 +65,16 @@ export class BetEnd implements Command {
       );
       return;
     }
+    if (
+      bettingState.totalPoolCents > 0 &&
+      payouts.every(payout => payout.payoutCents === 0)
+    ) {
+      await InteractionController.informError(
+        message,
+        "No wagers were placed on the winning option.",
+      );
+      return;
+    }
 
     const moneyState: MoneyState = DataController.loadOrCreateMoneyState(
       message.member.guild.id,

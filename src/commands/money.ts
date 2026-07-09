@@ -40,7 +40,6 @@ export class Money implements Command {
       .slice(0, maxMoneyRankingEntries)
       .map(entry => entry.userId);
     const rankingUserIds: string[] = [...new Set([...rankedUserIds, userId])];
-    const rankingUserIdSet: Set<string> = new Set(rankingUserIds);
 
     let members: Awaited<ReturnType<typeof Discord.getGuildMembersByIds>>;
     try {
@@ -56,11 +55,14 @@ export class Money implements Command {
       );
       return;
     }
+    const displayedUserIdSet: Set<string> = new Set(
+      members.map(member => member.id),
+    );
 
     await InteractionController.showMoney(message, {
       hiddenRankingEntryCount: Math.max(
         0,
-        balanceEntries.filter(entry => !rankingUserIdSet.has(entry.userId))
+        balanceEntries.filter(entry => !displayedUserIdSet.has(entry.userId))
           .length,
       ),
       members,
