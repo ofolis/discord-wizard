@@ -10,7 +10,7 @@ import { CallInState } from "../saveables";
 import { CallInUtils } from "./call-in-utils";
 
 export class CallIn implements Command {
-  public readonly description: string = "Toggles you on the call-in queue.";
+  public readonly description: string = "Adds you to the call-in queue.";
 
   public readonly isGlobal: boolean = false;
 
@@ -41,23 +41,32 @@ export class CallIn implements Command {
     if (callInState.hasSpeakingUser(message.user.id)) {
       await InteractionController.informError(
         message,
-        "You are already live on the call.",
+        "You are already on the air. Use `/hangup` to leave the call.",
+      );
+      return;
+    }
+    if (callInState.hasQueuedUser(message.user.id)) {
+      await InteractionController.informSuccess(
+        message,
+        "You are already calling in.",
       );
       return;
     }
 
-    const wasAdded: boolean = callInState.toggleQueuedUser(message.user.id);
+    callInState.addQueuedUser(message.user.id);
     try {
       DataController.saveCallInState(callInState);
-      await CallInUtils.postQueueToHosts(message.member.guild, callInState);
-      if (wasAdded) {
-        await InteractionController.announceCallInQueueAdd(
-          callInState.channelId,
-          {
-            userName: message.member.displayName,
-          },
-        );
+      if (
+        !(await CallInUtils.postQueueToHosts(message.member.guild, callInState))
+      ) {
+        Log.throw("Could not update call-in queue for hosts.");
       }
+      await InteractionController.announceCallInQueueAdd(
+        callInState.channelId,
+        {
+          userName: message.member.displayName,
+        },
+      );
     } catch (reason: unknown) {
       Log.error("Could not update call-in queue.", reason);
       await InteractionController.informError(
@@ -67,14 +76,9 @@ export class CallIn implements Command {
       return;
     }
 
-    await InteractionController.informSuccess(
-      message,
-      wasAdded ? "You are calling in." : "You hung up from the call-in queue.",
-    );
-    if (wasAdded) {
-      Log.info("User joined call-in queue.", {
-        user: Discord.formatUserNameString(message.user),
-      });
-    }
+    await InteractionController.informSuccess(message, "You are calling in.");
+    Log.info("User joined call-in queue.", {
+      user: Discord.formatUserNameString(message.user),
+    });
   }
 }

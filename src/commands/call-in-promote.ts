@@ -5,6 +5,7 @@ import {
   Command,
   CommandOption,
   CommandOptionType,
+  Discord,
   Log,
 } from "../core";
 import { CallInState } from "../saveables";
@@ -12,8 +13,8 @@ import { CallInUtils } from "./call-in-utils";
 
 const userOptionName: string = "user";
 
-export class CallInAnswer implements Command {
-  public readonly description: string = "Answers a queued call-in user.";
+export class CallInPromote implements Command {
+  public readonly description: string = "Promotes a queued call-in user.";
 
   public readonly isGlobal: boolean = false;
 
@@ -21,11 +22,11 @@ export class CallInAnswer implements Command {
 
   public readonly isPrivate: boolean = true;
 
-  public readonly name: string = "callinanswer";
+  public readonly name: string = "callinpromote";
 
   public readonly options: CommandOption[] = [
     {
-      description: "The queued user to answer.",
+      description: "The queued user to promote.",
       isRequired: true,
       name: userOptionName,
       type: CommandOptionType.USER,
@@ -46,7 +47,7 @@ export class CallInAnswer implements Command {
       CommandOptionType.USER,
     );
     if (user === undefined) {
-      Log.throw("Cannot answer call-in. User option is missing.");
+      Log.throw("Cannot promote call-in user. User option is missing.");
     }
     if (!callInState.hasQueuedUser(user.id)) {
       await InteractionController.informError(
@@ -72,15 +73,19 @@ export class CallInAnswer implements Command {
       callInState.addSpeakingUser(member.id);
       await CallInUtils.unmuteForCallIn(member, callInState);
       DataController.saveCallInState(callInState);
-      await CallInUtils.postQueueToHosts(message.member.guild, callInState);
-      await InteractionController.announceCallInAnswer(callInState.channelId, {
-        userName: member.displayName,
+      if (
+        !(await CallInUtils.postQueueToHosts(message.member.guild, callInState))
+      ) {
+        Log.throw("Could not update call-in queue for hosts.");
+      }
+      await InteractionController.announceCallInOnAir(callInState.channelId, {
+        userMention: Discord.formatUserMentionString(member.user),
       });
     } catch (reason: unknown) {
-      Log.error("Could not answer call-in user.", reason);
+      Log.error("Could not promote call-in user.", reason);
       await InteractionController.informError(
         message,
-        "Could not answer that call-in user. Contact an admin.",
+        "Could not promote that call-in user. Contact an admin.",
       );
       return;
     }

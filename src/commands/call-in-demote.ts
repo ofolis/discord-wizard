@@ -12,8 +12,8 @@ import { CallInUtils } from "./call-in-utils";
 
 const userOptionName: string = "user";
 
-export class CallInHangUp implements Command {
-  public readonly description: string = "Hangs up a live call-in user.";
+export class CallInDemote implements Command {
+  public readonly description: string = "Demotes a live call-in user.";
 
   public readonly isGlobal: boolean = false;
 
@@ -21,11 +21,11 @@ export class CallInHangUp implements Command {
 
   public readonly isPrivate: boolean = true;
 
-  public readonly name: string = "callinhangup";
+  public readonly name: string = "callindemote";
 
   public readonly options: CommandOption[] = [
     {
-      description: "The live user to hang up.",
+      description: "The live user to demote.",
       isRequired: true,
       name: userOptionName,
       type: CommandOptionType.USER,
@@ -46,7 +46,7 @@ export class CallInHangUp implements Command {
       CommandOptionType.USER,
     );
     if (user === undefined) {
-      Log.throw("Cannot hang up call-in. User option is missing.");
+      Log.throw("Cannot demote call-in user. User option is missing.");
     }
     if (!callInState.hasSpeakingUser(user.id)) {
       await InteractionController.informError(
@@ -72,17 +72,20 @@ export class CallInHangUp implements Command {
       callInState.removeSpeakingUser(member.id);
       await CallInUtils.muteForCallIn(member, callInState);
       DataController.saveCallInState(callInState);
+      await InteractionController.announceCallInOffAir(callInState.channelId, {
+        userName: member.displayName,
+      });
     } catch (reason: unknown) {
-      Log.error("Could not hang up call-in user.", reason);
+      Log.error("Could not demote call-in user.", reason);
       await InteractionController.informError(
         message,
-        "Could not hang up that call-in user. Contact an admin.",
+        "Could not demote that call-in user. Contact an admin.",
       );
       return;
     }
     await InteractionController.informSuccess(
       message,
-      `${member.displayName} was hung up.`,
+      `${member.displayName} was demoted.`,
     );
   }
 }

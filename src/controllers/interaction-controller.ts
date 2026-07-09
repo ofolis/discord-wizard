@@ -137,7 +137,17 @@ export class InteractionController {
     });
   }
 
-  public static async announceCallInAnswer(
+  public static async announceCallInEnd(channelId: string): Promise<void> {
+    await this.__createChannelCard(channelId, {
+      color: CardColor.INFO,
+      description: Utils.linesToString([
+        "# Call-in mode inactive",
+        "You can mute and unmute yourself as normal.",
+      ]),
+    });
+  }
+
+  public static async announceCallInOffAir(
     channelId: string,
     data: {
       readonly userName: string;
@@ -145,14 +155,19 @@ export class InteractionController {
   ): Promise<void> {
     await this.__createChannelCard(channelId, {
       color: CardColor.INFO,
-      description: `# ${data.userName} is live on the call.`,
+      description: `# ${data.userName} is no longer on the air.`,
     });
   }
 
-  public static async announceCallInEnd(channelId: string): Promise<void> {
+  public static async announceCallInOnAir(
+    channelId: string,
+    data: {
+      readonly userMention: string;
+    },
+  ): Promise<void> {
     await this.__createChannelCard(channelId, {
       color: CardColor.INFO,
-      description: "# Call-in mode ended.",
+      description: `# ${data.userMention} is now on the air.`,
     });
   }
 
@@ -168,10 +183,25 @@ export class InteractionController {
     });
   }
 
+  public static async announceCallInQueueRemove(
+    channelId: string,
+    data: {
+      readonly userName: string;
+    },
+  ): Promise<void> {
+    await this.__createChannelCard(channelId, {
+      color: CardColor.INFO,
+      description: `# ${data.userName} hung up.`,
+    });
+  }
+
   public static async announceCallInStart(channelId: string): Promise<void> {
     await this.__createChannelCard(channelId, {
       color: CardColor.INFO,
-      description: "# Call-in mode started.",
+      description: Utils.linesToString([
+        "# Call-in mode active",
+        "Non-host users in the voice channel will be muted until they call in with `/callin` and a host puts them on the air.",
+      ]),
     });
   }
 
@@ -259,15 +289,13 @@ export class InteractionController {
     channelId: string,
     callInState: CallInState,
     userLabelsById: Record<string, string>,
-  ): Promise<void> {
-    await this.__createChannelCard(channelId, {
+  ): Promise<ChannelMessage> {
+    return await this.__createChannelCard(channelId, {
       color: CardColor.INFO,
-      description: Utils.linesToString([
-        "# Call-in Queue",
-        callInState.queuedUserIds.length > 0
-          ? this.__formatCallInQueueString(callInState, userLabelsById)
-          : "The queue is empty.",
-      ]),
+      description: this.__formatCallInQueueDescription(
+        callInState,
+        userLabelsById,
+      ),
     });
   }
 
@@ -327,6 +355,25 @@ export class InteractionController {
         ],
       },
     );
+  }
+
+  public static async updateCallInQueue(
+    channelId: string,
+    messageId: string,
+    callInState: CallInState,
+    userLabelsById: Record<string, string>,
+  ): Promise<void> {
+    await Discord.updateChannelMessage(channelId, messageId, {
+      embeds: [
+        this.__buildCard({
+          color: CardColor.INFO,
+          description: this.__formatCallInQueueDescription(
+            callInState,
+            userLabelsById,
+          ),
+        }),
+      ],
+    });
   }
 
   public static async updateVoteStart(votingState: VotingState): Promise<void> {
@@ -446,6 +493,18 @@ export class InteractionController {
           return `- **${this.__formatUserLabel(payout.userId, userLabelsById)}:** \`${netSign}${MoneyUtils.format(payout.netCents)}\`${changeEmoji} (\`${MoneyUtils.format(balanceCents)}\`${balanceEmoji})`;
         }),
     );
+  }
+
+  private static __formatCallInQueueDescription(
+    callInState: CallInState,
+    userLabelsById: Record<string, string>,
+  ): string {
+    return Utils.linesToString([
+      "# Call-in Queue",
+      callInState.queuedUserIds.length > 0
+        ? this.__formatCallInQueueString(callInState, userLabelsById)
+        : "The queue is empty.",
+    ]);
   }
 
   private static __formatCallInQueueString(

@@ -48,6 +48,11 @@ export class CallInStart implements Command {
     try {
       await CallInUtils.muteNonHostVoiceMembers(voiceChannel, callInState);
       DataController.saveCallInState(callInState);
+      if (
+        !(await CallInUtils.postQueueToHosts(message.member.guild, callInState))
+      ) {
+        Log.throw("Could not post call-in queue to hosts.");
+      }
       await InteractionController.announceCallInStart(callInState.channelId);
     } catch (reason: unknown) {
       Log.error("Could not start call-in mode.", reason);

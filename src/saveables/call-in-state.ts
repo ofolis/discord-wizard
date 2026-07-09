@@ -7,6 +7,8 @@ export class CallInState implements Saveable {
 
   public readonly guildId: string;
 
+  public queueMessageId: string | null;
+
   public readonly voiceChannelId: string;
 
   private readonly __botMutedUserIds: string[];
@@ -24,6 +26,7 @@ export class CallInState implements Saveable {
   }) {
     this.channelId = state.channelId;
     this.guildId = state.guildId;
+    this.queueMessageId = null;
     this.voiceChannelId = state.voiceChannelId;
     this.__botMutedUserIds = [];
     this.__isOpen = true;
@@ -58,6 +61,7 @@ export class CallInState implements Saveable {
       voiceChannelId: callInStateJson.voiceChannelId,
     });
     callInState.__isOpen = callInStateJson.isOpen;
+    callInState.queueMessageId = callInStateJson.queueMessageId ?? null;
     callInState.__botMutedUserIds.push(
       ...callInState.__normalizeUserIds(callInStateJson.botMutedUserIds ?? []),
     );
@@ -86,6 +90,8 @@ export class CallInState implements Saveable {
       typeof json.guildId !== "string" ||
       json.guildId !== expectedGuildId ||
       typeof json.isOpen !== "boolean" ||
+      (json.queueMessageId !== undefined &&
+        typeof json.queueMessageId !== "string") ||
       typeof json.voiceChannelId !== "string" ||
       !this.__isValidUserIdArray(json.botMutedUserIds) ||
       !this.__isValidUserIdArray(json.queuedUserIds) ||
@@ -104,6 +110,7 @@ export class CallInState implements Saveable {
       channelId: json.channelId,
       guildId: json.guildId,
       isOpen: json.isOpen,
+      queueMessageId: json.queueMessageId,
       queuedUserIds: json.queuedUserIds as string[] | undefined,
       speakingUserIds: json.speakingUserIds as string[] | undefined,
       voiceChannelId: json.voiceChannelId,
@@ -113,6 +120,12 @@ export class CallInState implements Saveable {
   public addBotMutedUser(userId: string): void {
     if (!this.__botMutedUserIds.includes(userId)) {
       this.__botMutedUserIds.push(userId);
+    }
+  }
+
+  public addQueuedUser(userId: string): void {
+    if (!this.__queuedUserIds.includes(userId)) {
+      this.__queuedUserIds.push(userId);
     }
   }
 
@@ -155,19 +168,11 @@ export class CallInState implements Saveable {
       channelId: this.channelId,
       guildId: this.guildId,
       isOpen: this.__isOpen,
+      queueMessageId: this.queueMessageId ?? undefined,
       queuedUserIds: [...this.__queuedUserIds],
       speakingUserIds: [...this.__speakingUserIds],
       voiceChannelId: this.voiceChannelId,
     };
-  }
-
-  public toggleQueuedUser(userId: string): boolean {
-    if (this.hasQueuedUser(userId)) {
-      this.removeQueuedUser(userId);
-      return false;
-    }
-    this.__queuedUserIds.push(userId);
-    return true;
   }
 
   private __normalizeUserIds(userIds: readonly string[]): string[] {

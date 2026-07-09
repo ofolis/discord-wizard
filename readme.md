@@ -104,9 +104,10 @@ Discord server members can submit messages anonymously to a configured channel, 
    - `/betunlock` - unlock the open bet. Administrator only.
    - `/betend` - end the open bet and pay winners. Administrator only.
    - `/callinstart` - start call-in mode in your current voice channel. Host only.
-   - `/callin` - join or leave the call-in queue. Non-host only.
-   - `/callinanswer` - answer a queued call-in user. Host only.
-   - `/callinhangup` - hang up a live call-in user. Host only.
+   - `/callin` - join the call-in queue. Non-host only.
+   - `/hangup` - leave the call-in queue or leave the live call.
+   - `/callinpromote` - promote a queued call-in user. Host only.
+   - `/callindemote` - demote a live call-in user. Host only.
    - `/callinforce` - make a voice-channel user live even if they are not queued. Host only.
    - `/callinend` - end call-in mode and release bot-managed mutes. Host only.
 

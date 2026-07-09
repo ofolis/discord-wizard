@@ -5,6 +5,7 @@ import {
   Command,
   CommandOption,
   CommandOptionType,
+  Discord,
   Log,
 } from "../core";
 import { CallInState } from "../saveables";
@@ -61,13 +62,23 @@ export class CallInForce implements Command {
       return;
     }
 
+    const wasQueued: boolean = callInState.hasQueuedUser(member.id);
     try {
       callInState.addSpeakingUser(member.id);
       await CallInUtils.unmuteForCallIn(member, callInState);
       DataController.saveCallInState(callInState);
-      await CallInUtils.postQueueToHosts(message.member.guild, callInState);
-      await InteractionController.announceCallInAnswer(callInState.channelId, {
-        userName: member.displayName,
+      if (wasQueued) {
+        if (
+          !(await CallInUtils.postQueueToHosts(
+            message.member.guild,
+            callInState,
+          ))
+        ) {
+          Log.throw("Could not update call-in queue for hosts.");
+        }
+      }
+      await InteractionController.announceCallInOnAir(callInState.channelId, {
+        userMention: Discord.formatUserMentionString(member.user),
       });
     } catch (reason: unknown) {
       Log.error("Could not force call-in user live.", reason);

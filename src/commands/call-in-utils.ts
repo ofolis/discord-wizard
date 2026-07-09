@@ -4,7 +4,13 @@ import {
   DataController,
   InteractionController,
 } from "../controllers";
-import { ChannelCommandMessage, Discord, Environment, Log } from "../core";
+import {
+  ChannelCommandMessage,
+  ChannelMessage,
+  Discord,
+  Environment,
+  Log,
+} from "../core";
 import { CallInState } from "../saveables";
 
 export class CallInUtils {
@@ -113,11 +119,32 @@ export class CallInUtils {
     if (hostsChannelId === null) {
       return false;
     }
-    await InteractionController.showCallInQueue(
-      hostsChannelId,
-      callInState,
-      await this.__getUserLabelsById(guild, callInState.queuedUserIds),
-    );
+    const userLabelsById: Record<string, string> =
+      await this.__getUserLabelsById(guild, callInState.queuedUserIds);
+    if (callInState.queueMessageId !== null) {
+      try {
+        await InteractionController.updateCallInQueue(
+          hostsChannelId,
+          callInState.queueMessageId,
+          callInState,
+          userLabelsById,
+        );
+        return true;
+      } catch (reason: unknown) {
+        Log.error("Could not update call-in queue post.", reason, {
+          guildId: guild.id,
+          messageId: callInState.queueMessageId,
+        });
+      }
+    }
+    const queueMessage: ChannelMessage =
+      await InteractionController.showCallInQueue(
+        hostsChannelId,
+        callInState,
+        userLabelsById,
+      );
+    callInState.queueMessageId = queueMessage.id;
+    DataController.saveCallInState(callInState);
     return true;
   }
 
@@ -205,11 +232,11 @@ export class CallInUtils {
     guild: discordJs.Guild,
     callInState: CallInState,
   ): Promise<void> {
-    for (const userId of callInState.botMutedUserIds) {
+    for (const userId of [...callInState.botMutedUserIds]) {
       try {
         const member: discordJs.GuildMember = await guild.members.fetch(userId);
         if (member.voice.channelId === callInState.voiceChannelId) {
-          await member.voice.setMute(false, "Call-in mode ended");
+          await this.unmuteForCallIn(member, callInState);
         }
       } catch (reason: unknown) {
         Log.error("Could not unmute call-in member.", reason, {
