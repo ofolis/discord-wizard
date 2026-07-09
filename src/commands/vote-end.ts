@@ -51,7 +51,7 @@ export class VoteEnd implements Command {
       );
       const isTooLong: boolean = AppError.is(
         reason,
-        AppErrorCode.DISCORD_CARD_DESCRIPTION_TOO_LONG,
+        AppErrorCode.DISCORD_EMBED_DESCRIPTION_TOO_LONG,
       );
       if (isMissingChannel) {
         votingState.close();

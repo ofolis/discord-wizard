@@ -94,7 +94,7 @@ export class BetStart implements Command {
       Log.error("Could not post bet.", reason);
       const isTooLong: boolean = AppError.is(
         reason,
-        AppErrorCode.DISCORD_CARD_DESCRIPTION_TOO_LONG,
+        AppErrorCode.DISCORD_EMBED_DESCRIPTION_TOO_LONG,
       );
       let didCloseFailedBet: boolean = true;
       bettingState.close();
