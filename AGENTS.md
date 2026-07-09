@@ -16,6 +16,15 @@
 - Prefer keeping command-specific behavior, copy, and workflows outside `src/core`.
 - When a shared helper exists, callers should not need to understand its internal freshness, cache, retry, or validation strategy unless the feature explicitly requires that control.
 
+## Template Baseline
+
+- This repository evolved from a Discord bot template. When reviewing or simplifying framework-like code, use the first commit as the baseline for original template surface.
+- Before removing abstractions in `src/core`, command definitions, or message wrappers, compare against the root commit with `git rev-list --max-parents=0 HEAD`.
+- Treat code that existed in the original template as intentional framework surface unless it is actively harmful. Do not remove template abstractions merely because this specific bot currently uses only one path or configuration.
+- Focus simplification on post-template additions that are duplicated, speculative, misleading, or app-specific.
+- Distinguish between original template framework to preserve, template-worthy additions that should remain generic, app-specific behavior that should stay outside `src/core`, and post-template overbuild that can be reduced.
+- Prefer moving generic, reusable helpers into existing template primitives such as `Utils` when they are broadly useful and not command-specific.
+
 ## Discord Behavior
 
 - User-facing error messages should state only what the code knows failed. Do not suggest speculative fixes for generic downstream failures; use neutral guidance such as contacting an admin unless the error has been explicitly classified.
