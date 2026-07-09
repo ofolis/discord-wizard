@@ -9,7 +9,7 @@ import { MoneyState } from "../saveables";
 const maxMoneyRankingEntries: number = 100;
 type BalanceEntry = ReturnType<MoneyState["getBalanceEntries"]>[number];
 type GuildMembers = Awaited<
-  ReturnType<typeof GuildMemberController.getGuildMembers>
+  ReturnType<typeof GuildMemberController.getGuildMembersByIds>
 >;
 type RankingMembersResult = {
   readonly isCapped: boolean;
@@ -73,39 +73,45 @@ export class Money implements Command {
     balanceEntries: BalanceEntry[],
     currentUserId: string,
   ): Promise<RankingMembersResult> {
-    const guildMembers: GuildMembers =
-      await GuildMemberController.getGuildMembers(guildId);
-    const guildMembersById: Map<string, GuildMembers[number]> = new Map(
-      guildMembers.map(member => [member.id, member]),
-    );
     const membersById: Map<string, GuildMembers[number]> = new Map();
     let isCapped: boolean = false;
-    let rankedMemberCount: number = 0;
 
-    for (const balanceEntry of balanceEntries) {
-      const member: GuildMembers[number] | undefined = guildMembersById.get(
-        balanceEntry.userId,
-      );
-      if (member === undefined) {
-        continue;
-      }
-      rankedMemberCount += 1;
-      if (rankedMemberCount > maxMoneyRankingEntries) {
-        isCapped = true;
-        break;
-      }
-      if (!membersById.has(member.id)) {
+    for (
+      let index: number = 0;
+      index < balanceEntries.length && !isCapped;
+      index += maxMoneyRankingEntries
+    ) {
+      const candidateUserIds: string[] = balanceEntries
+        .slice(index, index + maxMoneyRankingEntries)
+        .map(entry => entry.userId)
+        .filter(userId => !membersById.has(userId));
+      const members: GuildMembers =
+        await GuildMemberController.getGuildMembersByIds(
+          guildId,
+          candidateUserIds,
+        );
+      for (const member of members) {
+        if (membersById.has(member.id)) {
+          continue;
+        }
+        if (membersById.size >= maxMoneyRankingEntries) {
+          isCapped = true;
+          break;
+        }
         membersById.set(member.id, member);
       }
     }
 
     if (!membersById.has(currentUserId)) {
-      const member: GuildMembers[number] | undefined =
-        guildMembersById.get(currentUserId);
-      if (member !== undefined) {
+      const currentUserMembers: GuildMembers =
+        await GuildMemberController.getGuildMembersByIds(guildId, [
+          currentUserId,
+        ]);
+      currentUserMembers.forEach(member => {
         membersById.set(member.id, member);
-      }
+      });
     }
+
     return {
       isCapped,
       members: [...membersById.values()],

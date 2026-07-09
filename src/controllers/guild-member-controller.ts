@@ -50,8 +50,41 @@ export class GuildMemberController {
         ? null
         : this.__getValidCachedGuildMembers(guildId);
     if (cachedMembers !== null) {
+      const cachedMemberIds: Set<string> = new Set(
+        cachedMembers.map(member => member.id),
+      );
+      const missingUserIds: string[] = userIds.filter(
+        userId => !cachedMemberIds.has(userId),
+      );
+      if (missingUserIds.length === 0) {
+        const members: discordJs.GuildMember[] = this.__getMembersByIds(
+          cachedMembers,
+          userIds,
+          options,
+        );
+        Log.debug("Discord guild members retrieved successfully.", {
+          guildId,
+          memberCount: members.length,
+        });
+        return members;
+      }
+
+      const activeRefresh: Promise<discordJs.GuildMember[]> | undefined =
+        this.__guildMemberRefreshesByGuildId.get(guildId);
+      const missingMembers: discordJs.GuildMember[] =
+        activeRefresh === undefined
+          ? await this.__fetchGuildMembersByIds(
+              guildId,
+              missingUserIds,
+              options,
+            )
+          : this.__getMembersByIds(
+              await activeRefresh,
+              missingUserIds,
+              options,
+            );
       const members: discordJs.GuildMember[] = this.__getMembersByIds(
-        cachedMembers,
+        [...cachedMembers, ...missingMembers],
         userIds,
         options,
       );
