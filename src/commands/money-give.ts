@@ -5,6 +5,7 @@ import {
   Command,
   CommandOption,
   CommandOptionType,
+  CommandRegistrationType,
   Discord,
   Log,
 } from "../core";
@@ -17,11 +18,7 @@ const userOptionName: string = "user";
 export class MoneyGive implements Command {
   public readonly description: string = "Gives your money to another user.";
 
-  public readonly isGlobal: boolean = false;
-
-  public readonly isGuild: boolean = true;
-
-  public readonly isPrivate: boolean = true;
+  public readonly isAvailableToAllUsers: boolean = true;
 
   public readonly name: string = "moneygive";
 
@@ -41,6 +38,11 @@ export class MoneyGive implements Command {
       type: CommandOptionType.NUMBER,
     },
   ];
+
+  public readonly registrationType: CommandRegistrationType =
+    CommandRegistrationType.GUILD;
+
+  public readonly shouldReplyPrivately: boolean = true;
 
   public async execute(message: ChannelCommandMessage): Promise<void> {
     const recipient: discordJs.User | undefined = message.getCommandOption(

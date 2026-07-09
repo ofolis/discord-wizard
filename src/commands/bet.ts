@@ -6,6 +6,7 @@ import {
   Command,
   CommandOption,
   CommandOptionType,
+  CommandRegistrationType,
   Json,
   Log,
 } from "../core";
@@ -19,11 +20,7 @@ const letterOptionName: string = "letter";
 export class Bet implements Command {
   public readonly description: string = "Places or removes your wager.";
 
-  public readonly isGlobal: boolean = false;
-
-  public readonly isGuild: boolean = true;
-
-  public readonly isPrivate: boolean = true;
+  public readonly isAvailableToAllUsers: boolean = true;
 
   public readonly name: string = "bet";
 
@@ -45,6 +42,11 @@ export class Bet implements Command {
       type: CommandOptionType.STRING,
     },
   ];
+
+  public readonly registrationType: CommandRegistrationType =
+    CommandRegistrationType.GUILD;
+
+  public readonly shouldReplyPrivately: boolean = true;
 
   public async execute(message: ChannelCommandMessage): Promise<void> {
     const bettingState: BettingState | null =

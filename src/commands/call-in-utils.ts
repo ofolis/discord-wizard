@@ -12,8 +12,13 @@ import {
   Log,
 } from "../core";
 import { CallInState } from "../saveables";
+import { AccessUtils } from "./access-utils";
 
 export class CallInUtils {
+  public static canManageCallIn(member: discordJs.GuildMember): boolean {
+    return this.isHost(member) || AccessUtils.canUseRestrictedCommands(member);
+  }
+
   public static async enforceVoiceState(
     oldState: discordJs.VoiceState,
     newState: discordJs.VoiceState,
@@ -163,26 +168,29 @@ export class CallInUtils {
     return callInState;
   }
 
-  public static async requireHost(
+  public static async requireCallInManager(
     message: ChannelCommandMessage,
   ): Promise<boolean> {
-    if (this.isHost(message.member)) {
+    if (this.canManageCallIn(message.member)) {
       return true;
     }
     await InteractionController.informError(
       message,
-      `You need one of these roles to use this command: ${Environment.config.callInHostRoleNames.map(roleName => `\`${roleName}\``).join(", ")}.`,
+      `You need Discord administrator permission, a manager role, or one of these call-in host roles to use this command: ${Environment.config.callInHostRoleNames.map(roleName => `\`${roleName}\``).join(", ")}.`,
     );
     return false;
   }
 
-  public static async requireNonHost(
+  public static async requireNonCallInHost(
     message: ChannelCommandMessage,
   ): Promise<boolean> {
     if (!this.isHost(message.member)) {
       return true;
     }
-    await InteractionController.informError(message, "Hosts cannot call in.");
+    await InteractionController.informError(
+      message,
+      "Call-in hosts cannot use this command.",
+    );
     return false;
   }
 

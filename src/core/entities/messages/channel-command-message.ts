@@ -36,7 +36,7 @@ export class ChannelCommandMessage extends ChannelMessage {
 
   public static async create(
     commandInteraction: discordJs.CommandInteraction,
-    isPrivate: boolean,
+    shouldReplyPrivately: boolean,
   ): Promise<ChannelCommandMessage> {
     if (!(commandInteraction.member instanceof discordJs.GuildMember)) {
       Log.throw(
@@ -45,7 +45,9 @@ export class ChannelCommandMessage extends ChannelMessage {
     }
     Log.debug("Deferring command interaction...");
     const interactionResponse: discordJs.InteractionResponse =
-      await commandInteraction.deferReply({ ephemeral: isPrivate });
+      await commandInteraction.deferReply({
+        ephemeral: shouldReplyPrivately,
+      });
     Log.debug("Command interaction deferred successfully.");
     return new ChannelCommandMessage(
       interactionResponse,

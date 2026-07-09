@@ -3,6 +3,7 @@ import {
   ChannelCommandMessage,
   Command,
   CommandOption,
+  CommandRegistrationType,
   Discord,
   Log,
 } from "../core";
@@ -12,18 +13,19 @@ import { CallInUtils } from "./call-in-utils";
 export class CallIn implements Command {
   public readonly description: string = "Adds you to the call-in queue.";
 
-  public readonly isGlobal: boolean = false;
-
-  public readonly isGuild: boolean = true;
-
-  public readonly isPrivate: boolean = true;
+  public readonly isAvailableToAllUsers: boolean = true;
 
   public readonly name: string = "callin";
 
   public readonly options: CommandOption[] = [];
 
+  public readonly registrationType: CommandRegistrationType =
+    CommandRegistrationType.GUILD;
+
+  public readonly shouldReplyPrivately: boolean = true;
+
   public async execute(message: ChannelCommandMessage): Promise<void> {
-    if (!(await CallInUtils.requireNonHost(message))) {
+    if (!(await CallInUtils.requireNonCallInHost(message))) {
       return;
     }
     const callInState: CallInState | null =

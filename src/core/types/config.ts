@@ -4,4 +4,6 @@ export type Config = {
   readonly devMode: boolean;
   readonly discordApplicationId: string;
   readonly discordBotToken: string;
+  readonly managerRoleNames: readonly string[];
+  readonly submissionChannelName: string;
 };

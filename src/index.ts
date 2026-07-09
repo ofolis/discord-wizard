@@ -25,6 +25,7 @@ import {
   VoteEnd,
   VoteStart,
 } from "./commands";
+import { AccessUtils } from "./commands/access-utils";
 import { CallInUtils } from "./commands/call-in-utils";
 import { ChannelCache } from "./controllers";
 import {
@@ -145,10 +146,21 @@ function initializeApp(): void {
       );
       return;
     }
-    ChannelCommandMessage.create(interaction, interactionCommand.isPrivate)
+    ChannelCommandMessage.create(
+      interaction,
+      interactionCommand.shouldReplyPrivately,
+    )
       .then(privateChannelMessage => {
-        interactionCommand
-          .execute(privateChannelMessage)
+        AccessUtils.authorizeCommandUse(
+          interactionCommand,
+          privateChannelMessage,
+        )
+          .then(hasAccess => {
+            if (!hasAccess) {
+              return;
+            }
+            return interactionCommand.execute(privateChannelMessage);
+          })
           .then(() => {
             Log.success(`Completed interaction ${interaction.id}.`);
           })

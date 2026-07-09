@@ -6,6 +6,7 @@ import {
   Command,
   CommandOption,
   CommandOptionType,
+  CommandRegistrationType,
   Log,
 } from "../core";
 import { VotingState } from "../saveables";
@@ -15,11 +16,7 @@ const letterOptionName: string = "letter";
 export class Vote implements Command {
   public readonly description: string = "Submits your anonymous vote.";
 
-  public readonly isGlobal: boolean = false;
-
-  public readonly isGuild: boolean = true;
-
-  public readonly isPrivate: boolean = true;
+  public readonly isAvailableToAllUsers: boolean = true;
 
   public readonly name: string = "vote";
 
@@ -33,6 +30,11 @@ export class Vote implements Command {
       type: CommandOptionType.STRING,
     },
   ];
+
+  public readonly registrationType: CommandRegistrationType =
+    CommandRegistrationType.GUILD;
+
+  public readonly shouldReplyPrivately: boolean = true;
 
   public async execute(message: ChannelCommandMessage): Promise<void> {
     const votingState: VotingState | null =

@@ -1,5 +1,11 @@
 import { DataController, InteractionController } from "../controllers";
-import { ChannelCommandMessage, Command, CommandOption, Log } from "../core";
+import {
+  ChannelCommandMessage,
+  Command,
+  CommandOption,
+  CommandRegistrationType,
+  Log,
+} from "../core";
 import { CallInState } from "../saveables";
 import { CallInUtils } from "./call-in-utils";
 
@@ -7,17 +13,22 @@ export class HangUp implements Command {
   public readonly description: string =
     "Leaves the call-in queue or live call.";
 
-  public readonly isGlobal: boolean = false;
-
-  public readonly isGuild: boolean = true;
-
-  public readonly isPrivate: boolean = true;
+  public readonly isAvailableToAllUsers: boolean = true;
 
   public readonly name: string = "hangup";
 
   public readonly options: CommandOption[] = [];
 
+  public readonly registrationType: CommandRegistrationType =
+    CommandRegistrationType.GUILD;
+
+  public readonly shouldReplyPrivately: boolean = true;
+
   public async execute(message: ChannelCommandMessage): Promise<void> {
+    if (!(await CallInUtils.requireNonCallInHost(message))) {
+      return;
+    }
+
     const callInState: CallInState | null =
       await CallInUtils.requireActiveCallInState(message);
     if (callInState === null) {

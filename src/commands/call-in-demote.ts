@@ -5,6 +5,7 @@ import {
   Command,
   CommandOption,
   CommandOptionType,
+  CommandRegistrationType,
   Log,
 } from "../core";
 import { CallInState } from "../saveables";
@@ -15,11 +16,7 @@ const userOptionName: string = "user";
 export class CallInDemote implements Command {
   public readonly description: string = "Demotes a live call-in user.";
 
-  public readonly isGlobal: boolean = false;
-
-  public readonly isGuild: boolean = true;
-
-  public readonly isPrivate: boolean = true;
+  public readonly isAvailableToAllUsers: boolean = false;
 
   public readonly name: string = "callindemote";
 
@@ -32,10 +29,16 @@ export class CallInDemote implements Command {
     },
   ];
 
+  public readonly registrationType: CommandRegistrationType =
+    CommandRegistrationType.GUILD;
+
+  public readonly shouldReplyPrivately: boolean = true;
+
+  public async authorizeUse(message: ChannelCommandMessage): Promise<boolean> {
+    return await CallInUtils.requireCallInManager(message);
+  }
+
   public async execute(message: ChannelCommandMessage): Promise<void> {
-    if (!(await CallInUtils.requireHost(message))) {
-      return;
-    }
     const callInState: CallInState | null =
       await CallInUtils.requireActiveCallInState(message);
     if (callInState === null) {

@@ -5,30 +5,27 @@ import {
   ChannelCommandMessage,
   Command,
   CommandOption,
+  CommandRegistrationType,
   Log,
 } from "../core";
 import { BettingState } from "../saveables";
-import { AdminUtils } from "./admin-utils";
 import { BetUtils } from "./bet-utils";
 
 export class BetUnlock implements Command {
   public readonly description: string = "Unlocks the open bet.";
 
-  public readonly isGlobal: boolean = false;
-
-  public readonly isGuild: boolean = true;
-
-  public readonly isPrivate: boolean = true;
+  public readonly isAvailableToAllUsers: boolean = false;
 
   public readonly name: string = "betunlock";
 
   public readonly options: CommandOption[] = [];
 
-  public async execute(message: ChannelCommandMessage): Promise<void> {
-    if (!(await AdminUtils.requireAdministrator(message))) {
-      return;
-    }
+  public readonly registrationType: CommandRegistrationType =
+    CommandRegistrationType.GUILD;
 
+  public readonly shouldReplyPrivately: boolean = true;
+
+  public async execute(message: ChannelCommandMessage): Promise<void> {
     const bettingState: BettingState | null =
       DataController.loadActiveBettingState(message.member.guild.id);
     if (bettingState === null) {

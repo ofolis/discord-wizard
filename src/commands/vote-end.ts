@@ -5,29 +5,26 @@ import {
   ChannelCommandMessage,
   Command,
   CommandOption,
+  CommandRegistrationType,
   Log,
 } from "../core";
 import { VotingState } from "../saveables";
-import { AdminUtils } from "./admin-utils";
 
 export class VoteEnd implements Command {
   public readonly description: string = "Ends the open vote.";
 
-  public readonly isGlobal: boolean = false;
-
-  public readonly isGuild: boolean = true;
-
-  public readonly isPrivate: boolean = true;
+  public readonly isAvailableToAllUsers: boolean = false;
 
   public readonly name: string = "voteend";
 
   public readonly options: CommandOption[] = [];
 
-  public async execute(message: ChannelCommandMessage): Promise<void> {
-    if (!(await AdminUtils.requireAdministrator(message))) {
-      return;
-    }
+  public readonly registrationType: CommandRegistrationType =
+    CommandRegistrationType.GUILD;
 
+  public readonly shouldReplyPrivately: boolean = true;
+
+  public async execute(message: ChannelCommandMessage): Promise<void> {
     const votingState: VotingState | null =
       DataController.loadActiveVotingState(message.member.guild.id);
     if (votingState === null) {
