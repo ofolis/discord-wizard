@@ -25,6 +25,16 @@ export class Utils {
     return lines.filter(line => line !== null).join("\n");
   }
 
+  public static parseCommaSeparatedList(value: string | undefined): string[] {
+    if (value === undefined) {
+      return [];
+    }
+    return value
+      .split(",")
+      .map(item => item.trim())
+      .filter(item => item.length > 0);
+  }
+
   public static removeTopArrayItem<T>(array: T[]): T {
     const topItem: T | undefined = array.shift();
     if (topItem === undefined) {
