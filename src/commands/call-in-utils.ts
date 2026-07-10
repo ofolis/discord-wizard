@@ -41,6 +41,23 @@ export class CallInUtils {
 
     if (wasInActiveChannel && !isInActiveChannel) {
       const didQueueChange: boolean = callInState.hasQueuedUser(member.id);
+      const wasBotMuted: boolean = callInState.botMutedUserIds.includes(
+        member.id,
+      );
+      if (wasBotMuted) {
+        try {
+          await this.unmuteForCallIn(member, callInState);
+        } catch (reason: unknown) {
+          Log.error(
+            "Could not unmute call-in member leaving channel.",
+            reason,
+            {
+              guildId,
+              userId: member.id,
+            },
+          );
+        }
+      }
       callInState.removeQueuedUser(member.id);
       callInState.removeSpeakingUser(member.id);
       callInState.removeBotMutedUser(member.id);
