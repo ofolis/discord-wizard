@@ -64,6 +64,16 @@ export class CallInForce implements Command {
       );
       return;
     }
+    if (
+      member.voice.serverMute === true &&
+      !callInState.botMutedUserIds.includes(member.id)
+    ) {
+      await InteractionController.informError(
+        message,
+        "That user is server muted outside of call-in mode.",
+      );
+      return;
+    }
 
     const wasQueued: boolean = callInState.hasQueuedUser(member.id);
     try {

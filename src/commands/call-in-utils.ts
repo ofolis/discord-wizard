@@ -255,6 +255,9 @@ export class CallInUtils {
     member: discordJs.GuildMember,
     callInState: CallInState,
   ): Promise<void> {
+    if (!callInState.botMutedUserIds.includes(member.id)) {
+      return;
+    }
     if (member.voice.serverMute === true) {
       await member.voice.setMute(false, "Call-in mode");
     }

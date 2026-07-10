@@ -71,6 +71,16 @@ export class CallInPromote implements Command {
       );
       return;
     }
+    if (
+      member.voice.serverMute === true &&
+      !callInState.botMutedUserIds.includes(member.id)
+    ) {
+      await InteractionController.informError(
+        message,
+        "That user is server muted outside of call-in mode.",
+      );
+      return;
+    }
 
     try {
       callInState.addSpeakingUser(member.id);
