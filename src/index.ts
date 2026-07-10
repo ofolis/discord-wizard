@@ -154,26 +154,22 @@ function initializeApp(): void {
       interaction,
       interactionCommand.shouldReplyPrivately,
     )
-      .then(commandMessage => {
-        AccessUtils.authorizeCommandUse(interactionCommand, commandMessage)
-          .then(hasAccess => {
-            if (!hasAccess) {
-              return;
-            }
-            return interactionCommand.execute(commandMessage);
-          })
-          .then(() => {
-            Log.success(`Completed interaction ${interaction.id}.`);
-          })
-          .catch((reason: unknown) => {
-            Log.error("Could not complete command execution.", reason);
-          });
+      .then(async commandMessage => {
+        const hasAccess: boolean = await AccessUtils.authorizeCommandUse(
+          interactionCommand,
+          commandMessage,
+        );
+        if (!hasAccess) {
+          Log.info(
+            `Rejected interaction ${interaction.id}. User lacks access.`,
+          );
+          return;
+        }
+        await interactionCommand.execute(commandMessage);
+        Log.success(`Completed interaction ${interaction.id}.`);
       })
       .catch((reason: unknown) => {
-        Log.error(
-          "Could not create user channel interaction from command interaction.",
-          reason,
-        );
+        Log.error("Could not complete command interaction.", reason);
       });
   });
 

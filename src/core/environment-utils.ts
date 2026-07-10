@@ -47,8 +47,8 @@ export class EnvironmentUtils {
       Log.throw(
         "Cannot get environment variable. Requested key was not defined.",
         {
-          env: process.env,
           key,
+          required,
         },
       );
     }

@@ -324,7 +324,7 @@ export class BettingState implements Saveable {
 
   public placeWager(
     userId: string,
-    letter: string | undefined,
+    letter: string,
     amountCents: number,
   ): string | null {
     if (!this.__isOpen || this.__isLocked) {
@@ -429,7 +429,7 @@ export class BettingState implements Saveable {
   }
 
   private __getBetOption(
-    letter: string | undefined,
+    letter: string,
   ): { readonly letter: string; readonly option: string } | null {
     const normalizedLetter: string | null = this.__normalizeLetter(letter);
     if (
@@ -486,10 +486,7 @@ export class BettingState implements Saveable {
     });
   }
 
-  private __normalizeLetter(letter: string | undefined): string | null {
-    if (letter === undefined) {
-      return null;
-    }
+  private __normalizeLetter(letter: string): string | null {
     const normalizedLetter: string = letter.trim().toUpperCase();
     if (!/^[A-Z]$/.test(normalizedLetter)) {
       return null;

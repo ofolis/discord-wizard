@@ -9,6 +9,11 @@ import {
 } from "../saveables";
 
 export class DataController {
+  private static readonly __callInStateJsonByGuildId: Record<
+    string,
+    Json | null
+  > = {};
+
   public static deleteBettingState(guildId: string): void {
     Log.debug("Deleting betting state.");
     IO.deleteData(this.__getBettingStateId(guildId));
@@ -60,9 +65,13 @@ export class DataController {
 
   public static loadCallInState(guildId: string): CallInState | null {
     Log.debug("Loading call-in state.");
-    const callInStateJson: Json | null = IO.loadData(
-      this.__getCallInStateId(guildId),
-    );
+    const callInStateJson: Json | null = Object.hasOwn(
+      this.__callInStateJsonByGuildId,
+      guildId,
+    )
+      ? this.__callInStateJsonByGuildId[guildId]
+      : IO.loadData(this.__getCallInStateId(guildId));
+    this.__callInStateJsonByGuildId[guildId] = callInStateJson;
     if (callInStateJson === null) {
       return null;
     }
@@ -162,10 +171,9 @@ export class DataController {
 
   public static saveCallInState(callInState: CallInState): void {
     Log.debug("Saving call-in state.");
-    IO.saveData(
-      this.__getCallInStateId(callInState.guildId),
-      callInState.toJson(),
-    );
+    const callInStateJson: Json = callInState.toJson();
+    IO.saveData(this.__getCallInStateId(callInState.guildId), callInStateJson);
+    this.__callInStateJsonByGuildId[callInState.guildId] = callInStateJson;
   }
 
   public static saveChannelState(channelState: ChannelState): void {

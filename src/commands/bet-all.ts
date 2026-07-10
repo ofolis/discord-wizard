@@ -76,9 +76,17 @@ export class BetAll implements Command {
       return;
     }
 
+    const letter: string | undefined = message.getCommandOption(
+      letterOptionName,
+      CommandOptionType.STRING,
+    );
+    if (letter === undefined) {
+      Log.throw("Cannot place all-in wager. Letter option is missing.");
+    }
+
     const option: string | null = bettingState.placeWager(
       userId,
-      message.getCommandOption(letterOptionName, CommandOptionType.STRING),
+      letter,
       amountCents,
     );
     if (option === null) {
