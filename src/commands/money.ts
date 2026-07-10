@@ -3,7 +3,13 @@ import {
   GuildMemberController,
   InteractionController,
 } from "../controllers";
-import { ChannelCommandMessage, Command, CommandOption, Log } from "../core";
+import {
+  ChannelCommandMessage,
+  Command,
+  CommandOption,
+  CommandRegistrationType,
+  Log,
+} from "../core";
 import { MoneyState } from "../saveables";
 
 const maxMoneyRankingEntries: number = 100;
@@ -19,15 +25,16 @@ type RankingMembersResult = {
 export class Money implements Command {
   public readonly description: string = "Shows your money and server ranking.";
 
-  public readonly isGlobal: boolean = false;
-
-  public readonly isGuild: boolean = true;
-
-  public readonly isPrivate: boolean = true;
+  public readonly isAvailableToAllUsers: boolean = true;
 
   public readonly name: string = "money";
 
   public readonly options: CommandOption[] = [];
+
+  public readonly registrationType: CommandRegistrationType =
+    CommandRegistrationType.GUILD;
+
+  public readonly shouldReplyPrivately: boolean = true;
 
   public async execute(message: ChannelCommandMessage): Promise<void> {
     const userId: string = message.user.id;

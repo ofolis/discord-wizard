@@ -2,12 +2,28 @@ import type { Json } from "../core";
 import { IO, Log } from "../core";
 import {
   BettingState,
+  CallInState,
   ChannelState,
   MoneyState,
   VotingState,
 } from "../saveables";
 
 export class DataController {
+  private static readonly __callInStateJsonByGuildId: Record<
+    string,
+    Json | null
+  > = {};
+
+  public static deleteBettingState(guildId: string): void {
+    Log.debug("Deleting betting state.");
+    IO.deleteData(this.__getBettingStateId(guildId));
+  }
+
+  public static deleteVotingState(guildId: string): void {
+    Log.debug("Deleting voting state.");
+    IO.deleteData(this.__getVotingStateId(guildId));
+  }
+
   public static loadActiveBettingState(guildId: string): BettingState | null {
     Log.debug("Loading active betting state.");
     const bettingState: BettingState | null = this.loadBettingState(guildId);
@@ -15,6 +31,15 @@ export class DataController {
       return null;
     }
     return bettingState;
+  }
+
+  public static loadActiveCallInState(guildId: string): CallInState | null {
+    Log.debug("Loading active call-in state.");
+    const callInState: CallInState | null = this.loadCallInState(guildId);
+    if (callInState === null || !callInState.isOpen) {
+      return null;
+    }
+    return callInState;
   }
 
   public static loadActiveVotingState(guildId: string): VotingState | null {
@@ -36,6 +61,22 @@ export class DataController {
     }
 
     return BettingState.fromJson(bettingStateJson, guildId);
+  }
+
+  public static loadCallInState(guildId: string): CallInState | null {
+    Log.debug("Loading call-in state.");
+    const callInStateJson: Json | null = Object.hasOwn(
+      this.__callInStateJsonByGuildId,
+      guildId,
+    )
+      ? this.__callInStateJsonByGuildId[guildId]
+      : IO.loadData(this.__getCallInStateId(guildId));
+    this.__callInStateJsonByGuildId[guildId] = callInStateJson;
+    if (callInStateJson === null) {
+      return null;
+    }
+
+    return CallInState.fromJson(callInStateJson, guildId);
   }
 
   public static loadChannelState(channelId: string): ChannelState | null {
@@ -76,6 +117,28 @@ export class DataController {
     return VotingState.fromJson(votingStateJson, guildId);
   }
 
+  public static saveBetCancelStateChange(
+    bettingState: BettingState,
+    moneyState: MoneyState,
+    previousMoneyStateJson: Json,
+  ): void {
+    Log.debug("Saving bet cancel state change.");
+    this.saveMoneyState(moneyState);
+    try {
+      this.deleteBettingState(bettingState.guildId);
+    } catch (reason: unknown) {
+      try {
+        IO.saveData(
+          this.__getMoneyStateId(moneyState.guildId),
+          previousMoneyStateJson,
+        );
+      } catch (rollbackReason: unknown) {
+        Log.error("Could not roll back money state.", rollbackReason);
+      }
+      throw reason;
+    }
+  }
+
   public static saveBetResultStateChange(
     bettingState: BettingState,
     moneyState: MoneyState,
@@ -104,6 +167,13 @@ export class DataController {
       this.__getBettingStateId(bettingState.guildId),
       bettingState.toJson(),
     );
+  }
+
+  public static saveCallInState(callInState: CallInState): void {
+    Log.debug("Saving call-in state.");
+    const callInStateJson: Json = callInState.toJson();
+    IO.saveData(this.__getCallInStateId(callInState.guildId), callInStateJson);
+    this.__callInStateJsonByGuildId[callInState.guildId] = callInStateJson;
   }
 
   public static saveChannelState(channelState: ChannelState): void {
@@ -151,6 +221,10 @@ export class DataController {
 
   private static __getBettingStateId(guildId: string): string {
     return `bet-${guildId}`;
+  }
+
+  private static __getCallInStateId(guildId: string): string {
+    return `call-in-${guildId}`;
   }
 
   private static __getMoneyStateId(guildId: string): string {

@@ -1,16 +1,21 @@
 import * as discordJs from "discord.js";
 import { ICONS } from "../constants";
 import {
-  AppErrorCode,
   ChannelCommandMessage,
   ChannelMessage,
   Discord,
+  InteractionUtils,
   Log,
   Utils,
 } from "../core";
 import { IconName } from "../enums";
 import { MoneyUtils } from "../money-utils";
-import { BettingState, MoneyState, VotingState } from "../saveables";
+import {
+  BettingState,
+  CallInState,
+  MoneyState,
+  VotingState,
+} from "../saveables";
 
 type VotingResult = ReturnType<VotingState["getSortedResults"]>[number];
 type BettingOptionSummary = ReturnType<
@@ -85,7 +90,7 @@ export class InteractionController {
       readonly userName: string;
     },
   ): Promise<void> {
-    await this.__createChannelCard(channelId, {
+    await InteractionUtils.createChannelCard(channelId, {
       color: CardColor.INFO,
       description: Utils.linesToString([
         `# ${ICONS[IconName.ALL_IN]} All In!`,
@@ -101,7 +106,7 @@ export class InteractionController {
     userLabelsById: Record<string, string>,
     balancesByUserId: Record<string, number>,
   ): Promise<void> {
-    await this.__createChannelCard(channelId, {
+    await InteractionUtils.createChannelCard(channelId, {
       color: CardColor.INFO,
       description: Utils.linesToString([
         `# ${ICONS[IconName.BET_RESULTS]} Bet Results`,
@@ -123,12 +128,80 @@ export class InteractionController {
     bettingState: BettingState,
     userLabelsById: Record<string, string>,
   ): Promise<ChannelMessage> {
-    return await this.__createChannelCard(channelId, {
+    return await InteractionUtils.createChannelCard(channelId, {
       color: CardColor.INFO,
       description: this.__formatBetStartDescription(
         bettingState,
         userLabelsById,
       ),
+    });
+  }
+
+  public static async announceCallInEnd(channelId: string): Promise<void> {
+    await InteractionUtils.createChannelCard(channelId, {
+      color: CardColor.INFO,
+      description: Utils.linesToString([
+        "# Call-in mode inactive",
+        "You can mute and unmute yourself as normal.",
+      ]),
+    });
+  }
+
+  public static async announceCallInOffAir(
+    channelId: string,
+    data: {
+      readonly userName: string;
+    },
+  ): Promise<void> {
+    await InteractionUtils.createChannelCard(channelId, {
+      color: CardColor.INFO,
+      description: `# ${data.userName} is no longer on the air.`,
+    });
+  }
+
+  public static async announceCallInOnAir(
+    channelId: string,
+    data: {
+      readonly userMention: string;
+    },
+  ): Promise<void> {
+    await InteractionUtils.createChannelCard(channelId, {
+      color: CardColor.INFO,
+      description: `# ${data.userMention} is now on the air.`,
+    });
+  }
+
+  public static async announceCallInQueueAdd(
+    channelId: string,
+    data: {
+      readonly userName: string;
+    },
+  ): Promise<void> {
+    await InteractionUtils.createChannelCard(channelId, {
+      color: CardColor.INFO,
+      description: `# ${data.userName} is calling in.`,
+    });
+  }
+
+  public static async announceCallInQueueRemove(
+    channelId: string,
+    data: {
+      readonly userName: string;
+    },
+  ): Promise<void> {
+    await InteractionUtils.createChannelCard(channelId, {
+      color: CardColor.INFO,
+      description: `# ${data.userName} hung up.`,
+    });
+  }
+
+  public static async announceCallInStart(channelId: string): Promise<void> {
+    await InteractionUtils.createChannelCard(channelId, {
+      color: CardColor.INFO,
+      description: Utils.linesToString([
+        "# Call-in mode active",
+        "Non-host users in the voice channel will be muted until they call in with `/callin` and a host puts them on the air.",
+      ]),
     });
   }
 
@@ -140,9 +213,9 @@ export class InteractionController {
       readonly senderName: string;
     },
   ): Promise<void> {
-    await this.__createChannelCard(channelId, {
+    await InteractionUtils.createChannelCard(channelId, {
       color: CardColor.INFO,
-      description: `# ${ICONS[IconName.MONEY_GIVE]} ${data.senderName} gave ${data.recipientName} ${MoneyUtils.format(data.amountCents)}.`,
+      description: `# ${ICONS[IconName.MONEY_GIVE]} ${data.senderName} gave ${data.recipientName} \`${MoneyUtils.format(data.amountCents)}\`.`,
     });
   }
 
@@ -150,7 +223,7 @@ export class InteractionController {
     channelId: string,
     submission: string,
   ): Promise<void> {
-    await this.__createChannelCard(channelId, {
+    await InteractionUtils.createChannelCard(channelId, {
       color: CardColor.INFO,
       description: Utils.linesToString([
         `# ${ICONS[IconName.SUBMISSION]} New Submission`,
@@ -163,7 +236,7 @@ export class InteractionController {
     channelId: string,
     results: VotingResult[],
   ): Promise<void> {
-    await this.__createChannelCard(channelId, {
+    await InteractionUtils.createChannelCard(channelId, {
       color: CardColor.INFO,
       description: Utils.linesToString([
         `# ${ICONS[IconName.VOTE_RESULTS]} Vote Results`,
@@ -180,7 +253,7 @@ export class InteractionController {
     channelId: string,
     votingState: VotingState,
   ): Promise<ChannelMessage> {
-    return await this.__createChannelCard(channelId, {
+    return await InteractionUtils.createChannelCard(channelId, {
       color: CardColor.INFO,
       description: this.__formatVoteStartDescription(votingState),
     });
@@ -190,7 +263,7 @@ export class InteractionController {
     message: ChannelCommandMessage,
     description: string,
   ): Promise<void> {
-    await this.__setMessageCard(message, {
+    await InteractionUtils.setMessageCard(message, {
       color: CardColor.ERROR,
       description: Utils.linesToString([
         `## ${ICONS[IconName.ERROR]} Error`,
@@ -203,12 +276,26 @@ export class InteractionController {
     message: ChannelCommandMessage,
     description: string,
   ): Promise<void> {
-    await this.__setMessageCard(message, {
+    await InteractionUtils.setMessageCard(message, {
       color: CardColor.SUCCESS,
       description: Utils.linesToString([
         `## ${ICONS[IconName.SUCCESS]} Success`,
         description,
       ]),
+    });
+  }
+
+  public static async showCallInQueue(
+    channelId: string,
+    callInState: CallInState,
+    userLabelsById: Record<string, string>,
+  ): Promise<ChannelMessage> {
+    return await InteractionUtils.createChannelCard(channelId, {
+      color: CardColor.INFO,
+      description: this.__formatCallInQueueDescription(
+        callInState,
+        userLabelsById,
+      ),
     });
   }
 
@@ -227,7 +314,7 @@ export class InteractionController {
       `# ${MoneyUtils.format(data.moneyState.getBalance(data.userId))}`,
       "### Server Ranking",
     ]);
-    await this.__setMessageCard(message, {
+    await InteractionUtils.setMessageCard(message, {
       color: CardColor.INFO,
       description: Utils.linesToString([
         descriptionPrefix,
@@ -242,6 +329,29 @@ export class InteractionController {
     });
   }
 
+  public static async updateBetCanceled(
+    bettingState: BettingState,
+  ): Promise<void> {
+    if (bettingState.messageId === null) {
+      Log.debug("Skipping bet cancel message update. Message ID is missing.", {
+        channelId: bettingState.channelId,
+        guildId: bettingState.guildId,
+      });
+      return;
+    }
+    await InteractionUtils.updateChannelCard(
+      bettingState.channelId,
+      bettingState.messageId,
+      {
+        color: CardColor.ERROR,
+        description: Utils.linesToString([
+          `# ${ICONS[IconName.BET_START]} Bet Canceled`,
+          "This bet was canceled. All wagers have been refunded.",
+        ]),
+      },
+    );
+  }
+
   public static async updateBetStart(
     bettingState: BettingState,
     userLabelsById: Record<string, string>,
@@ -253,19 +363,53 @@ export class InteractionController {
       });
       return;
     }
-    await Discord.updateChannelMessage(
+    await InteractionUtils.updateChannelCard(
       bettingState.channelId,
       bettingState.messageId,
       {
-        embeds: [
-          this.__buildCard({
-            color: CardColor.INFO,
-            description: this.__formatBetStartDescription(
-              bettingState,
-              userLabelsById,
-            ),
-          }),
-        ],
+        color: CardColor.INFO,
+        description: this.__formatBetStartDescription(
+          bettingState,
+          userLabelsById,
+        ),
+      },
+    );
+  }
+
+  public static async updateCallInQueue(
+    channelId: string,
+    messageId: string,
+    callInState: CallInState,
+    userLabelsById: Record<string, string>,
+  ): Promise<void> {
+    await InteractionUtils.updateChannelCard(channelId, messageId, {
+      color: CardColor.INFO,
+      description: this.__formatCallInQueueDescription(
+        callInState,
+        userLabelsById,
+      ),
+    });
+  }
+
+  public static async updateVoteCanceled(
+    votingState: VotingState,
+  ): Promise<void> {
+    if (votingState.messageId === null) {
+      Log.debug("Skipping vote cancel message update. Message ID is missing.", {
+        channelId: votingState.channelId,
+        guildId: votingState.guildId,
+      });
+      return;
+    }
+    await InteractionUtils.updateChannelCard(
+      votingState.channelId,
+      votingState.messageId,
+      {
+        color: CardColor.ERROR,
+        description: Utils.linesToString([
+          `# ${ICONS[IconName.VOTE_START]} Vote Canceled`,
+          "This vote was canceled.",
+        ]),
       },
     );
   }
@@ -278,46 +422,14 @@ export class InteractionController {
       });
       return;
     }
-    await Discord.updateChannelMessage(
+    await InteractionUtils.updateChannelCard(
       votingState.channelId,
       votingState.messageId,
       {
-        embeds: [
-          this.__buildCard({
-            color: CardColor.INFO,
-            description: this.__formatVoteStartDescription(votingState),
-          }),
-        ],
+        color: CardColor.INFO,
+        description: this.__formatVoteStartDescription(votingState),
       },
     );
-  }
-
-  private static __buildCard(
-    embedData: discordJs.EmbedData,
-  ): discordJs.EmbedBuilder {
-    if (
-      embedData.description !== undefined &&
-      embedData.description.length > Discord.embedDescriptionMaxLength
-    ) {
-      Log.throwError(
-        AppErrorCode.DISCORD_EMBED_DESCRIPTION_TOO_LONG,
-        "Cannot build Discord card. Description is too long.",
-        {
-          embedData,
-          maxLength: Discord.embedDescriptionMaxLength,
-        },
-      );
-    }
-    return new discordJs.EmbedBuilder(embedData);
-  }
-
-  private static async __createChannelCard(
-    channelId: string,
-    embedData: discordJs.EmbedData,
-  ): Promise<ChannelMessage> {
-    return await Discord.sendChannelMessage(channelId, {
-      embeds: [this.__buildCard(embedData)],
-    });
   }
 
   private static __formatBetOptionString(
@@ -389,6 +501,50 @@ export class InteractionController {
     );
   }
 
+  private static __formatCallInQueueDescription(
+    callInState: CallInState,
+    userLabelsById: Record<string, string>,
+  ): string {
+    const heading: string = "# Call-in Queue";
+    return Utils.linesToString([
+      heading,
+      callInState.queuedUserIds.length > 0
+        ? this.__formatCallInQueueString(
+            callInState,
+            userLabelsById,
+            Discord.embedDescriptionMaxLength - heading.length - 1,
+          )
+        : "The queue is empty.",
+    ]);
+  }
+
+  private static __formatCallInQueueString(
+    callInState: CallInState,
+    userLabelsById: Record<string, string>,
+    maxLength: number,
+  ): string {
+    const lines: string[] = [];
+    for (
+      let index: number = 0;
+      index < callInState.queuedUserIds.length;
+      index++
+    ) {
+      const userId: string = callInState.queuedUserIds[index];
+      const line: string = `${(index + 1).toString()}. ${this.__formatUserLabel(userId, userLabelsById)}`;
+      if (Utils.linesToString([...lines, line]).length <= maxLength) {
+        lines.push(line);
+        continue;
+      }
+      const remainingCount: number = callInState.queuedUserIds.length - index;
+      const truncationLine: string = `...and ${remainingCount.toString()} more.`;
+      if (Utils.linesToString([...lines, truncationLine]).length <= maxLength) {
+        lines.push(truncationLine);
+      }
+      break;
+    }
+    return Utils.linesToString(lines);
+  }
+
   private static __formatLetterEmoji(letter: string): string {
     const index: number = letter.charCodeAt(0) - "A".charCodeAt(0);
     return letterEmojis[index] ?? letter;
@@ -404,7 +560,7 @@ export class InteractionController {
     const rankedEntries: MoneyRankingEntry[] = members
       .map(member => ({
         balanceCents: moneyState.getBalance(member.id),
-        displayName: member.displayName,
+        displayName: Discord.formatGuildMemberNameString(member),
         userId: member.id,
       }))
       .sort((a, b) => {
@@ -450,7 +606,8 @@ export class InteractionController {
     userLabelsById: Record<string, string>,
   ): string {
     return (
-      userLabelsById[userId] ?? Discord.formatUserMentionString({ id: userId })
+      userLabelsById[userId] ??
+      Discord.formatUnknownUserNameString({ id: userId })
     );
   }
 
@@ -527,14 +684,5 @@ export class InteractionController {
       lines.push(truncationLine);
     }
     return false;
-  }
-
-  private static async __setMessageCard(
-    message: ChannelCommandMessage,
-    embedData: discordJs.EmbedData,
-  ): Promise<void> {
-    await message.update({
-      embeds: [this.__buildCard(embedData)],
-    });
   }
 }

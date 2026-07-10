@@ -7,22 +7,18 @@ import {
   Command,
   CommandOption,
   CommandOptionType,
+  CommandRegistrationType,
   Log,
   Utils,
 } from "../core";
 import { BettingState } from "../saveables";
-import { AdminUtils } from "./admin-utils";
 
 const optionsOptionName: string = "options";
 
 export class BetStart implements Command {
   public readonly description: string = "Starts a bet.";
 
-  public readonly isGlobal: boolean = false;
-
-  public readonly isGuild: boolean = true;
-
-  public readonly isPrivate: boolean = true;
+  public readonly isAvailableToAllUsers: boolean = false;
 
   public readonly name: string = "betstart";
 
@@ -35,11 +31,12 @@ export class BetStart implements Command {
     },
   ];
 
-  public async execute(message: ChannelCommandMessage): Promise<void> {
-    if (!(await AdminUtils.requireAdministrator(message))) {
-      return;
-    }
+  public readonly registrationType: CommandRegistrationType =
+    CommandRegistrationType.GUILD;
 
+  public readonly shouldReplyPrivately: boolean = true;
+
+  public async execute(message: ChannelCommandMessage): Promise<void> {
     if (
       DataController.loadActiveBettingState(message.member.guild.id) !== null
     ) {

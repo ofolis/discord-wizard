@@ -46,6 +46,7 @@ Discord server members can submit messages anonymously to a configured channel, 
 4. Modify the `.env` file.
    1. Replace the `?` after `DISCORD_APPLICATION_ID=` with the value noted earlier.
    2. Replace the `?` after `DISCORD_BOT_TOKEN=` with the value noted earlier.
+   3. Fill in the server-specific settings listed below.
 
 **Option 2 - For Development & Usage**
 
@@ -58,6 +59,7 @@ Discord server members can submit messages anonymously to a configured channel, 
 5. Modify the `.env` file.
    1. Replace the `?` after `DISCORD_APPLICATION_ID=` with the value noted earlier.
    2. Replace the `?` after `DISCORD_BOT_TOKEN=` with the value noted earlier.
+   3. Fill in the server-specific settings listed below.
 6. Set up VSCode (if applicable).
    1. Install required plugins:
       - **ESLint**
@@ -69,10 +71,20 @@ Discord server members can submit messages anonymously to a configured channel, 
       - **Sort JSON objects**
 7. Run `npm run build`.
 
+**Server-Specific `.env` Settings**
+
+- `SUBMISSION_CHANNEL_NAME` - name of the text channel that receives anonymous submissions.
+- `CALL_IN_HOST_CHANNEL_NAME` - name of the private text channel where the call-in queue is posted for hosts.
+- `CALL_IN_HOST_ROLE_NAMES` - comma-separated role names for users who count as call-in hosts in voice channels.
+- `MANAGER_ROLE_NAMES` - optional comma-separated role names for users who can use restricted commands without Discord Administrator permission.
+
 ### 3. Set Up The Server
 
-1. Create exactly one text channel named `submissions` if you want to use anonymous submissions.
-2. Give administrators the Discord **Administrator** permission if they should be able to start/end votes, manage bets, or adjust money balances.
+1. Create one text channel for anonymous submissions, then set `SUBMISSION_CHANNEL_NAME` to that channel's name.
+2. For call-in mode, create one private text channel for hosts, then set `CALL_IN_HOST_CHANNEL_NAME` to that channel's name.
+3. For call-in mode, create the host role or roles, then list those role names in `CALL_IN_HOST_ROLE_NAMES`.
+4. Give the bot permission to server mute and unmute members in voice channels if you want to use call-in mode.
+5. Give users the Discord **Administrator** permission, or list their role in `MANAGER_ROLE_NAMES`, if they should be able to start, end, or cancel votes; manage bets; or adjust money balances.
 
 ## Usage
 
@@ -80,24 +92,33 @@ Discord server members can submit messages anonymously to a configured channel, 
    - If you downloaded the build, run the executable file.
    - If you cloned the repository, run `npm start`.
 2. In your Discord server channel, execute the bot's commands.
-   - `/submit` - submit a message anonymously to the `submissions` channel.
-   - `/votestart` - start an anonymous vote. Administrator only.
+   - `/submit` - submit a message anonymously to the configured submission channel.
+   - `/votestart` - start an anonymous vote. Manager or Discord admin only.
    - `/vote` - submit or update your anonymous vote.
-   - `/voteend` - end the open vote and post results. Administrator only.
+   - `/voteend` - end the open vote and post results. Manager or Discord admin only.
+   - `/votecancel` - cancel the open vote and mark the original vote post as canceled. Manager or Discord admin only.
    - `/money` - privately view your money balance and server ranking.
    - `/moneygive` - give some of your money to another server member.
-   - `/moneyadduser` - add money to a user. Administrator only.
-   - `/moneyremoveuser` - remove money from a user. Administrator only.
-   - `/moneysetuser` - set a user's money. Administrator only.
-   - `/moneyaddserver` - add money to every server member. Administrator only.
-   - `/moneyremoveserver` - remove money from every server member. Administrator only.
-   - `/moneysetserver` - set every server member's money. Administrator only.
-   - `/betstart` - start a bet. Administrator only.
-   - `/bet` - place, update, or remove your wager.
+   - `/moneyadduser` - add money to a user. Manager or Discord admin only.
+   - `/moneyremoveuser` - remove money from a user. Manager or Discord admin only.
+   - `/moneysetuser` - set a user's money. Manager or Discord admin only.
+   - `/moneyaddserver` - add money to every server member. Manager or Discord admin only.
+   - `/moneyremoveserver` - remove money from every server member. Manager or Discord admin only.
+   - `/moneysetserver` - set every server member's money. Manager or Discord admin only.
+   - `/betstart` - start a bet. Manager or Discord admin only.
+   - `/bet` - place or update your wager; use amount `0` with an option letter to remove your wager.
    - `/betall` - wager all of your available money.
-   - `/betlock` - lock the open bet so wagers cannot change. Administrator only.
-   - `/betunlock` - unlock the open bet. Administrator only.
-   - `/betend` - end the open bet and pay winners. Administrator only.
+   - `/betlock` - lock the open bet so wagers cannot change. Manager or Discord admin only.
+   - `/betunlock` - unlock the open bet. Manager or Discord admin only.
+   - `/betend` - end the open bet and pay winners. Manager or Discord admin only.
+   - `/betcancel` - cancel the open bet, refund all wagers, and mark the original bet post as canceled. Manager or Discord admin only.
+   - `/callinstart` - start call-in mode in a voice channel. Call-in host, manager, or Discord admin only.
+   - `/callin` - join the call-in queue. Non-host only.
+   - `/hangup` - leave the call-in queue or leave the live call. Non-host only.
+   - `/callinpromote` - promote a queued call-in user. Call-in host, manager, or Discord admin only.
+   - `/callindemote` - demote a live call-in user. Call-in host, manager, or Discord admin only.
+   - `/callinforce` - make a voice-channel user live even if they are not queued. Call-in host, manager, or Discord admin only.
+   - `/callinend` - end call-in mode and release bot-managed mutes. Call-in host, manager, or Discord admin only.
 
 ---
 

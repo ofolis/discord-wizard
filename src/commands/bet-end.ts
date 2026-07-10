@@ -4,23 +4,20 @@ import {
   Command,
   CommandOption,
   CommandOptionType,
+  CommandRegistrationType,
   Json,
   Log,
   Utils,
 } from "../core";
 import { BettingState, MoneyState } from "../saveables";
-import { AdminUtils } from "./admin-utils";
+import { BetUtils } from "./bet-utils";
 
 const winnersOptionName: string = "winners";
 
 export class BetEnd implements Command {
   public readonly description: string = "Ends the open bet and pays winners.";
 
-  public readonly isGlobal: boolean = false;
-
-  public readonly isGuild: boolean = true;
-
-  public readonly isPrivate: boolean = true;
+  public readonly isAvailableToAllUsers: boolean = false;
 
   public readonly name: string = "betend";
 
@@ -33,11 +30,12 @@ export class BetEnd implements Command {
     },
   ];
 
-  public async execute(message: ChannelCommandMessage): Promise<void> {
-    if (!(await AdminUtils.requireAdministrator(message))) {
-      return;
-    }
+  public readonly registrationType: CommandRegistrationType =
+    CommandRegistrationType.GUILD;
 
+  public readonly shouldReplyPrivately: boolean = true;
+
+  public async execute(message: ChannelCommandMessage): Promise<void> {
     const bettingState: BettingState | null =
       DataController.loadActiveBettingState(message.member.guild.id);
     if (bettingState === null) {
@@ -111,9 +109,7 @@ export class BetEnd implements Command {
         bettingState.channelId,
         payouts,
         this.__getWinningOptions(bettingState, winnerLetters),
-        {
-          [message.user.id]: message.member.displayName,
-        },
+        await BetUtils.getParticipantLabels(bettingState),
         this.__getBalancesByUserId(moneyState, payouts),
       );
     } catch (reason: unknown) {

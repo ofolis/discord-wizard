@@ -3,6 +3,7 @@ import {
   AppErrorCode,
   ChannelMessage,
   CommandOptionType,
+  CommandRegistrationType,
   Environment,
   Log,
 } from ".";
@@ -24,7 +25,13 @@ export class Discord {
     if (this.__client === null) {
       Log.debug("Creating Discord client...");
       this.__client = new discordJs.Client({
-        intents: ["DirectMessages", "GuildMembers", "Guilds", "GuildMessages"],
+        intents: [
+          "DirectMessages",
+          "GuildMembers",
+          "Guilds",
+          "GuildMessages",
+          "GuildVoiceStates",
+        ],
       });
       Log.debug("Discord client created successfully.", {
         client: this.__client,
@@ -108,23 +115,29 @@ export class Discord {
             });
         }
       });
-      if (command.isGlobal) {
-        if (command.name in globalCommandMap) {
-          Log.throw(
-            "Cannot deploy global commands. Names in command list are not unique.",
-            { commandList },
-          );
-        }
-        globalCommandMap[command.name] = slashCommandBuilder;
-      }
-      if (command.isGuild) {
-        if (command.name in guildCommandMap) {
-          Log.throw(
-            "Cannot deploy guild commands. Names in command list are not unique.",
-            { commandList },
-          );
-        }
-        guildCommandMap[command.name] = slashCommandBuilder;
+      switch (command.registrationType) {
+        case CommandRegistrationType.GLOBAL:
+          if (command.name in globalCommandMap) {
+            Log.throw(
+              "Cannot deploy global commands. Names in command list are not unique.",
+              { commandList },
+            );
+          }
+          globalCommandMap[command.name] = slashCommandBuilder;
+          break;
+        case CommandRegistrationType.GUILD:
+          if (command.name in guildCommandMap) {
+            Log.throw(
+              "Cannot deploy guild commands. Names in command list are not unique.",
+              { commandList },
+            );
+          }
+          guildCommandMap[command.name] = slashCommandBuilder;
+          break;
+        default:
+          Log.throw("Cannot deploy command. Unknown registration type.", {
+            command,
+          });
       }
     });
     guildIds = guildIds ?? Array.from(this.client.guilds.cache.keys());
@@ -150,6 +163,18 @@ export class Discord {
     return "@everyone";
   }
 
+  public static formatGuildMemberNameString(
+    member: Pick<discordJs.GuildMember, "displayName">,
+  ): string {
+    return member.displayName;
+  }
+
+  public static formatUnknownUserNameString(
+    user: Pick<discordJs.User, "id">,
+  ): string {
+    return `Unknown user (${user.id})`;
+  }
+
   public static formatUserMentionString(
     user: Pick<discordJs.User, "id">,
   ): string {
@@ -162,6 +187,19 @@ export class Discord {
     return user.globalName ?? user.username;
   }
 
+  public static async getVoiceChannel(
+    channelId: string,
+  ): Promise<discordJs.VoiceBasedChannel | null> {
+    const channel: discordJs.Channel | null = await this.__getRawChannel(
+      channelId,
+      "voice channel",
+    );
+    if (channel === null || !channel.isVoiceBased()) {
+      return null;
+    }
+    return channel;
+  }
+
   public static async sendChannelMessage(
     channelId: string,
     messageCreateOptions: discordJs.MessageCreateOptions,
@@ -172,7 +210,8 @@ export class Discord {
       channelId,
       messageCreateOptions: safeMessageCreateOptions,
     });
-    const channel: discordJs.TextChannel = await this.__getChannel(channelId);
+    const channel: discordJs.SendableChannels =
+      await this.__getSendableChannel(channelId);
     const message: discordJs.Message = await channel.send(
       safeMessageCreateOptions,
     );
@@ -196,7 +235,8 @@ export class Discord {
       messageId,
       options: safeOptions,
     });
-    const channel: discordJs.TextChannel = await this.__getChannel(channelId);
+    const channel: discordJs.TextBasedChannel =
+      await this.__getTextBasedChannel(channelId);
     const message: discordJs.Message = await channel.messages.fetch(messageId);
     await message.edit(safeOptions);
     Log.debug("Discord channel message updated successfully.");
@@ -243,43 +283,79 @@ export class Discord {
     Log.debug("Discord guild commands deployed successfully.");
   }
 
-  private static async __getChannel(
+  private static async __getRawChannel(
     channelId: string,
-  ): Promise<discordJs.TextChannel> {
-    Log.debug("Retrieving Discord channel...", { channelId });
-    let channel: discordJs.Channel | null;
+    label: string,
+  ): Promise<discordJs.Channel | null> {
     try {
-      channel = await this.client.channels.fetch(channelId);
+      return await this.client.channels.fetch(channelId);
     } catch (reason: unknown) {
       if (this.__isUnknownChannelError(reason)) {
         Log.throwError(
           AppErrorCode.DISCORD_CHANNEL_NOT_FOUND,
-          "Cannot get Discord channel. ID was not found.",
+          `Cannot get Discord ${label}. ID was not found.`,
           {
             channelId,
             reason,
           },
         );
       }
-      Log.throw("Cannot get Discord channel. Failed to fetch channel.", {
+      Log.throw(`Cannot get Discord ${label}. Failed to fetch channel.`, {
         channelId,
         reason,
       });
     }
+  }
+
+  private static async __getSendableChannel(
+    channelId: string,
+  ): Promise<discordJs.SendableChannels> {
+    Log.debug("Retrieving Discord sendable channel...", { channelId });
+    const channel: discordJs.Channel | null = await this.__getRawChannel(
+      channelId,
+      "sendable channel",
+    );
     if (channel === null) {
       Log.throwError(
         AppErrorCode.DISCORD_CHANNEL_NOT_FOUND,
-        "Cannot get Discord channel. ID was not found.",
+        "Cannot get Discord sendable channel. ID was not found.",
         { channelId },
       );
     }
-    if (channel.type !== discordJs.ChannelType.GuildText) {
+    if (!channel.isSendable()) {
       Log.throw(
-        "Cannot get Discord channel. Channel at ID was not a guild text channel.",
+        "Cannot get Discord sendable channel. Channel at ID was not sendable.",
         { channel },
       );
     }
-    Log.debug("Discord channel retrieved successfully.", { channel });
+    Log.debug("Discord sendable channel retrieved successfully.", { channel });
+    return channel;
+  }
+
+  private static async __getTextBasedChannel(
+    channelId: string,
+  ): Promise<discordJs.TextBasedChannel> {
+    Log.debug("Retrieving Discord text-based channel...", { channelId });
+    const channel: discordJs.Channel | null = await this.__getRawChannel(
+      channelId,
+      "text-based channel",
+    );
+    if (channel === null) {
+      Log.throwError(
+        AppErrorCode.DISCORD_CHANNEL_NOT_FOUND,
+        "Cannot get Discord text-based channel. ID was not found.",
+        { channelId },
+      );
+    }
+    if (!channel.isTextBased()) {
+      Log.throw(
+        "Cannot get Discord text-based channel. Channel at ID was not text-based.",
+        { channel },
+      );
+    }
+    Log.debug("Discord text-based channel retrieved successfully.", {
+      channel,
+    });
     return channel;
   }
 

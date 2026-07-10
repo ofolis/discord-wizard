@@ -36,7 +36,7 @@ export class ChannelCommandMessage extends ChannelMessage {
 
   public static async create(
     commandInteraction: discordJs.CommandInteraction,
-    isPrivate: boolean,
+    shouldReplyPrivately: boolean,
   ): Promise<ChannelCommandMessage> {
     if (!(commandInteraction.member instanceof discordJs.GuildMember)) {
       Log.throw(
@@ -45,7 +45,9 @@ export class ChannelCommandMessage extends ChannelMessage {
     }
     Log.debug("Deferring command interaction...");
     const interactionResponse: discordJs.InteractionResponse =
-      await commandInteraction.deferReply({ ephemeral: isPrivate });
+      await commandInteraction.deferReply({
+        ephemeral: shouldReplyPrivately,
+      });
     Log.debug("Command interaction deferred successfully.");
     return new ChannelCommandMessage(
       interactionResponse,
@@ -113,5 +115,46 @@ export class ChannelCommandMessage extends ChannelMessage {
       return option.user as CommandOptionTypeMap[T];
     }
     return option.value as CommandOptionTypeMap[T];
+  }
+
+  public async getGuildMemberCommandOption(
+    name: string,
+  ): Promise<discordJs.GuildMember | undefined> {
+    if (this.__commandOptions === undefined) {
+      Log.throw(
+        "Cannot get command option. Command options have not been set.",
+      );
+    }
+    const option: discordJs.CommandInteractionOption | undefined =
+      this.__commandOptions.find(opt => opt.name === name);
+    if (
+      option === undefined ||
+      ChannelCommandMessage.__isMissingOptionValue(
+        option,
+        CommandOptionType.USER,
+      )
+    ) {
+      return undefined;
+    }
+    if (
+      option.type !== discordJs.ApplicationCommandOptionType.User ||
+      !(option.user instanceof discordJs.User)
+    ) {
+      Log.throw("Cannot get guild member command option. Type mismatch.", {
+        receivedData: option,
+      });
+    }
+    if (option.member instanceof discordJs.GuildMember) {
+      return option.member;
+    }
+    try {
+      return await this.__guildMember.guild.members.fetch(option.user.id);
+    } catch (reason: unknown) {
+      Log.error("Could not fetch guild member command option.", reason, {
+        guildId: this.__guildMember.guild.id,
+        userId: option.user.id,
+      });
+      return undefined;
+    }
   }
 }

@@ -8,11 +8,11 @@ import {
   Command,
   CommandOption,
   CommandOptionType,
+  CommandRegistrationType,
   Log,
 } from "../core";
 import { MoneyUtils } from "../money-utils";
 import { MoneyState } from "../saveables";
-import { AdminUtils } from "./admin-utils";
 
 const amountOptionName: string = "amount";
 
@@ -20,11 +20,7 @@ export class MoneyRemoveServer implements Command {
   public readonly description: string =
     "Removes money from every current server user.";
 
-  public readonly isGlobal: boolean = false;
-
-  public readonly isGuild: boolean = true;
-
-  public readonly isPrivate: boolean = true;
+  public readonly isAvailableToAllUsers: boolean = false;
 
   public readonly name: string = "moneyremoveserver";
 
@@ -39,11 +35,12 @@ export class MoneyRemoveServer implements Command {
     },
   ];
 
-  public async execute(message: ChannelCommandMessage): Promise<void> {
-    if (!(await AdminUtils.requireAdministrator(message))) {
-      return;
-    }
+  public readonly registrationType: CommandRegistrationType =
+    CommandRegistrationType.GUILD;
 
+  public readonly shouldReplyPrivately: boolean = true;
+
+  public async execute(message: ChannelCommandMessage): Promise<void> {
     const amountCents: number | null = MoneyUtils.parseAmountCents(
       message.getCommandOption(amountOptionName, CommandOptionType.NUMBER),
     );

@@ -5,12 +5,12 @@ import {
   Command,
   CommandOption,
   CommandOptionType,
+  CommandRegistrationType,
   Discord,
   Log,
 } from "../core";
 import { MoneyUtils } from "../money-utils";
 import { MoneyState } from "../saveables";
-import { AdminUtils } from "./admin-utils";
 
 const amountOptionName: string = "amount";
 const userOptionName: string = "user";
@@ -18,11 +18,7 @@ const userOptionName: string = "user";
 export class MoneySetUser implements Command {
   public readonly description: string = "Sets a user's money.";
 
-  public readonly isGlobal: boolean = false;
-
-  public readonly isGuild: boolean = true;
-
-  public readonly isPrivate: boolean = true;
+  public readonly isAvailableToAllUsers: boolean = false;
 
   public readonly name: string = "moneysetuser";
 
@@ -43,19 +39,25 @@ export class MoneySetUser implements Command {
     },
   ];
 
-  public async execute(message: ChannelCommandMessage): Promise<void> {
-    if (!(await AdminUtils.requireAdministrator(message))) {
-      return;
-    }
+  public readonly registrationType: CommandRegistrationType =
+    CommandRegistrationType.GUILD;
 
-    const user: discordJs.User | undefined = message.getCommandOption(
-      userOptionName,
-      CommandOptionType.USER,
-    );
+  public readonly shouldReplyPrivately: boolean = true;
+
+  public async execute(message: ChannelCommandMessage): Promise<void> {
+    const member: discordJs.GuildMember | undefined =
+      await message.getGuildMemberCommandOption(userOptionName);
     const amountCents: number | null = MoneyUtils.parseAmountCents(
       message.getCommandOption(amountOptionName, CommandOptionType.NUMBER),
     );
-    if (user === undefined || user.bot) {
+    if (member === undefined) {
+      await InteractionController.informError(
+        message,
+        "That user is not available on this server.",
+      );
+      return;
+    }
+    if (member.user.bot) {
       await InteractionController.informError(
         message,
         "Money can only be set for human users.",
@@ -73,7 +75,7 @@ export class MoneySetUser implements Command {
     const moneyState: MoneyState = DataController.loadOrCreateMoneyState(
       message.member.guild.id,
     );
-    moneyState.setBalance(user.id, amountCents);
+    moneyState.setBalance(member.user.id, amountCents);
 
     try {
       DataController.saveMoneyState(moneyState);
@@ -88,7 +90,7 @@ export class MoneySetUser implements Command {
 
     await InteractionController.informSuccess(
       message,
-      `Set ${Discord.formatUserNameString(user)} to \`${MoneyUtils.format(amountCents)}\`.`,
+      `Set ${Discord.formatGuildMemberNameString(member)} to \`${MoneyUtils.format(amountCents)}\`.`,
     );
   }
 }

@@ -4,6 +4,16 @@ import { Log } from "./log";
 import type { Json } from "./types";
 
 export class IO {
+  public static deleteData(id: string): void {
+    Log.debug("Deleting data at ID...", { id });
+    const filePath: string = this.__getDataFilePath(id);
+    if (!fs.existsSync(filePath)) {
+      return;
+    }
+    fs.unlinkSync(filePath);
+    Log.debug("Data deleted successfully.");
+  }
+
   public static loadData(id: string): Json | null {
     Log.debug("Loading data at ID...", { id });
     const filePath: string = this.__getDataFilePath(id);

@@ -1,10 +1,18 @@
 import {
   Bet,
   BetAll,
+  BetCancel,
   BetEnd,
   BetLock,
   BetStart,
   BetUnlock,
+  CallIn,
+  CallInDemote,
+  CallInEnd,
+  CallInForce,
+  CallInPromote,
+  CallInStart,
+  HangUp,
   Money,
   MoneyAddServer,
   MoneyAddUser,
@@ -15,11 +23,14 @@ import {
   MoneySetUser,
   Submit,
   Vote,
+  VoteCancel,
   VoteEnd,
   VoteStart,
 } from "./commands";
+import { CallInUtils } from "./commands/call-in-utils";
 import { ChannelCache } from "./controllers";
 import {
+  AccessUtils,
   ChannelCommandMessage,
   Command,
   Discord,
@@ -30,10 +41,18 @@ import {
 const commands: Command[] = [
   new Bet(),
   new BetAll(),
+  new BetCancel(),
   new BetEnd(),
   new BetLock(),
   new BetStart(),
   new BetUnlock(),
+  new CallIn(),
+  new CallInDemote(),
+  new CallInEnd(),
+  new CallInForce(),
+  new CallInPromote(),
+  new CallInStart(),
+  new HangUp(),
   new Money(),
   new MoneyAddServer(),
   new MoneyAddUser(),
@@ -44,9 +63,15 @@ const commands: Command[] = [
   new MoneySetUser(),
   new Submit(),
   new Vote(),
+  new VoteCancel(),
   new VoteEnd(),
   new VoteStart(),
 ];
+
+const callInVoiceStateEnforcementByGuildId: Map<
+  string,
+  Promise<void>
+> = new Map();
 
 function initializeApp(): void {
   if (Environment.config.devMode) {
@@ -130,23 +155,50 @@ function initializeApp(): void {
       );
       return;
     }
-    ChannelCommandMessage.create(interaction, interactionCommand.isPrivate)
-      .then(privateChannelMessage => {
-        interactionCommand
-          .execute(privateChannelMessage)
-          .then(() => {
-            Log.success(`Completed interaction ${interaction.id}.`);
-          })
-          .catch((reason: unknown) => {
-            Log.error("Could not complete command execution.", reason);
-          });
+    ChannelCommandMessage.create(
+      interaction,
+      interactionCommand.shouldReplyPrivately,
+    )
+      .then(async commandMessage => {
+        const hasAccess: boolean = await AccessUtils.authorizeCommandUse(
+          interactionCommand,
+          commandMessage,
+        );
+        if (!hasAccess) {
+          Log.info(
+            `Rejected interaction ${interaction.id}. User lacks access.`,
+          );
+          return;
+        }
+        await interactionCommand.execute(commandMessage);
+        Log.success(`Completed interaction ${interaction.id}.`);
       })
       .catch((reason: unknown) => {
-        Log.error(
-          "Could not create user channel interaction from command interaction.",
-          reason,
-        );
+        Log.error("Could not complete command interaction.", reason);
       });
+  });
+
+  // Voice State Update Event
+  Discord.client.on("voiceStateUpdate", (oldState, newState) => {
+    const guildId: string = newState.guild.id;
+    const previousEnforcement: Promise<void> =
+      callInVoiceStateEnforcementByGuildId.get(guildId) ?? Promise.resolve();
+    const nextEnforcement: Promise<void> = previousEnforcement
+      .then(() => CallInUtils.enforceVoiceState(oldState, newState))
+      .catch((reason: unknown) => {
+        Log.error("Could not enforce call-in voice state.", reason, {
+          guildId,
+          userId: newState.member?.id ?? null,
+        });
+      })
+      .finally(() => {
+        if (
+          callInVoiceStateEnforcementByGuildId.get(guildId) === nextEnforcement
+        ) {
+          callInVoiceStateEnforcementByGuildId.delete(guildId);
+        }
+      });
+    callInVoiceStateEnforcementByGuildId.set(guildId, nextEnforcement);
   });
 
   // Login

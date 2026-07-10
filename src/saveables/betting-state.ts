@@ -26,6 +26,11 @@ type BettingPayout = {
   readonly userId: string;
 };
 
+type BettingRefund = {
+  readonly amountCents: number;
+  readonly userId: string;
+};
+
 export class BettingState implements Saveable {
   public static readonly maxOptionCount: number = 26;
 
@@ -302,6 +307,13 @@ export class BettingState implements Saveable {
     return Object.keys(this.__betsByUserId);
   }
 
+  public getRefunds(): BettingRefund[] {
+    return Object.entries(this.__betsByUserId).map(([userId, bet]) => ({
+      amountCents: bet.amountCents,
+      userId,
+    }));
+  }
+
   public getWager(userId: string): Bet | null {
     return this.__betsByUserId[userId] ?? null;
   }
@@ -312,7 +324,7 @@ export class BettingState implements Saveable {
 
   public placeWager(
     userId: string,
-    letter: string | undefined,
+    letter: string,
     amountCents: number,
   ): string | null {
     if (!this.__isOpen || this.__isLocked) {
@@ -324,6 +336,13 @@ export class BettingState implements Saveable {
         userId,
       });
     }
+    const betOption: {
+      readonly letter: string;
+      readonly option: string;
+    } | null = this.__getBetOption(letter);
+    if (betOption === null) {
+      return null;
+    }
     if (amountCents === 0) {
       const existingBet: Bet | null = Object.hasOwn(this.__betsByUserId, userId)
         ? this.__betsByUserId[userId]
@@ -334,13 +353,6 @@ export class BettingState implements Saveable {
         return "";
       }
       return this.__options[this.__letterToIndex(existingBet.letter)];
-    }
-    const betOption: {
-      readonly letter: string;
-      readonly option: string;
-    } | null = this.__getBetOption(letter);
-    if (betOption === null) {
-      return null;
     }
     this.__betsByUserId[userId] = {
       amountCents,
@@ -417,7 +429,7 @@ export class BettingState implements Saveable {
   }
 
   private __getBetOption(
-    letter: string | undefined,
+    letter: string,
   ): { readonly letter: string; readonly option: string } | null {
     const normalizedLetter: string | null = this.__normalizeLetter(letter);
     if (
@@ -474,10 +486,7 @@ export class BettingState implements Saveable {
     });
   }
 
-  private __normalizeLetter(letter: string | undefined): string | null {
-    if (letter === undefined) {
-      return null;
-    }
+  private __normalizeLetter(letter: string): string | null {
     const normalizedLetter: string = letter.trim().toUpperCase();
     if (!/^[A-Z]$/.test(normalizedLetter)) {
       return null;

@@ -6,6 +6,8 @@ import {
   Command,
   CommandOption,
   CommandOptionType,
+  CommandRegistrationType,
+  Discord,
   Json,
   Log,
 } from "../core";
@@ -18,11 +20,7 @@ const letterOptionName: string = "letter";
 export class BetAll implements Command {
   public readonly description: string = "Wagers all of your money.";
 
-  public readonly isGlobal: boolean = false;
-
-  public readonly isGuild: boolean = true;
-
-  public readonly isPrivate: boolean = true;
+  public readonly isAvailableToAllUsers: boolean = true;
 
   public readonly name: string = "betall";
 
@@ -36,6 +34,11 @@ export class BetAll implements Command {
       type: CommandOptionType.STRING,
     },
   ];
+
+  public readonly registrationType: CommandRegistrationType =
+    CommandRegistrationType.GUILD;
+
+  public readonly shouldReplyPrivately: boolean = true;
 
   public async execute(message: ChannelCommandMessage): Promise<void> {
     const bettingState: BettingState | null =
@@ -73,9 +76,21 @@ export class BetAll implements Command {
       return;
     }
 
+    const letter: string | undefined = message.getCommandOption(
+      letterOptionName,
+      CommandOptionType.STRING,
+    );
+    if (letter === undefined) {
+      await InteractionController.informError(
+        message,
+        "Enter a bet option letter.",
+      );
+      return;
+    }
+
     const option: string | null = bettingState.placeWager(
       userId,
-      message.getCommandOption(letterOptionName, CommandOptionType.STRING),
+      letter,
       amountCents,
     );
     if (option === null) {
@@ -125,7 +140,7 @@ export class BetAll implements Command {
     try {
       await InteractionController.announceAllIn(message.channelId, {
         option,
-        userName: message.member.displayName,
+        userName: Discord.formatGuildMemberNameString(message.member),
       });
     } catch (reason: unknown) {
       Log.error("Could not announce all-in wager.", reason);
