@@ -41,7 +41,11 @@ export class Submit implements Command {
       CommandOptionType.STRING,
     );
     if (submittedMessage === undefined) {
-      Log.throw("Cannot submit anonymous message. Message option is missing.");
+      await InteractionController.informError(
+        message,
+        "Enter a message to submit.",
+      );
+      return;
     }
     const submissionChannelId: string | null =
       await this.__getSubmissionChannelId(message);

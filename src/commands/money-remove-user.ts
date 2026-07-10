@@ -50,7 +50,14 @@ export class MoneyRemoveUser implements Command {
     const amountCents: number | null = MoneyUtils.parseAmountCents(
       message.getCommandOption(amountOptionName, CommandOptionType.NUMBER),
     );
-    if (member === undefined || member.user.bot) {
+    if (member === undefined) {
+      await InteractionController.informError(
+        message,
+        "That user is not available on this server.",
+      );
+      return;
+    }
+    if (member.user.bot) {
       await InteractionController.informError(
         message,
         "Money can only be removed from human users.",

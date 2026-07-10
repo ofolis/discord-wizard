@@ -50,7 +50,11 @@ export class CallInDemote implements Command {
       CommandOptionType.USER,
     );
     if (user === undefined) {
-      Log.throw("Cannot demote call-in user. User option is missing.");
+      await InteractionController.informError(
+        message,
+        "Choose a user to demote.",
+      );
+      return;
     }
     if (!callInState.hasSpeakingUser(user.id)) {
       await InteractionController.informError(

@@ -50,7 +50,11 @@ export class CallInPromote implements Command {
       CommandOptionType.USER,
     );
     if (user === undefined) {
-      Log.throw("Cannot promote call-in user. User option is missing.");
+      await InteractionController.informError(
+        message,
+        "Choose a user to promote.",
+      );
+      return;
     }
     if (!callInState.hasQueuedUser(user.id)) {
       await InteractionController.informError(

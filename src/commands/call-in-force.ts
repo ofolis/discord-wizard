@@ -50,7 +50,11 @@ export class CallInForce implements Command {
       CommandOptionType.USER,
     );
     if (user === undefined) {
-      Log.throw("Cannot force call-in. User option is missing.");
+      await InteractionController.informError(
+        message,
+        "Choose a user to make live.",
+      );
+      return;
     }
     const member: discordJs.GuildMember | null =
       await CallInUtils.getTargetMember(message, user);
