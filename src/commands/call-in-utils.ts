@@ -269,9 +269,7 @@ export class CallInUtils {
     for (const userId of [...callInState.botMutedUserIds]) {
       try {
         const member: discordJs.GuildMember = await guild.members.fetch(userId);
-        if (member.voice.channelId === callInState.voiceChannelId) {
-          await this.unmuteForCallIn(member, callInState);
-        }
+        await this.unmuteForCallIn(member, callInState);
       } catch (reason: unknown) {
         Log.error("Could not unmute call-in member.", reason, {
           guildId: guild.id,
