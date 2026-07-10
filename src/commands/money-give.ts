@@ -50,7 +50,14 @@ export class MoneyGive implements Command {
     const amountCents: number | null = MoneyUtils.parseAmountCents(
       message.getCommandOption(amountOptionName, CommandOptionType.NUMBER),
     );
-    if (recipient === undefined || recipient.user.bot) {
+    if (recipient === undefined) {
+      await InteractionController.informError(
+        message,
+        "That user is not available on this server.",
+      );
+      return;
+    }
+    if (recipient.user.bot) {
       await InteractionController.informError(
         message,
         "Money can only be given to human users.",
