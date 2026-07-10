@@ -101,7 +101,7 @@ export class MoneyGive implements Command {
       await InteractionController.announceMoneyGift(message.channelId, {
         amountCents,
         recipientName: Discord.formatUserMentionString(recipient.user),
-        senderName: Discord.formatUserMentionString(message.member),
+        senderName: Discord.formatGuildMemberNameString(message.member),
       });
     } catch (reason: unknown) {
       Log.error("Could not announce money gift.", reason);
