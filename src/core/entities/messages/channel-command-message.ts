@@ -147,6 +147,14 @@ export class ChannelCommandMessage extends ChannelMessage {
     if (option.member instanceof discordJs.GuildMember) {
       return option.member;
     }
-    return await this.__guildMember.guild.members.fetch(option.user.id);
+    try {
+      return await this.__guildMember.guild.members.fetch(option.user.id);
+    } catch (reason: unknown) {
+      Log.error("Could not fetch guild member command option.", reason, {
+        guildId: this.__guildMember.guild.id,
+        userId: option.user.id,
+      });
+      return undefined;
+    }
   }
 }

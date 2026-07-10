@@ -75,7 +75,11 @@ export class Bet implements Command {
       CommandOptionType.STRING,
     );
     if (letter === undefined) {
-      Log.throw("Cannot place wager. Letter option is missing.");
+      await InteractionController.informError(
+        message,
+        "Enter a bet option letter.",
+      );
+      return;
     }
 
     const userId: string = message.user.id;
