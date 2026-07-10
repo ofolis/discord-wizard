@@ -235,7 +235,8 @@ export class Discord {
       messageId,
       options: safeOptions,
     });
-    const channel: discordJs.TextChannel = await this.__getChannel(channelId);
+    const channel: discordJs.TextBasedChannel =
+      await this.__getTextBasedChannel(channelId);
     const message: discordJs.Message = await channel.messages.fetch(messageId);
     await message.edit(safeOptions);
     Log.debug("Discord channel message updated successfully.");
@@ -280,31 +281,6 @@ export class Discord {
       ),
     );
     Log.debug("Discord guild commands deployed successfully.");
-  }
-
-  private static async __getChannel(
-    channelId: string,
-  ): Promise<discordJs.TextChannel> {
-    Log.debug("Retrieving Discord channel...", { channelId });
-    const channel: discordJs.Channel | null = await this.__getRawChannel(
-      channelId,
-      "channel",
-    );
-    if (channel === null) {
-      Log.throwError(
-        AppErrorCode.DISCORD_CHANNEL_NOT_FOUND,
-        "Cannot get Discord channel. ID was not found.",
-        { channelId },
-      );
-    }
-    if (channel.type !== discordJs.ChannelType.GuildText) {
-      Log.throw(
-        "Cannot get Discord channel. Channel at ID was not a guild text channel.",
-        { channel },
-      );
-    }
-    Log.debug("Discord channel retrieved successfully.", { channel });
-    return channel;
   }
 
   private static async __getRawChannel(
@@ -353,6 +329,33 @@ export class Discord {
       );
     }
     Log.debug("Discord sendable channel retrieved successfully.", { channel });
+    return channel;
+  }
+
+  private static async __getTextBasedChannel(
+    channelId: string,
+  ): Promise<discordJs.TextBasedChannel> {
+    Log.debug("Retrieving Discord text-based channel...", { channelId });
+    const channel: discordJs.Channel | null = await this.__getRawChannel(
+      channelId,
+      "text-based channel",
+    );
+    if (channel === null) {
+      Log.throwError(
+        AppErrorCode.DISCORD_CHANNEL_NOT_FOUND,
+        "Cannot get Discord text-based channel. ID was not found.",
+        { channelId },
+      );
+    }
+    if (!channel.isTextBased()) {
+      Log.throw(
+        "Cannot get Discord text-based channel. Channel at ID was not text-based.",
+        { channel },
+      );
+    }
+    Log.debug("Discord text-based channel retrieved successfully.", {
+      channel,
+    });
     return channel;
   }
 
