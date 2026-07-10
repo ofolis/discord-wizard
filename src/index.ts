@@ -1,6 +1,7 @@
 import {
   Bet,
   BetAll,
+  BetCancel,
   BetEnd,
   BetLock,
   BetStart,
@@ -22,6 +23,7 @@ import {
   MoneySetUser,
   Submit,
   Vote,
+  VoteCancel,
   VoteEnd,
   VoteStart,
 } from "./commands";
@@ -39,6 +41,7 @@ import {
 const commands: Command[] = [
   new Bet(),
   new BetAll(),
+  new BetCancel(),
   new BetEnd(),
   new BetLock(),
   new BetStart(),
@@ -60,6 +63,7 @@ const commands: Command[] = [
   new MoneySetUser(),
   new Submit(),
   new Vote(),
+  new VoteCancel(),
   new VoteEnd(),
   new VoteStart(),
 ];

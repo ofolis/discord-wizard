@@ -329,6 +329,29 @@ export class InteractionController {
     });
   }
 
+  public static async updateBetCanceled(
+    bettingState: BettingState,
+  ): Promise<void> {
+    if (bettingState.messageId === null) {
+      Log.debug("Skipping bet cancel message update. Message ID is missing.", {
+        channelId: bettingState.channelId,
+        guildId: bettingState.guildId,
+      });
+      return;
+    }
+    await InteractionUtils.updateChannelCard(
+      bettingState.channelId,
+      bettingState.messageId,
+      {
+        color: CardColor.ERROR,
+        description: Utils.linesToString([
+          `# ${ICONS[IconName.BET_START]} Bet Canceled`,
+          "This bet was canceled. All wagers have been refunded.",
+        ]),
+      },
+    );
+  }
+
   public static async updateBetStart(
     bettingState: BettingState,
     userLabelsById: Record<string, string>,
@@ -366,6 +389,29 @@ export class InteractionController {
         userLabelsById,
       ),
     });
+  }
+
+  public static async updateVoteCanceled(
+    votingState: VotingState,
+  ): Promise<void> {
+    if (votingState.messageId === null) {
+      Log.debug("Skipping vote cancel message update. Message ID is missing.", {
+        channelId: votingState.channelId,
+        guildId: votingState.guildId,
+      });
+      return;
+    }
+    await InteractionUtils.updateChannelCard(
+      votingState.channelId,
+      votingState.messageId,
+      {
+        color: CardColor.ERROR,
+        description: Utils.linesToString([
+          `# ${ICONS[IconName.VOTE_START]} Vote Canceled`,
+          "This vote was canceled.",
+        ]),
+      },
+    );
   }
 
   public static async updateVoteStart(votingState: VotingState): Promise<void> {

@@ -9,6 +9,16 @@ import {
 } from "../saveables";
 
 export class DataController {
+  public static deleteBettingState(guildId: string): void {
+    Log.debug("Deleting betting state.");
+    IO.deleteData(this.__getBettingStateId(guildId));
+  }
+
+  public static deleteVotingState(guildId: string): void {
+    Log.debug("Deleting voting state.");
+    IO.deleteData(this.__getVotingStateId(guildId));
+  }
+
   public static loadActiveBettingState(guildId: string): BettingState | null {
     Log.debug("Loading active betting state.");
     const bettingState: BettingState | null = this.loadBettingState(guildId);
@@ -96,6 +106,28 @@ export class DataController {
     }
 
     return VotingState.fromJson(votingStateJson, guildId);
+  }
+
+  public static saveBetCancelStateChange(
+    bettingState: BettingState,
+    moneyState: MoneyState,
+    previousMoneyStateJson: Json,
+  ): void {
+    Log.debug("Saving bet cancel state change.");
+    this.saveMoneyState(moneyState);
+    try {
+      this.deleteBettingState(bettingState.guildId);
+    } catch (reason: unknown) {
+      try {
+        IO.saveData(
+          this.__getMoneyStateId(moneyState.guildId),
+          previousMoneyStateJson,
+        );
+      } catch (rollbackReason: unknown) {
+        Log.error("Could not roll back money state.", rollbackReason);
+      }
+      throw reason;
+    }
   }
 
   public static saveBetResultStateChange(

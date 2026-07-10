@@ -26,6 +26,11 @@ type BettingPayout = {
   readonly userId: string;
 };
 
+type BettingRefund = {
+  readonly amountCents: number;
+  readonly userId: string;
+};
+
 export class BettingState implements Saveable {
   public static readonly maxOptionCount: number = 26;
 
@@ -300,6 +305,13 @@ export class BettingState implements Saveable {
 
   public getParticipantUserIds(): string[] {
     return Object.keys(this.__betsByUserId);
+  }
+
+  public getRefunds(): BettingRefund[] {
+    return Object.entries(this.__betsByUserId).map(([userId, bet]) => ({
+      amountCents: bet.amountCents,
+      userId,
+    }));
   }
 
   public getWager(userId: string): Bet | null {

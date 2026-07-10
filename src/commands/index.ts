@@ -1,5 +1,6 @@
 export { Bet } from "./bet";
 export { BetAll } from "./bet-all";
+export { BetCancel } from "./bet-cancel";
 export { BetEnd } from "./bet-end";
 export { BetLock } from "./bet-lock";
 export { BetStart } from "./bet-start";
@@ -21,5 +22,6 @@ export { MoneySetServer } from "./money-set-server";
 export { MoneySetUser } from "./money-set-user";
 export { Submit } from "./submit";
 export { Vote } from "./vote";
+export { VoteCancel } from "./vote-cancel";
 export { VoteEnd } from "./vote-end";
 export { VoteStart } from "./vote-start";
