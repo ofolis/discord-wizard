@@ -60,7 +60,6 @@ export class CallInUtils {
       }
       callInState.removeQueuedUser(member.id);
       callInState.removeSpeakingUser(member.id);
-      callInState.removeBotMutedUser(member.id);
       DataController.saveCallInState(callInState);
       if (didQueueChange) {
         await this.postQueueToHosts(newState.guild, callInState);

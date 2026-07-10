@@ -68,6 +68,11 @@ const commands: Command[] = [
   new VoteStart(),
 ];
 
+const callInVoiceStateEnforcementByGuildId: Map<
+  string,
+  Promise<void>
+> = new Map();
+
 function initializeApp(): void {
   if (Environment.config.devMode) {
     Log.info("Running in development mode.");
@@ -175,14 +180,25 @@ function initializeApp(): void {
 
   // Voice State Update Event
   Discord.client.on("voiceStateUpdate", (oldState, newState) => {
-    CallInUtils.enforceVoiceState(oldState, newState).catch(
-      (reason: unknown) => {
+    const guildId: string = newState.guild.id;
+    const previousEnforcement: Promise<void> =
+      callInVoiceStateEnforcementByGuildId.get(guildId) ?? Promise.resolve();
+    const nextEnforcement: Promise<void> = previousEnforcement
+      .then(() => CallInUtils.enforceVoiceState(oldState, newState))
+      .catch((reason: unknown) => {
         Log.error("Could not enforce call-in voice state.", reason, {
-          guildId: newState.guild.id,
+          guildId,
           userId: newState.member?.id ?? null,
         });
-      },
-    );
+      })
+      .finally(() => {
+        if (
+          callInVoiceStateEnforcementByGuildId.get(guildId) === nextEnforcement
+        ) {
+          callInVoiceStateEnforcementByGuildId.delete(guildId);
+        }
+      });
+    callInVoiceStateEnforcementByGuildId.set(guildId, nextEnforcement);
   });
 
   // Login
