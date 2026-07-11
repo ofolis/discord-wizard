@@ -71,6 +71,9 @@ export class AiMessageController {
     const activeResponseState: ActiveResponseState | undefined =
       this.__activeResponseStateByChannelId.get(message.channelId);
     if (activeResponseState !== undefined) {
+      // Intentional channel-level throttling: while the bot is composing one reply,
+      // later invocations are treated as overlap so the final message can be
+      // threaded when needed, but the bot still appears focused on one response.
       if (trigger === "mention") {
         activeResponseState.hasOverlappingInvocation = true;
       }
@@ -531,30 +534,32 @@ export class AiMessageController {
 
   private static __startTyping(message: discordJs.Message): () => void {
     let shouldContinue: boolean = true;
+    let interval: NodeJS.Timeout | undefined;
+    const stopTyping: () => void = () => {
+      shouldContinue = false;
+      if (interval !== undefined) {
+        clearInterval(interval);
+        interval = undefined;
+      }
+    };
     const sendTyping: () => void = () => {
       this.__sendTyping(message).catch((reason: unknown) => {
-        shouldContinue = false;
         Log.error("Could not send AI typing indicator.", reason);
+        stopTyping();
       });
     };
     sendTyping();
-    const interval: NodeJS.Timeout = setInterval(() => {
+    interval = setInterval(() => {
       if (shouldContinue) {
         sendTyping();
       }
     }, 4000);
-    return () => {
-      if (!shouldContinue) {
-        return;
-      }
-      shouldContinue = false;
-      clearInterval(interval);
-    };
+    return stopTyping;
   }
 
   private static __stripBotMention(content: string, botUserId: string): string {
     const mentionPattern: RegExp = new RegExp(`<@!?${botUserId}>`, "gu");
-    return content.replace(mentionPattern, "[bot mention]").trim();
+    return content.replace(mentionPattern, "").trim();
   }
 
   private static __trimDanglingMarkdown(response: string): string {
