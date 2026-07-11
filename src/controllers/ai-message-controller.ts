@@ -37,7 +37,11 @@ export class AiMessageController {
   private static readonly __typingLeadOutMilliseconds: number = 1500;
 
   public static async handleMessage(message: discordJs.Message): Promise<void> {
-    if (!AppEnvironment.config.chatbotEnabled || message.author.bot) {
+    if (
+      !AppEnvironment.config.chatbotEnabled ||
+      message.author.bot ||
+      message.guildId === null
+    ) {
       return;
     }
     const botUser: discordJs.ClientUser | null = Discord.client.user;
