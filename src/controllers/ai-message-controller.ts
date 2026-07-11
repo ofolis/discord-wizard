@@ -261,29 +261,29 @@ export class AiMessageController {
       trigger === "mention"
         ? "Latest request to answer:"
         : "Latest message to react to organically:";
-    const mentionTokenContext: string[] =
-      this.__formatMentionTokenContext(mentionTargets);
-    if (contextTranscript.length === 0) {
-      return {
-        mentionTargets,
-        prompt: [
-          this.__formatInvocationFlag(trigger),
-          ...mentionTokenContext,
-          `${latestMessageLabel}\n${this.__formatTranscriptLineWithContent(message, normalizedRequest)}`,
-        ].join("\n"),
-      };
-    }
+    const conversationContext: string[] =
+      contextTranscript.length === 0
+        ? [
+            latestMessageLabel,
+            this.__formatTranscriptLineWithContent(message, normalizedRequest),
+          ]
+        : [
+            "Recent Discord conversation, oldest to newest:",
+            contextTranscript,
+            "",
+            latestMessageLabel,
+            this.__formatTranscriptLineWithContent(message, normalizedRequest),
+          ];
     return {
       mentionTargets,
       prompt: [
         this.__formatInvocationFlag(trigger),
-        ...mentionTokenContext,
         "",
-        "Recent Discord conversation, oldest to newest:",
-        contextTranscript,
+        this.__formatMentionTokenBlock(mentionTargets),
         "",
-        latestMessageLabel,
-        this.__formatTranscriptLineWithContent(message, normalizedRequest),
+        "[Conversation]",
+        ...conversationContext,
+        "[/Conversation]",
       ].join("\n"),
     };
   }
@@ -329,20 +329,16 @@ export class AiMessageController {
     return "[Invocation: mention]";
   }
 
-  private static __formatMentionTokenContext(
+  private static __formatMentionTokenBlock(
     mentionTargets: readonly MentionTarget[],
-  ): string[] {
-    if (mentionTargets.length === 0) {
-      return [];
-    }
+  ): string {
     return [
-      "",
-      "Mention tokens:",
-      "Use one of these exact tokens only when intentionally tagging that user. Do not invent mention tokens. The app will convert valid tokens to Discord mentions before sending.",
+      "[Mention tokens]",
       ...mentionTargets.map(
-        target => `- ${target.names.join(" / ")}: ${target.token}`,
+        target => `${target.names.join(" / ")}: ${target.token}`,
       ),
-    ];
+      "[/Mention tokens]",
+    ].join("\n");
   }
 
   private static __formatResponse(response: string): string {
