@@ -125,6 +125,7 @@ export class AiMessageController {
       this.__recordOrganicResponse(message, trigger);
     } catch (reason: unknown) {
       Log.error("Could not generate AI message response.", reason);
+      // Intentionally vague and in-character: errors are logged, but Discord only gets the bot's "tell".
       await this.__sendResponse(
         message,
         "...",
@@ -305,7 +306,7 @@ export class AiMessageController {
 
   private static __formatMentionRegex(name: string): RegExp {
     return new RegExp(
-      `(?<![\\p{L}\\p{N}_@])${this.__escapeRegex(name)}(?![\\p{L}\\p{N}_])`,
+      `(?<![\\p{L}\\p{N}_@])@?${this.__escapeRegex(name)}(?![\\p{L}\\p{N}_])`,
       "giu",
     );
   }

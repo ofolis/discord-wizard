@@ -16,10 +16,11 @@ export class AiClient {
     }, this.__requestTimeoutMilliseconds);
     const requestBody: UnknownRecord = {
       input: prompt,
+      // eslint-disable-next-line @typescript-eslint/naming-convention -- OpenAI API field name.
+      max_output_tokens: this.__maxOutputTokens,
       prompt: {
         id: AppEnvironment.config.openAiPromptId,
       },
-      ...Object.fromEntries([["max_output_tokens", this.__maxOutputTokens]]),
       ...this.__buildModelOptions(),
     };
     Log.info("Requesting OpenAI response.", {

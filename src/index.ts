@@ -180,13 +180,9 @@ function initializeApp(): void {
 
   // Message Create Event
   Discord.client.on("messageCreate", message => {
-    AiMessageController.handleMessage(message)
-      .then(() => {
-        Log.debug(`Completed message ${message.id}.`);
-      })
-      .catch((reason: unknown) => {
-        Log.error("Could not complete message create event.", reason);
-      });
+    AiMessageController.handleMessage(message).catch((reason: unknown) => {
+      Log.error("Could not complete message create event.", reason);
+    });
   });
 
   // Voice State Update Event
