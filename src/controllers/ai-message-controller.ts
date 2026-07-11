@@ -13,6 +13,8 @@ type AiPromptContext = {
   readonly prompt: string;
 };
 
+type AiResponseTrigger = "mention" | "organic";
+
 type MentionReplacement = {
   readonly content: string;
   readonly userIds: readonly string[];
@@ -26,11 +28,18 @@ type MentionTarget = {
 export class AiMessageController {
   private static __activeResponseState: ActiveResponseState | null = null;
 
+  private static readonly __lastOrganicResponseAtMsByGuildId: Map<
+    string,
+    number
+  > = new Map();
+
   private static readonly __maxBufferMilliseconds: number = 8000;
 
   private static readonly __maxContextCharacters: number = 6000;
 
   private static readonly __messageContextLimit: number = 20;
+
+  private static readonly __millisecondsPerMinute: number = 60 * 1000;
 
   private static readonly __minBufferMilliseconds: number = 2000;
 
@@ -45,15 +54,25 @@ export class AiMessageController {
       return;
     }
     const botUser: discordJs.ClientUser | null = Discord.client.user;
-    if (botUser === null || !message.mentions.has(botUser)) {
+    if (botUser === null) {
+      return;
+    }
+    const trigger: AiResponseTrigger | null = this.__getResponseTrigger(
+      message,
+      botUser,
+    );
+    if (trigger === null) {
       return;
     }
     if (this.__activeResponseState !== null) {
-      this.__activeResponseState.hasOverlappingInvocation = true;
+      if (trigger === "mention") {
+        this.__activeResponseState.hasOverlappingInvocation = true;
+      }
       Log.info("Ignored overlapping AI message invocation.", {
         activeMessageId: this.__activeResponseState.messageId,
         channelId: message.channelId,
         messageId: message.id,
+        trigger,
         userId: message.author.id,
       });
       return;
@@ -68,6 +87,7 @@ export class AiMessageController {
       const promptContext: AiPromptContext = await this.__buildPromptContext(
         message,
         botUser.id,
+        trigger,
       );
       Log.info("Generating AI message response.", {
         channelId: message.channelId,
@@ -75,6 +95,7 @@ export class AiMessageController {
         messageId: message.id,
         mentionTargetCount: promptContext.mentionTargets.length,
         promptLength: promptContext.prompt.length,
+        trigger,
         userId: message.author.id,
       });
       const response: string = await AiClient.generateResponse(
@@ -101,6 +122,7 @@ export class AiMessageController {
         responseState.hasOverlappingInvocation,
         mentionReplacement.userIds,
       );
+      this.__recordOrganicResponse(message, trigger);
     } catch (reason: unknown) {
       Log.error("Could not generate AI message response.", reason);
       await this.__sendResponse(
@@ -109,6 +131,7 @@ export class AiMessageController {
         responseState.hasOverlappingInvocation,
         [],
       );
+      this.__recordOrganicResponse(message, trigger);
     } finally {
       stopTyping();
       if (this.__activeResponseState === responseState) {
@@ -192,6 +215,7 @@ export class AiMessageController {
   private static async __buildPromptContext(
     message: discordJs.Message,
     botUserId: string,
+    trigger: AiResponseTrigger,
   ): Promise<AiPromptContext> {
     const contextMessages: discordJs.Message[] =
       await this.__buildContextMessages(message);
@@ -208,20 +232,31 @@ export class AiMessageController {
     const normalizedRequest: string =
       request.length > 0
         ? request
-        : "The user mentioned you without adding a prompt. Reply briefly and ask what they need.";
+        : trigger === "mention"
+          ? "The user mentioned you without adding a prompt. Reply briefly and ask what they need."
+          : "";
+    const latestMessageLabel: string =
+      trigger === "mention"
+        ? "Latest request to answer:"
+        : "Latest message to react to organically:";
     if (contextTranscript.length === 0) {
       return {
         mentionTargets,
-        prompt: `Latest request:\n${this.__formatTranscriptLineWithContent(message, normalizedRequest)}`,
+        prompt: [
+          this.__formatInvocationFlag(trigger),
+          `${latestMessageLabel}\n${this.__formatTranscriptLineWithContent(message, normalizedRequest)}`,
+        ].join("\n"),
       };
     }
     return {
       mentionTargets,
       prompt: [
+        this.__formatInvocationFlag(trigger),
+        "",
         "Recent Discord conversation, oldest to newest:",
         contextTranscript,
         "",
-        "Latest request to answer:",
+        latestMessageLabel,
         this.__formatTranscriptLineWithContent(message, normalizedRequest),
       ].join("\n"),
     };
@@ -259,6 +294,13 @@ export class AiMessageController {
       message.author.globalName ??
       message.author.username
     );
+  }
+
+  private static __formatInvocationFlag(trigger: AiResponseTrigger): string {
+    if (trigger === "organic") {
+      return "[Invocation: unsolicited]";
+    }
+    return "[Invocation: mention]";
   }
 
   private static __formatMentionRegex(name: string): RegExp {
@@ -305,8 +347,40 @@ export class AiMessageController {
     });
   }
 
+  private static __getChannelName(
+    channel: discordJs.TextBasedChannel,
+  ): string | null {
+    if (!("name" in channel) || typeof channel.name !== "string") {
+      return null;
+    }
+    return channel.name;
+  }
+
+  private static __getResponseTrigger(
+    message: discordJs.Message,
+    botUser: discordJs.ClientUser,
+  ): AiResponseTrigger | null {
+    if (message.mentions.has(botUser)) {
+      return "mention";
+    }
+    if (this.__shouldGenerateOrganicResponse(message)) {
+      return "organic";
+    }
+    return null;
+  }
+
   private static __normalizeMentionName(name: string): string {
     return name.trim().toLocaleLowerCase();
+  }
+
+  private static __recordOrganicResponse(
+    message: discordJs.Message,
+    trigger: AiResponseTrigger,
+  ): void {
+    if (trigger !== "organic" || message.guildId === null) {
+      return;
+    }
+    this.__lastOrganicResponseAtMsByGuildId.set(message.guildId, Date.now());
   }
 
   private static __replaceUserNames(
@@ -356,6 +430,53 @@ export class AiMessageController {
     if ("sendTyping" in channel && typeof channel.sendTyping === "function") {
       await channel.sendTyping();
     }
+  }
+
+  private static __shouldGenerateOrganicResponse(
+    message: discordJs.Message,
+  ): boolean {
+    if (message.guildId === null) {
+      return false;
+    }
+    if (message.content.trim().length === 0 && message.attachments.size === 0) {
+      return false;
+    }
+    const organicChannelNames: readonly string[] =
+      AppEnvironment.config.chatbotOrganicChannelNames;
+    if (organicChannelNames.length > 0) {
+      const channelName: string | null = this.__getChannelName(message.channel);
+      if (channelName === null) {
+        return false;
+      }
+      if (
+        !organicChannelNames
+          .map(name => name.toLocaleLowerCase())
+          .includes(channelName.toLocaleLowerCase())
+      ) {
+        return false;
+      }
+    }
+    const cooldownMilliseconds: number =
+      AppEnvironment.config.chatbotOrganicCooldownMinutes *
+      this.__millisecondsPerMinute;
+    if (cooldownMilliseconds > 0) {
+      const lastOrganicResponseAtMs: number | undefined =
+        this.__lastOrganicResponseAtMsByGuildId.get(message.guildId);
+      if (
+        lastOrganicResponseAtMs !== undefined &&
+        Date.now() - lastOrganicResponseAtMs < cooldownMilliseconds
+      ) {
+        return false;
+      }
+    }
+    const replyChance: number = AppEnvironment.config.chatbotOrganicReplyChance;
+    if (replyChance <= 0) {
+      return false;
+    }
+    if (replyChance >= 1) {
+      return true;
+    }
+    return Math.random() < replyChance;
   }
 
   private static __sleep(milliseconds: number): Promise<void> {

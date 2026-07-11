@@ -1,4 +1,4 @@
-import { EnvironmentUtils } from "./core";
+import { EnvironmentUtils, Log } from "./core";
 import type { AppConfig } from "./types";
 
 export class AppEnvironment {
@@ -13,6 +13,26 @@ export class AppEnvironment {
               "CHATBOT_ENABLED",
             ).toUpperCase() === "TRUE"
           );
+        },
+        get chatbotOrganicChannelNames(): readonly string[] {
+          return EnvironmentUtils.getOptionalEnvList(
+            "CHATBOT_ORGANIC_CHANNEL_NAMES",
+          );
+        },
+        get chatbotOrganicCooldownMinutes(): number {
+          return AppEnvironment.__getOptionalNumberEnvVariable({
+            defaultValue: 60,
+            key: "CHATBOT_ORGANIC_COOLDOWN_MINUTES",
+            minimumValue: 0,
+          });
+        },
+        get chatbotOrganicReplyChance(): number {
+          return AppEnvironment.__getOptionalNumberEnvVariable({
+            defaultValue: 0.01,
+            key: "CHATBOT_ORGANIC_REPLY_CHANCE",
+            maximumValue: 1,
+            minimumValue: 0,
+          });
         },
         get callInHostChannelName(): string {
           return EnvironmentUtils.getRequiredEnvVariable(
@@ -39,5 +59,46 @@ export class AppEnvironment {
       };
     }
     return this.__config;
+  }
+
+  private static __getOptionalNumberEnvVariable(options: {
+    readonly defaultValue: number;
+    readonly key: string;
+    readonly maximumValue?: number;
+    readonly minimumValue?: number;
+  }): number {
+    const { defaultValue, key, maximumValue, minimumValue } = options;
+    const value: string = EnvironmentUtils.getOptionalEnvVariable(key);
+    if (value.length === 0) {
+      return defaultValue;
+    }
+    const parsedValue: number = Number(value);
+    if (!Number.isFinite(parsedValue)) {
+      Log.throw("Cannot get numeric environment variable. Value is invalid.", {
+        key,
+        value,
+      });
+    }
+    if (minimumValue !== undefined && parsedValue < minimumValue) {
+      Log.throw(
+        "Cannot get numeric environment variable. Value is too small.",
+        {
+          key,
+          minimumValue,
+          value,
+        },
+      );
+    }
+    if (maximumValue !== undefined && parsedValue > maximumValue) {
+      Log.throw(
+        "Cannot get numeric environment variable. Value is too large.",
+        {
+          key,
+          maximumValue,
+          value,
+        },
+      );
+    }
+    return parsedValue;
   }
 }
