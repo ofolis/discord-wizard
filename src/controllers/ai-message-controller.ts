@@ -300,6 +300,13 @@ export class AiMessageController {
     );
   }
 
+  private static __escapePromptBlockText(value: string): string {
+    return value
+      .replace(/&/gu, "&amp;")
+      .replace(/\[/gu, "&#91;")
+      .replace(/\]/gu, "&#93;");
+  }
+
   private static __escapeRegex(value: string): string {
     return value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
   }
@@ -310,8 +317,11 @@ export class AiMessageController {
     }
     const attachmentDescriptions: string[] = message.attachments.map(
       attachment => {
-        const contentType: string = attachment.contentType ?? "unknown type";
-        return `${attachment.name} (${contentType}, ${attachment.size.toString()} bytes)`;
+        const contentType: string = this.__escapePromptBlockText(
+          attachment.contentType ?? "unknown type",
+        );
+        const name: string = this.__escapePromptBlockText(attachment.name);
+        return `${name} (${contentType}, ${attachment.size.toString()} bytes)`;
       },
     );
     return ` [attachment(s): ${attachmentDescriptions.join("; ")}]`;
@@ -338,7 +348,8 @@ export class AiMessageController {
     return [
       "[Mention tokens]",
       ...mentionTargets.map(
-        target => `${target.names.join(" / ")}: ${target.token}`,
+        target =>
+          `${target.names.map(name => this.__escapePromptBlockText(name)).join(" / ")}: ${target.token}`,
       ),
       "[/Mention tokens]",
     ].join("\n");
@@ -361,11 +372,12 @@ export class AiMessageController {
     content: string,
   ): string {
     const attachmentText: string = this.__formatAttachmentText(message);
-    const lineContent: string = `${content}${attachmentText}`.trim();
+    const lineContent: string =
+      `${this.__escapePromptBlockText(content)}${attachmentText}`.trim();
     if (lineContent.length === 0) {
       return "";
     }
-    return `${this.__formatAuthorName(message)}: ${lineContent}`;
+    return `${this.__escapePromptBlockText(this.__formatAuthorName(message))}: ${lineContent}`;
   }
 
   private static __getAuthorMentionNames(message: discordJs.Message): string[] {
@@ -453,8 +465,10 @@ export class AiMessageController {
       content,
     };
     if (shouldReferenceMessage) {
-      await message.reply(options);
-      return;
+      options.reply = {
+        failIfNotExists: false,
+        messageReference: message.id,
+      };
     }
     await Discord.sendChannelMessage(message.channelId, options);
   }

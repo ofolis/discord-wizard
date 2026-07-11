@@ -6,7 +6,7 @@ export type AppConfig = {
   readonly chatbotOrganicCooldownMinutes: number;
   readonly chatbotOrganicReplyChance: number;
   readonly openAiApiKey: string | null;
-  readonly openAiModel: string;
+  readonly openAiModel: string | null;
   readonly openAiPromptId: string | null;
   readonly submissionChannelName: string;
 };

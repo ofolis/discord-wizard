@@ -80,7 +80,7 @@ Discord server members can submit messages anonymously to a configured channel, 
 - `CALL_IN_HOST_CHANNEL_NAME` - name of the private text channel where the call-in queue is posted for hosts.
 - `CALL_IN_HOST_ROLE_NAMES` - comma-separated role names for users who count as call-in hosts in voice channels.
 - `OPENAI_API_KEY` - OpenAI API key for AI chatbot replies. Required when `CHATBOT_ENABLED=true`.
-- `OPENAI_MODEL` - optional OpenAI model override for AI chatbot replies.
+- `OPENAI_MODEL` - OpenAI model for AI chatbot replies. Required when `CHATBOT_ENABLED=true`.
 - `OPENAI_PROMPT_ID` - OpenAI prompt ID for AI chatbot replies. Required when `CHATBOT_ENABLED=true`.
 - `MANAGER_ROLE_NAMES` - optional comma-separated role names for users who can use restricted commands without Discord Administrator permission.
 

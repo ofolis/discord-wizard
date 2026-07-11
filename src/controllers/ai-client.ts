@@ -10,6 +10,7 @@ export class AiClient {
 
   public static async generateResponse(prompt: string): Promise<string> {
     const apiKey: string = this.__getRequiredOpenAiApiKey();
+    const model: string = this.__getRequiredOpenAiModel();
     const promptId: string = this.__getRequiredOpenAiPromptId();
     const url: string = "https://api.openai.com/v1/responses";
     const abortController: AbortController = new AbortController();
@@ -20,14 +21,14 @@ export class AiClient {
       input: prompt,
       // eslint-disable-next-line @typescript-eslint/naming-convention -- OpenAI API field name.
       max_output_tokens: this.__maxOutputTokens,
+      model,
       prompt: {
         id: promptId,
       },
-      ...this.__buildModelOptions(),
     };
     Log.info("Requesting OpenAI response.", {
-      hasModelOverride: AppEnvironment.config.openAiModel.length > 0,
       maxOutputTokens: this.__maxOutputTokens,
+      model,
       promptLength: prompt.length,
     });
     const response: Response = await this.__fetchWithTimeout(
@@ -63,16 +64,6 @@ export class AiClient {
       });
     }
     return content.trim();
-  }
-
-  private static __buildModelOptions(): Record<string, string> {
-    const model: string = AppEnvironment.config.openAiModel;
-    if (model.length === 0) {
-      return {};
-    }
-    return {
-      model,
-    };
   }
 
   private static __collectContentText(contentItems: unknown[]): string[] {
@@ -129,6 +120,16 @@ export class AiClient {
       });
     }
     return apiKey;
+  }
+
+  private static __getRequiredOpenAiModel(): string {
+    const model: string | null = AppEnvironment.config.openAiModel;
+    if (model === null) {
+      Log.throw("Missing required chatbot environment variable.", {
+        key: "OPENAI_MODEL",
+      });
+    }
+    return model;
   }
 
   private static __getRequiredOpenAiPromptId(): string {

@@ -47,8 +47,10 @@ export class AppEnvironment {
             "OPENAI_API_KEY",
           );
         },
-        get openAiModel(): string {
-          return EnvironmentUtils.getOptionalEnvVariable("OPENAI_MODEL");
+        get openAiModel(): string | null {
+          return AppEnvironment.__getOptionalNullableEnvVariable(
+            "OPENAI_MODEL",
+          );
         },
         get openAiPromptId(): string | null {
           return AppEnvironment.__getOptionalNullableEnvVariable(
@@ -72,6 +74,11 @@ export class AppEnvironment {
     if (this.config.openAiApiKey === null) {
       Log.throw("Missing required chatbot environment variable.", {
         key: "OPENAI_API_KEY",
+      });
+    }
+    if (this.config.openAiModel === null) {
+      Log.throw("Missing required chatbot environment variable.", {
+        key: "OPENAI_MODEL",
       });
     }
     if (this.config.openAiPromptId === null) {
