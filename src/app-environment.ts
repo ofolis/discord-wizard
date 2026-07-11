@@ -9,9 +9,9 @@ export class AppEnvironment {
       this.__config = {
         get chatbotEnabled(): boolean {
           return (
-            EnvironmentUtils.getOptionalEnvVariable(
-              "CHATBOT_ENABLED",
-            ).toUpperCase() === "TRUE"
+            EnvironmentUtils.getOptionalEnvVariable("CHATBOT_ENABLED")
+              .trim()
+              .toUpperCase() === "TRUE"
           );
         },
         get chatbotOrganicChannelNames(): readonly string[] {
@@ -42,14 +42,18 @@ export class AppEnvironment {
         get callInHostRoleNames(): readonly string[] {
           return EnvironmentUtils.getRequiredEnvList("CALL_IN_HOST_ROLE_NAMES");
         },
-        get openAiApiKey(): string {
-          return EnvironmentUtils.getRequiredEnvVariable("OPENAI_API_KEY");
+        get openAiApiKey(): string | null {
+          return AppEnvironment.__getOptionalNullableEnvVariable(
+            "OPENAI_API_KEY",
+          );
         },
         get openAiModel(): string {
           return EnvironmentUtils.getOptionalEnvVariable("OPENAI_MODEL");
         },
-        get openAiPromptId(): string {
-          return EnvironmentUtils.getRequiredEnvVariable("OPENAI_PROMPT_ID");
+        get openAiPromptId(): string | null {
+          return AppEnvironment.__getOptionalNullableEnvVariable(
+            "OPENAI_PROMPT_ID",
+          );
         },
         get submissionChannelName(): string {
           return EnvironmentUtils.getRequiredEnvVariable(
@@ -65,10 +69,23 @@ export class AppEnvironment {
     if (!this.config.chatbotEnabled) {
       return;
     }
-    void this.config.openAiApiKey;
-    void this.config.openAiPromptId;
+    if (this.config.openAiApiKey === null) {
+      Log.throw("Missing required chatbot environment variable.", {
+        key: "OPENAI_API_KEY",
+      });
+    }
+    if (this.config.openAiPromptId === null) {
+      Log.throw("Missing required chatbot environment variable.", {
+        key: "OPENAI_PROMPT_ID",
+      });
+    }
     void this.config.chatbotOrganicCooldownMinutes;
     void this.config.chatbotOrganicReplyChance;
+  }
+
+  private static __getOptionalNullableEnvVariable(key: string): string | null {
+    const value: string = EnvironmentUtils.getOptionalEnvVariable(key).trim();
+    return value.length > 0 ? value : null;
   }
 
   private static __getOptionalNumberEnvVariable(options: {

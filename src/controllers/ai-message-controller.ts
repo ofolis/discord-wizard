@@ -314,7 +314,7 @@ export class AiMessageController {
 
   private static __formatMentionRegex(name: string): RegExp {
     return new RegExp(
-      `(?<![\\p{L}\\p{N}_@])@?${this.__escapeRegex(name)}(?![\\p{L}\\p{N}_])`,
+      `(?<![\\p{L}\\p{N}_@])@${this.__escapeRegex(name)}(?![\\p{L}\\p{N}_])`,
       "giu",
     );
   }
@@ -511,6 +511,7 @@ export class AiMessageController {
     let shouldContinue: boolean = true;
     const sendTyping: () => void = () => {
       this.__sendTyping(message).catch((reason: unknown) => {
+        shouldContinue = false;
         Log.error("Could not send AI typing indicator.", reason);
       });
     };
@@ -531,7 +532,7 @@ export class AiMessageController {
 
   private static __stripBotMention(content: string, botUserId: string): string {
     const mentionPattern: RegExp = new RegExp(`<@!?${botUserId}>`, "gu");
-    return content.replace(mentionPattern, "@Wizard").trim();
+    return content.replace(mentionPattern, "[bot mention]").trim();
   }
 
   private static __trimDanglingMarkdown(response: string): string {

@@ -9,6 +9,8 @@ export class AiClient {
   private static readonly __requestTimeoutMilliseconds: number = 45_000;
 
   public static async generateResponse(prompt: string): Promise<string> {
+    const apiKey: string = this.__getRequiredOpenAiApiKey();
+    const promptId: string = this.__getRequiredOpenAiPromptId();
     const url: string = "https://api.openai.com/v1/responses";
     const abortController: AbortController = new AbortController();
     const timeout: NodeJS.Timeout = setTimeout(() => {
@@ -19,7 +21,7 @@ export class AiClient {
       // eslint-disable-next-line @typescript-eslint/naming-convention -- OpenAI API field name.
       max_output_tokens: this.__maxOutputTokens,
       prompt: {
-        id: AppEnvironment.config.openAiPromptId,
+        id: promptId,
       },
       ...this.__buildModelOptions(),
     };
@@ -33,7 +35,7 @@ export class AiClient {
       {
         body: JSON.stringify(requestBody),
         headers: new Headers([
-          ["Authorization", `Bearer ${AppEnvironment.config.openAiApiKey}`],
+          ["Authorization", `Bearer ${apiKey}`],
           ["Content-Type", "application/json"],
         ]),
         method: "POST",
@@ -117,6 +119,26 @@ export class AiClient {
       }
       return [outputType];
     });
+  }
+
+  private static __getRequiredOpenAiApiKey(): string {
+    const apiKey: string | null = AppEnvironment.config.openAiApiKey;
+    if (apiKey === null) {
+      Log.throw("Missing required chatbot environment variable.", {
+        key: "OPENAI_API_KEY",
+      });
+    }
+    return apiKey;
+  }
+
+  private static __getRequiredOpenAiPromptId(): string {
+    const promptId: string | null = AppEnvironment.config.openAiPromptId;
+    if (promptId === null) {
+      Log.throw("Missing required chatbot environment variable.", {
+        key: "OPENAI_PROMPT_ID",
+      });
+    }
+    return promptId;
   }
 
   private static __getResponseText(response: unknown): string | undefined {
