@@ -31,6 +31,7 @@ export class Discord {
           "Guilds",
           "GuildMessages",
           "GuildVoiceStates",
+          "MessageContent",
         ],
       });
       Log.debug("Discord client created successfully.", {
