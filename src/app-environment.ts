@@ -61,6 +61,16 @@ export class AppEnvironment {
     return this.__config;
   }
 
+  public static validateConfig(): void {
+    if (!this.config.chatbotEnabled) {
+      return;
+    }
+    void this.config.openAiApiKey;
+    void this.config.openAiPromptId;
+    void this.config.chatbotOrganicCooldownMinutes;
+    void this.config.chatbotOrganicReplyChance;
+  }
+
   private static __getOptionalNumberEnvVariable(options: {
     readonly defaultValue: number;
     readonly key: string;

@@ -26,7 +26,10 @@ type MentionTarget = {
 };
 
 export class AiMessageController {
-  private static __activeResponseState: ActiveResponseState | null = null;
+  private static readonly __activeResponseStateByChannelId: Map<
+    string,
+    ActiveResponseState
+  > = new Map();
 
   private static readonly __lastOrganicResponseAtMsByGuildId: Map<
     string,
@@ -64,12 +67,14 @@ export class AiMessageController {
     if (trigger === null) {
       return;
     }
-    if (this.__activeResponseState !== null) {
+    const activeResponseState: ActiveResponseState | undefined =
+      this.__activeResponseStateByChannelId.get(message.channelId);
+    if (activeResponseState !== undefined) {
       if (trigger === "mention") {
-        this.__activeResponseState.hasOverlappingInvocation = true;
+        activeResponseState.hasOverlappingInvocation = true;
       }
       Log.info("Ignored overlapping AI message invocation.", {
-        activeMessageId: this.__activeResponseState.messageId,
+        activeMessageId: activeResponseState.messageId,
         channelId: message.channelId,
         messageId: message.id,
         trigger,
@@ -81,7 +86,7 @@ export class AiMessageController {
       hasOverlappingInvocation: false,
       messageId: message.id,
     };
-    this.__activeResponseState = responseState;
+    this.__activeResponseStateByChannelId.set(message.channelId, responseState);
     const stopTyping: () => void = this.__startTyping(message);
     try {
       const promptContext: AiPromptContext = await this.__buildPromptContext(
@@ -135,8 +140,11 @@ export class AiMessageController {
       this.__recordOrganicResponse(message, trigger);
     } finally {
       stopTyping();
-      if (this.__activeResponseState === responseState) {
-        this.__activeResponseState = null;
+      if (
+        this.__activeResponseStateByChannelId.get(message.channelId) ===
+        responseState
+      ) {
+        this.__activeResponseStateByChannelId.delete(message.channelId);
       }
     }
   }

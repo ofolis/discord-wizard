@@ -1,3 +1,4 @@
+import { AppEnvironment } from "./app-environment";
 import {
   Bet,
   BetAll,
@@ -77,6 +78,7 @@ function initializeApp(): void {
   if (Environment.config.devMode) {
     Log.info("Running in development mode.");
   }
+  AppEnvironment.validateConfig();
   Log.info(
     `Initializing ${Environment.packageContext.name} (${Environment.packageContext.version ?? "NO VERSION"})...`,
   );
