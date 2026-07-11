@@ -21,7 +21,8 @@ type MentionReplacement = {
 };
 
 type MentionTarget = {
-  readonly name: string;
+  readonly names: readonly string[];
+  readonly token: string;
   readonly userId: string;
 };
 
@@ -106,10 +107,11 @@ export class AiMessageController {
       const response: string = await AiClient.generateResponse(
         promptContext.prompt,
       );
-      const mentionReplacement: MentionReplacement = this.__replaceUserNames(
-        this.__formatResponse(response),
-        promptContext.mentionTargets,
-      );
+      const mentionReplacement: MentionReplacement =
+        this.__replaceMentionTokens(
+          this.__formatResponse(response),
+          promptContext.mentionTargets,
+        );
       const bufferMilliseconds: number = this.__calculateBufferMilliseconds(
         mentionReplacement.content,
       );
@@ -202,23 +204,34 @@ export class AiMessageController {
         userIdsByNormalizedName.set(normalizedName, userIds);
       });
     });
-    const mentionTargets: MentionTarget[] = [];
+    const mentionTargets: Omit<MentionTarget, "token">[] = [];
     namesByUserId.forEach((names, userId) => {
+      const mentionNames: string[] = [];
       names.forEach(name => {
         const normalizedName: string = this.__normalizeMentionName(name);
         if (userIdsByNormalizedName.get(normalizedName)?.size !== 1) {
           return;
         }
+        mentionNames.push(name);
+      });
+      if (mentionNames.length > 0) {
         mentionTargets.push({
-          name,
+          names: mentionNames.sort(
+            (leftName, rightName) => rightName.length - leftName.length,
+          ),
           userId,
         });
-      });
+      }
     });
-    return mentionTargets.sort(
-      (leftTarget, rightTarget) =>
-        rightTarget.name.length - leftTarget.name.length,
-    );
+    return mentionTargets
+      .sort(
+        (leftTarget, rightTarget) =>
+          rightTarget.names[0].length - leftTarget.names[0].length,
+      )
+      .map((target, index) => ({
+        ...target,
+        token: `[[mention:${(index + 1).toString()}]]`,
+      }));
   }
 
   private static async __buildPromptContext(
@@ -248,11 +261,14 @@ export class AiMessageController {
       trigger === "mention"
         ? "Latest request to answer:"
         : "Latest message to react to organically:";
+    const mentionTokenContext: string[] =
+      this.__formatMentionTokenContext(mentionTargets);
     if (contextTranscript.length === 0) {
       return {
         mentionTargets,
         prompt: [
           this.__formatInvocationFlag(trigger),
+          ...mentionTokenContext,
           `${latestMessageLabel}\n${this.__formatTranscriptLineWithContent(message, normalizedRequest)}`,
         ].join("\n"),
       };
@@ -261,6 +277,7 @@ export class AiMessageController {
       mentionTargets,
       prompt: [
         this.__formatInvocationFlag(trigger),
+        ...mentionTokenContext,
         "",
         "Recent Discord conversation, oldest to newest:",
         contextTranscript,
@@ -312,11 +329,20 @@ export class AiMessageController {
     return "[Invocation: mention]";
   }
 
-  private static __formatMentionRegex(name: string): RegExp {
-    return new RegExp(
-      `(?<![\\p{L}\\p{N}_@])@${this.__escapeRegex(name)}(?![\\p{L}\\p{N}_])`,
-      "giu",
-    );
+  private static __formatMentionTokenContext(
+    mentionTargets: readonly MentionTarget[],
+  ): string[] {
+    if (mentionTargets.length === 0) {
+      return [];
+    }
+    return [
+      "",
+      "Mention tokens:",
+      "Use one of these exact tokens only when intentionally tagging that user. Do not invent mention tokens. The app will convert valid tokens to Discord mentions before sending.",
+      ...mentionTargets.map(
+        target => `- ${target.names.join(" / ")}: ${target.token}`,
+      ),
+    ];
   }
 
   private static __formatResponse(response: string): string {
@@ -392,14 +418,14 @@ export class AiMessageController {
     this.__lastOrganicResponseAtMsByGuildId.set(message.guildId, Date.now());
   }
 
-  private static __replaceUserNames(
+  private static __replaceMentionTokens(
     content: string,
     mentionTargets: readonly MentionTarget[],
   ): MentionReplacement {
     let replacedContent: string = content;
     const userIds: Set<string> = new Set();
     mentionTargets.forEach(target => {
-      const regex: RegExp = this.__formatMentionRegex(target.name);
+      const regex: RegExp = new RegExp(this.__escapeRegex(target.token), "gu");
       replacedContent = replacedContent.replace(regex, () => {
         userIds.add(target.userId);
         return Discord.formatUserMentionString({
