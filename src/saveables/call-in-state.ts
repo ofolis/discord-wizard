@@ -13,6 +13,8 @@ export class CallInState implements Saveable {
 
   private readonly __botMutedUserIds: string[];
 
+  private __isEnding: boolean;
+
   private __isOpen: boolean;
 
   private readonly __queuedUserIds: string[];
@@ -29,6 +31,7 @@ export class CallInState implements Saveable {
     this.queueMessageId = null;
     this.voiceChannelId = state.voiceChannelId;
     this.__botMutedUserIds = [];
+    this.__isEnding = false;
     this.__isOpen = true;
     this.__queuedUserIds = [];
     this.__speakingUserIds = [];
@@ -36,6 +39,10 @@ export class CallInState implements Saveable {
 
   public get botMutedUserIds(): readonly string[] {
     return this.__botMutedUserIds;
+  }
+
+  public get isEnding(): boolean {
+    return this.__isEnding;
   }
 
   public get isOpen(): boolean {
@@ -60,6 +67,7 @@ export class CallInState implements Saveable {
       guildId: callInStateJson.guildId,
       voiceChannelId: callInStateJson.voiceChannelId,
     });
+    callInState.__isEnding = callInStateJson.isEnding ?? false;
     callInState.__isOpen = callInStateJson.isOpen;
     callInState.queueMessageId = callInStateJson.queueMessageId ?? null;
     callInState.__botMutedUserIds.push(
@@ -89,6 +97,7 @@ export class CallInState implements Saveable {
       typeof json.channelId !== "string" ||
       typeof json.guildId !== "string" ||
       json.guildId !== expectedGuildId ||
+      (json.isEnding !== undefined && typeof json.isEnding !== "boolean") ||
       typeof json.isOpen !== "boolean" ||
       (json.queueMessageId !== undefined &&
         typeof json.queueMessageId !== "string") ||
@@ -109,6 +118,7 @@ export class CallInState implements Saveable {
       botMutedUserIds: json.botMutedUserIds as string[] | undefined,
       channelId: json.channelId,
       guildId: json.guildId,
+      isEnding: json.isEnding,
       isOpen: json.isOpen,
       queueMessageId: json.queueMessageId,
       queuedUserIds: json.queuedUserIds as string[] | undefined,
@@ -137,6 +147,7 @@ export class CallInState implements Saveable {
   }
 
   public close(): void {
+    this.__isEnding = false;
     this.__isOpen = false;
     this.__queuedUserIds.length = 0;
     this.__speakingUserIds.length = 0;
@@ -162,11 +173,16 @@ export class CallInState implements Saveable {
     this.__removeUserId(this.__speakingUserIds, userId);
   }
 
+  public startEnding(): void {
+    this.__isEnding = true;
+  }
+
   public toJson(): CallInStateJson {
     return {
       botMutedUserIds: [...this.__botMutedUserIds],
       channelId: this.channelId,
       guildId: this.guildId,
+      isEnding: this.__isEnding,
       isOpen: this.__isOpen,
       queueMessageId: this.queueMessageId ?? undefined,
       queuedUserIds: [...this.__queuedUserIds],

@@ -35,9 +35,17 @@ export class CallInEnd implements Command {
     }
 
     try {
-      callInState.close();
+      callInState.startEnding();
       DataController.saveCallInState(callInState);
-      await CallInUtils.unmuteTrackedMembers(message.member.guild, callInState);
+      const didUnmuteAll: boolean = await CallInUtils.unmuteTrackedMembers(
+        message.member.guild,
+        callInState,
+      );
+      DataController.saveCallInState(callInState);
+      if (!didUnmuteAll) {
+        Log.throw("Could not unmute all tracked call-in members.");
+      }
+      callInState.close();
       DataController.saveCallInState(callInState);
       await InteractionController.announceCallInEnd(callInState.channelId);
     } catch (reason: unknown) {

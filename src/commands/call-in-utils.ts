@@ -29,6 +29,9 @@ export class CallInUtils {
     if (callInState === null) {
       return;
     }
+    if (callInState.isEnding) {
+      return;
+    }
     const member: discordJs.GuildMember | null = newState.member;
     if (member === null || member.user.bot) {
       return;
@@ -267,18 +270,21 @@ export class CallInUtils {
   public static async unmuteTrackedMembers(
     guild: discordJs.Guild,
     callInState: CallInState,
-  ): Promise<void> {
+  ): Promise<boolean> {
+    let didUnmuteAll: boolean = true;
     for (const userId of [...callInState.botMutedUserIds]) {
       try {
         const member: discordJs.GuildMember = await guild.members.fetch(userId);
         await this.unmuteForCallIn(member, callInState);
       } catch (reason: unknown) {
+        didUnmuteAll = false;
         Log.error("Could not unmute call-in member.", reason, {
           guildId: guild.id,
           userId,
         });
       }
     }
+    return didUnmuteAll;
   }
 
   private static async __getUserLabelsById(
