@@ -86,6 +86,13 @@ export class BetAll implements Command {
       );
       return;
     }
+    if (amountCents > 0 && amountCents < BettingState.minWagerCents) {
+      await InteractionController.informError(
+        message,
+        `You need at least \`${MoneyUtils.format(BettingState.minWagerCents)}\` available to wager all in.`,
+      );
+      return;
+    }
 
     const option: string | null = bettingState.placeWager(
       userId,

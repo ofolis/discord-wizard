@@ -118,7 +118,7 @@ export class InteractionController {
         this.__formatBetWinnerString(winningOptions),
         payouts.length > 0
           ? this.__formatBettingTotalPoolString(optionSummaries)
-          : null,
+          : "No wagers were placed.",
         payouts.length > 0 ? "### Settlements" : null,
         payouts.length > 0
           ? this.__formatBettingPayoutsString(payouts, userLabelsById)

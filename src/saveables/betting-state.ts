@@ -44,6 +44,8 @@ export class BettingState implements Saveable {
 
   public static readonly minOptionCount: number = 2;
 
+  public static readonly minWagerCents: number = 100;
+
   public readonly channelId: string;
 
   public readonly guildId: string;
@@ -355,9 +357,14 @@ export class BettingState implements Saveable {
     if (!this.__isOpen || this.__isLocked) {
       Log.throw("Cannot place wager. Bet is not accepting wagers.");
     }
-    if (!Number.isSafeInteger(amountCents) || amountCents < 0) {
+    if (
+      !Number.isSafeInteger(amountCents) ||
+      amountCents < 0 ||
+      (amountCents > 0 && amountCents < BettingState.minWagerCents)
+    ) {
       Log.throw("Cannot place wager. Amount is invalid.", {
         amountCents,
+        minWagerCents: BettingState.minWagerCents,
         userId,
       });
     }

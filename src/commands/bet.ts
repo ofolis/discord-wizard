@@ -69,6 +69,13 @@ export class Bet implements Command {
       );
       return;
     }
+    if (amountCents > 0 && amountCents < BettingState.minWagerCents) {
+      await InteractionController.informError(
+        message,
+        `Minimum wager is \`${MoneyUtils.format(BettingState.minWagerCents)}\`. Use \`0\` to remove your wager.`,
+      );
+      return;
+    }
     const letter: string | undefined = message.getCommandOption(
       letterOptionName,
       CommandOptionType.STRING,
