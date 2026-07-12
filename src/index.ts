@@ -1,3 +1,4 @@
+import { AppEnvironment } from "./app-environment";
 import {
   Bet,
   BetAll,
@@ -28,7 +29,7 @@ import {
   VoteStart,
 } from "./commands";
 import { CallInUtils } from "./commands/call-in-utils";
-import { ChannelCache } from "./controllers";
+import { AiMessageController, ChannelCache } from "./controllers";
 import {
   AccessUtils,
   ChannelCommandMessage,
@@ -77,6 +78,7 @@ function initializeApp(): void {
   if (Environment.config.devMode) {
     Log.info("Running in development mode.");
   }
+  AppEnvironment.validateConfig();
   Log.info(
     `Initializing ${Environment.packageContext.name} (${Environment.packageContext.version ?? "NO VERSION"})...`,
   );
@@ -176,6 +178,13 @@ function initializeApp(): void {
       .catch((reason: unknown) => {
         Log.error("Could not complete command interaction.", reason);
       });
+  });
+
+  // Message Create Event
+  Discord.client.on("messageCreate", message => {
+    AiMessageController.handleMessage(message).catch((reason: unknown) => {
+      Log.error("Could not complete message create event.", reason);
+    });
   });
 
   // Voice State Update Event
