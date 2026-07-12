@@ -454,7 +454,7 @@ export class AiMessageController {
   }
 
   private static __normalizeMentionName(name: string): string {
-    return name.trim().toLocaleLowerCase();
+    return name.trim().toLowerCase();
   }
 
   private static __recordOrganicResponse(
@@ -534,10 +534,11 @@ export class AiMessageController {
       if (channelName === null) {
         return false;
       }
+      const normalizedChannelName: string = channelName.toLowerCase();
       if (
-        !organicChannelNames
-          .map(name => name.toLocaleLowerCase())
-          .includes(channelName.toLocaleLowerCase())
+        !organicChannelNames.some(
+          name => name.toLowerCase() === normalizedChannelName,
+        )
       ) {
         return false;
       }
