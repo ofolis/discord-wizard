@@ -200,7 +200,7 @@ export class InteractionController {
       color: CardColor.INFO,
       description: Utils.linesToString([
         `# ${ICONS[IconName.CALL_IN]} Call-In Mode Active`,
-        "Non-host users in the voice channel will be muted until they call in with `/callin` and a host puts them on the air.",
+        "Non-host users will be muted until they call in with `/callin` and a host puts them on the air.",
       ]),
     });
   }
@@ -530,7 +530,7 @@ export class InteractionController {
       index++
     ) {
       const userId: string = callInState.queuedUserIds[index];
-      const line: string = `${(index + 1).toString()}. ${this.__formatUserLabel(userId, userLabelsById)}`;
+      const line: string = `${(index + 1).toString()}. **${this.__formatUserLabel(userId, userLabelsById)}**`;
       if (Utils.linesToString([...lines, line]).length <= maxLength) {
         lines.push(line);
         continue;
