@@ -409,7 +409,7 @@ export class BettingState implements Saveable {
       betsByUserId: Object.fromEntries(
         Object.entries(this.__betsByUserId).map(([userId, betsByLetter]) => [
           userId,
-          { ...betsByLetter },
+          { ...(betsByLetter ?? {}) },
         ]),
       ),
       channelId: this.channelId,
@@ -495,7 +495,7 @@ export class BettingState implements Saveable {
   private __getUserBets(): UserBet[] {
     return Object.entries(this.__betsByUserId).flatMap(
       ([userId, betsByLetter]) =>
-        Object.entries(betsByLetter).map(([letter, bet]) => ({
+        Object.entries(betsByLetter ?? {}).map(([letter, bet]) => ({
           bet,
           key: `${userId}:${letter}`,
           userId,
