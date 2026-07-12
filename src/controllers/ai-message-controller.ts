@@ -170,7 +170,7 @@ export class AiMessageController {
       await this.__sendResponse(
         message,
         "...",
-        responseState.hasOverlappingInvocation,
+        responseState.hasOverlappingInvocation && !hasReferencedResponse,
         [],
       );
       this.__recordOrganicResponse(message, trigger);
@@ -188,15 +188,20 @@ export class AiMessageController {
   private static async __buildContextMessages(
     message: discordJs.Message,
   ): Promise<discordJs.Message[]> {
-    const messages: discordJs.Collection<string, discordJs.Message> =
-      await message.channel.messages.fetch({
-        before: message.id,
-        limit: this.__messageContextLimit,
-      });
-    return [...messages.values()].sort(
-      (leftMessage, rightMessage) =>
-        leftMessage.createdTimestamp - rightMessage.createdTimestamp,
-    );
+    try {
+      const messages: discordJs.Collection<string, discordJs.Message> =
+        await message.channel.messages.fetch({
+          before: message.id,
+          limit: this.__messageContextLimit,
+        });
+      return [...messages.values()].sort(
+        (leftMessage, rightMessage) =>
+          leftMessage.createdTimestamp - rightMessage.createdTimestamp,
+      );
+    } catch (reason: unknown) {
+      Log.error("Could not fetch AI message context.", reason);
+      return [];
+    }
   }
 
   private static __buildContextTranscript(
@@ -349,7 +354,7 @@ export class AiMessageController {
     const attachmentCount: number = message.attachments.size;
     const attachmentLabel: string =
       attachmentCount === 1 ? "attachment" : "attachments";
-    return ` [${attachmentCount.toString()} ${attachmentLabel} sent]`;
+    return ` (${attachmentCount.toString()} ${attachmentLabel} sent)`;
   }
 
   private static __formatAuthorName(message: discordJs.Message): string {
