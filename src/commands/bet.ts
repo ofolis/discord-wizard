@@ -69,13 +69,6 @@ export class Bet implements Command {
       );
       return;
     }
-    if (amountCents > 0 && amountCents < BettingState.minWagerCents) {
-      await InteractionController.informError(
-        message,
-        `Minimum wager is \`${MoneyUtils.format(BettingState.minWagerCents)}\`. Use \`0\` with an option letter to remove your wager from that option.`,
-      );
-      return;
-    }
     const letter: string | undefined = message.getCommandOption(
       letterOptionName,
       CommandOptionType.STRING,
@@ -84,6 +77,13 @@ export class Bet implements Command {
       await InteractionController.informError(
         message,
         "Enter a bet option letter.",
+      );
+      return;
+    }
+    if (amountCents > 0 && amountCents < BettingState.minWagerCents) {
+      await InteractionController.informError(
+        message,
+        `Minimum wager is \`${MoneyUtils.format(BettingState.minWagerCents)}\`. Use \`0\` with an option letter to remove your wager from that option.`,
       );
       return;
     }
@@ -140,7 +140,6 @@ export class Bet implements Command {
       );
       return;
     }
-
     try {
       await InteractionController.updateBetStart(bettingState);
     } catch (reason: unknown) {
