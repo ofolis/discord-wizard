@@ -109,8 +109,8 @@ export class BetEnd implements Command {
         bettingState.channelId,
         payouts,
         this.__getWinningOptions(bettingState, winnerLetters),
+        bettingState.getOptionSummaries(),
         await BetUtils.getParticipantLabels(bettingState),
-        this.__getBalancesByUserId(moneyState, payouts),
       );
     } catch (reason: unknown) {
       Log.error("Could not post bet results.", reason);
@@ -122,17 +122,6 @@ export class BetEnd implements Command {
     }
 
     await InteractionController.informSuccess(message, "Bet ended.");
-  }
-
-  private __getBalancesByUserId(
-    moneyState: MoneyState,
-    payouts: NonNullable<ReturnType<BettingState["calculatePayouts"]>>,
-  ): Record<string, number> {
-    const balancesByUserId: Record<string, number> = {};
-    payouts.forEach(payout => {
-      balancesByUserId[payout.userId] = moneyState.getBalance(payout.userId);
-    });
-    return balancesByUserId;
   }
 
   private __getWinningOptions(

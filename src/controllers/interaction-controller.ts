@@ -28,6 +28,11 @@ type BettingWinningOption = {
   readonly letter: string;
   readonly option: string;
 };
+type BettingPayoutGroup = {
+  readonly netCents: number;
+  readonly payouts: BettingPayout[];
+  readonly userId: string;
+};
 type MoneyRankingEntry = {
   readonly balanceCents: number;
   readonly displayName: string;
@@ -103,21 +108,20 @@ export class InteractionController {
     channelId: string,
     payouts: BettingPayout[],
     winningOptions: BettingWinningOption[],
+    optionSummaries: BettingOptionSummary[],
     userLabelsById: Record<string, string>,
-    balancesByUserId: Record<string, number>,
   ): Promise<void> {
     await InteractionUtils.createChannelCard(channelId, {
       color: CardColor.INFO,
       description: Utils.linesToString([
         `# ${ICONS[IconName.BET_RESULTS]} Bet Results`,
         this.__formatBetWinnerString(winningOptions),
-        payouts.length > 0 ? "### Payouts" : "No wagers were placed.",
         payouts.length > 0
-          ? this.__formatBettingPayoutsString(
-              payouts,
-              userLabelsById,
-              balancesByUserId,
-            )
+          ? this.__formatBettingTotalPoolString(optionSummaries)
+          : null,
+        payouts.length > 0 ? "### Settlements" : null,
+        payouts.length > 0
+          ? this.__formatBettingPayoutsString(payouts, userLabelsById)
           : null,
       ]),
     });
@@ -126,14 +130,10 @@ export class InteractionController {
   public static async announceBetStart(
     channelId: string,
     bettingState: BettingState,
-    userLabelsById: Record<string, string>,
   ): Promise<ChannelMessage> {
     return await InteractionUtils.createChannelCard(channelId, {
       color: CardColor.INFO,
-      description: this.__formatBetStartDescription(
-        bettingState,
-        userLabelsById,
-      ),
+      description: this.__formatBetStartDescription(bettingState),
     });
   }
 
@@ -354,7 +354,6 @@ export class InteractionController {
 
   public static async updateBetStart(
     bettingState: BettingState,
-    userLabelsById: Record<string, string>,
   ): Promise<void> {
     if (bettingState.messageId === null) {
       Log.debug("Skipping bet start message update. Message ID is missing.", {
@@ -368,10 +367,7 @@ export class InteractionController {
       bettingState.messageId,
       {
         color: CardColor.INFO,
-        description: this.__formatBetStartDescription(
-          bettingState,
-          userLabelsById,
-        ),
+        description: this.__formatBetStartDescription(bettingState),
       },
     );
   }
@@ -434,20 +430,12 @@ export class InteractionController {
 
   private static __formatBetOptionString(
     summary: BettingOptionSummary,
-    userLabelsById: Record<string, string>,
   ): string {
-    return Utils.linesToString([
-      `- ${this.__formatLetterEmoji(summary.letter)} **${summary.option}** - \`${MoneyUtils.format(summary.totalCents)}\``,
-      ...summary.wagers.map(
-        wager =>
-          `  - ${this.__formatUserLabel(wager.userId, userLabelsById)}: \`${MoneyUtils.format(wager.amountCents)}\``,
-      ),
-    ]);
+    return `- ${this.__formatLetterEmoji(summary.letter)} **${summary.option}** - \`${MoneyUtils.format(summary.totalCents)}\``;
   }
 
   private static __formatBetStartDescription(
     bettingState: BettingState,
-    userLabelsById: Record<string, string>,
   ): string {
     return Utils.linesToString([
       `# ${ICONS[IconName.BET_START]} Bet Started`,
@@ -456,9 +444,7 @@ export class InteractionController {
       Utils.linesToString(
         bettingState
           .getOptionSummaries()
-          .map(summary =>
-            this.__formatBetOptionString(summary, userLabelsById),
-          ),
+          .map(summary => this.__formatBetOptionString(summary)),
       ),
       `### Total Pool: \`${MoneyUtils.format(bettingState.totalPoolCents)}\``,
       bettingState.isLocked
@@ -485,20 +471,32 @@ export class InteractionController {
   private static __formatBettingPayoutsString(
     payouts: BettingPayout[],
     userLabelsById: Record<string, string>,
-    balancesByUserId: Record<string, number>,
   ): string {
     return Utils.linesToString(
-      payouts
+      this.__groupBettingPayouts(payouts)
         .sort((a, b) => b.netCents - a.netCents)
-        .map(payout => {
-          const netSign: string = payout.netCents > 0 ? "+" : "";
-          const changeEmoji: string =
-            payout.netCents > 0 ? " 🟢" : payout.netCents < 0 ? " 🔴" : "";
-          const balanceCents: number = balancesByUserId[payout.userId] ?? 0;
-          const balanceEmoji: string = balanceCents === 0 ? " 💀" : "";
-          return `- **${this.__formatUserLabel(payout.userId, userLabelsById)}:** \`${netSign}${MoneyUtils.format(payout.netCents)}\`${changeEmoji} (\`${MoneyUtils.format(balanceCents)}\`${balanceEmoji})`;
-        }),
+        .map(group =>
+          Utils.linesToString([
+            `- **${this.__formatUserLabel(group.userId, userLabelsById)}:** \`${this.__formatSignedMoney(group.netCents)}\` ${this.__formatChangeEmoji(group.netCents)} (bet \`${MoneyUtils.format(this.__getTotalBetCents(group.payouts))}\` | won \`${MoneyUtils.format(this.__getTotalWonCents(group.payouts))}\`)`,
+            ...[...group.payouts]
+              .sort((a, b) => b.netCents - a.netCents)
+              .map(
+                payout =>
+                  `  - **${payout.option}:** \`${this.__formatSignedMoney(payout.netCents)}\` ${this.__formatChangeEmoji(payout.netCents)} (bet \`${MoneyUtils.format(payout.amountCents)}\` | won \`${MoneyUtils.format(payout.payoutCents)}\`)`,
+              ),
+          ]),
+        ),
     );
+  }
+
+  private static __formatBettingTotalPoolString(
+    optionSummaries: BettingOptionSummary[],
+  ): string {
+    const totalPoolCents: number = optionSummaries.reduce(
+      (total, summary) => total + summary.totalCents,
+      0,
+    );
+    return `### Total Pool: \`${MoneyUtils.format(totalPoolCents)}\``;
   }
 
   private static __formatCallInQueueDescription(
@@ -543,6 +541,16 @@ export class InteractionController {
       break;
     }
     return Utils.linesToString(lines);
+  }
+
+  private static __formatChangeEmoji(amountCents: number): string {
+    if (amountCents > 0) {
+      return "🟢";
+    }
+    if (amountCents < 0) {
+      return "🔴";
+    }
+    return "⚪️";
   }
 
   private static __formatLetterEmoji(letter: string): string {
@@ -599,6 +607,10 @@ export class InteractionController {
 
   private static __formatRankEmoji(rank: number): string {
     return numberEmojis[rank] ?? `#${rank.toString()}`;
+  }
+
+  private static __formatSignedMoney(amountCents: number): string {
+    return `${amountCents > 0 ? "+" : ""}${MoneyUtils.format(amountCents)}`;
   }
 
   private static __formatUserLabel(
@@ -662,6 +674,33 @@ export class InteractionController {
         return `- ${this.__formatRankEmoji(rank)} **${result.option}** (\`${result.voteCount.toString()}\` ${voteLabel})`;
       }),
     );
+  }
+
+  private static __getTotalBetCents(payouts: BettingPayout[]): number {
+    return payouts.reduce((total, payout) => total + payout.amountCents, 0);
+  }
+
+  private static __getTotalWonCents(payouts: BettingPayout[]): number {
+    return payouts.reduce((total, payout) => total + payout.payoutCents, 0);
+  }
+
+  private static __groupBettingPayouts(
+    payouts: BettingPayout[],
+  ): BettingPayoutGroup[] {
+    const groupsByUserId: Record<string, BettingPayoutGroup> = {};
+    payouts.forEach(payout => {
+      const group: BettingPayoutGroup = groupsByUserId[payout.userId] ?? {
+        netCents: 0,
+        payouts: [],
+        userId: payout.userId,
+      };
+      groupsByUserId[payout.userId] = {
+        ...group,
+        netCents: group.netCents + payout.netCents,
+        payouts: [...group.payouts, payout],
+      };
+    });
+    return Object.values(groupsByUserId);
   }
 
   private static __hasVotes(results: VotingResult[]): boolean {

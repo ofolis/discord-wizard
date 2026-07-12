@@ -7,6 +7,14 @@ type Bet = {
   readonly letter: string;
 };
 
+type BetsByLetter = Record<string, Bet>;
+
+type UserBet = {
+  readonly bet: Bet;
+  readonly key: string;
+  readonly userId: string;
+};
+
 type BettingOptionSummary = {
   readonly letter: string;
   readonly option: string;
@@ -42,7 +50,7 @@ export class BettingState implements Saveable {
 
   public messageId: string | null;
 
-  private readonly __betsByUserId: Record<string, Bet>;
+  private readonly __betsByUserId: Partial<Record<string, BetsByLetter>>;
 
   private __isLocked: boolean;
 
@@ -78,8 +86,8 @@ export class BettingState implements Saveable {
   }
 
   public get totalPoolCents(): number {
-    return Object.values(this.__betsByUserId).reduce(
-      (total, bet) =>
+    return this.__getUserBets().reduce(
+      (total, { bet }) =>
         BettingState.__addSafeCents(
           total,
           bet.amountCents,
@@ -104,8 +112,8 @@ export class BettingState implements Saveable {
     bettingState.messageId = bettingStateJson.messageId ?? null;
     bettingState
       .__normalizeBetsByUserId(bettingStateJson.betsByUserId ?? {})
-      .forEach(([userId, bet]) => {
-        bettingState.__betsByUserId[userId] = bet;
+      .forEach(([userId, betsByLetter]) => {
+        bettingState.__betsByUserId[userId] = betsByLetter;
       });
     return bettingState;
   }
@@ -124,6 +132,29 @@ export class BettingState implements Saveable {
       });
     }
     return nextTotalCents;
+  }
+
+  private static __isStoredBetJson(value: unknown): boolean {
+    return (
+      typeof value === "object" &&
+      value !== null &&
+      !Array.isArray(value) &&
+      typeof (value as Record<string, unknown>).letter === "string" &&
+      Number.isSafeInteger((value as Record<string, unknown>).amountCents) &&
+      ((value as Record<string, unknown>).amountCents as number) > 0
+    );
+  }
+
+  private static __isStoredUserBetsJson(value: unknown): boolean {
+    return (
+      this.__isStoredBetJson(value) ||
+      (typeof value === "object" &&
+        value !== null &&
+        !Array.isArray(value) &&
+        Object.values(value as Record<string, unknown>).every(bet =>
+          this.__isStoredBetJson(bet),
+        ))
+    );
   }
 
   private static __isValidOption(option: string): boolean {
@@ -150,16 +181,8 @@ export class BettingState implements Saveable {
       (typeof betsByUserId === "object" &&
         betsByUserId !== null &&
         !Array.isArray(betsByUserId) &&
-        Object.values(betsByUserId as Record<string, unknown>).every(
-          bet =>
-            typeof bet === "object" &&
-            bet !== null &&
-            !Array.isArray(bet) &&
-            typeof (bet as Record<string, unknown>).letter === "string" &&
-            Number.isSafeInteger(
-              (bet as Record<string, unknown>).amountCents,
-            ) &&
-            ((bet as Record<string, unknown>).amountCents as number) > 0,
+        Object.values(betsByUserId as Record<string, unknown>).every(userBets =>
+          this.__isStoredUserBetsJson(userBets),
         ));
 
     if (
@@ -235,11 +258,11 @@ export class BettingState implements Saveable {
       return null;
     }
 
-    const winningBets: [string, Bet][] = Object.entries(
-      this.__betsByUserId,
-    ).filter(([, bet]) => normalizedWinningLetters.includes(bet.letter));
+    const winningBets: UserBet[] = this.__getUserBets().filter(({ bet }) =>
+      normalizedWinningLetters.includes(bet.letter),
+    );
     const winningTotalCents: number = winningBets.reduce(
-      (total, [, bet]) =>
+      (total, { bet }) =>
         BettingState.__addSafeCents(
           total,
           bet.amountCents,
@@ -248,7 +271,7 @@ export class BettingState implements Saveable {
       0,
     );
     const totalPoolCents: number = this.totalPoolCents;
-    const payoutsByUserId: Record<string, number> =
+    const payoutsByKey: Record<string, number> =
       winningTotalCents > 0
         ? this.__calculateDistributedPayouts(
             winningBets,
@@ -257,8 +280,8 @@ export class BettingState implements Saveable {
           )
         : {};
 
-    return Object.entries(this.__betsByUserId).map(([userId, bet]) => {
-      const payoutCents: number = payoutsByUserId[userId] ?? 0;
+    return this.__getUserBets().map(({ bet, key, userId }) => {
+      const payoutCents: number = payoutsByKey[key] ?? 0;
       return {
         amountCents: bet.amountCents,
         letter: bet.letter,
@@ -277,11 +300,9 @@ export class BettingState implements Saveable {
   public getOptionSummaries(): BettingOptionSummary[] {
     return this.__options.map((option, index) => {
       const letter: string = this.__indexToLetter(index);
-      const wagers: BettingOptionSummary["wagers"] = Object.entries(
-        this.__betsByUserId,
-      )
-        .filter(([, bet]) => bet.letter === letter)
-        .map(([userId, bet]) => ({
+      const wagers: BettingOptionSummary["wagers"] = this.__getUserBets()
+        .filter(({ bet }) => bet.letter === letter)
+        .map(({ bet, userId }) => ({
           amountCents: bet.amountCents,
           userId,
         }))
@@ -308,14 +329,18 @@ export class BettingState implements Saveable {
   }
 
   public getRefunds(): BettingRefund[] {
-    return Object.entries(this.__betsByUserId).map(([userId, bet]) => ({
+    return this.__getUserBets().map(({ bet, userId }) => ({
       amountCents: bet.amountCents,
       userId,
     }));
   }
 
-  public getWager(userId: string): Bet | null {
-    return this.__betsByUserId[userId] ?? null;
+  public getWager(userId: string, letter: string): Bet | null {
+    const normalizedLetter: string | null = this.__normalizeLetter(letter);
+    if (normalizedLetter === null) {
+      return null;
+    }
+    return this.__betsByUserId[userId]?.[normalizedLetter] ?? null;
   }
 
   public lock(): void {
@@ -344,26 +369,42 @@ export class BettingState implements Saveable {
       return null;
     }
     if (amountCents === 0) {
-      const existingBet: Bet | null = Object.hasOwn(this.__betsByUserId, userId)
-        ? this.__betsByUserId[userId]
-        : null;
-      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete -- User IDs are dynamic wager keys.
-      delete this.__betsByUserId[userId];
+      const existingBet: Bet | null =
+        this.__betsByUserId[userId]?.[betOption.letter] ?? null;
+      if (this.__betsByUserId[userId] !== undefined) {
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete -- User IDs and option letters are dynamic wager keys.
+        delete this.__betsByUserId[userId][betOption.letter];
+      }
+      if (
+        this.__betsByUserId[userId] !== undefined &&
+        Object.keys(this.__betsByUserId[userId]).length === 0
+      ) {
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete -- User IDs are dynamic wager keys.
+        delete this.__betsByUserId[userId];
+      }
       if (existingBet === null) {
         return "";
       }
       return this.__options[this.__letterToIndex(existingBet.letter)];
     }
     this.__betsByUserId[userId] = {
-      amountCents,
-      letter: betOption.letter,
+      ...this.__betsByUserId[userId],
+      [betOption.letter]: {
+        amountCents,
+        letter: betOption.letter,
+      },
     };
     return betOption.option;
   }
 
   public toJson(): BettingStateJson {
     return {
-      betsByUserId: { ...this.__betsByUserId },
+      betsByUserId: Object.fromEntries(
+        Object.entries(this.__betsByUserId).map(([userId, betsByLetter]) => [
+          userId,
+          { ...betsByLetter },
+        ]),
+      ),
       channelId: this.channelId,
       guildId: this.guildId,
       isLocked: this.__isLocked,
@@ -378,15 +419,15 @@ export class BettingState implements Saveable {
   }
 
   private __calculateDistributedPayouts(
-    winningBets: [string, Bet][],
+    winningBets: UserBet[],
     totalPoolCents: number,
     winningTotalCents: number,
   ): Record<string, number> {
     const payoutEntries: {
       readonly basePayoutCents: number;
+      readonly key: string;
       readonly remainder: bigint;
-      readonly userId: string;
-    }[] = winningBets.map(([userId, bet]) => {
+    }[] = winningBets.map(({ bet, key }) => {
       const numerator: bigint =
         BigInt(totalPoolCents) * BigInt(bet.amountCents);
       const basePayoutCents: bigint = numerator / BigInt(winningTotalCents);
@@ -395,14 +436,14 @@ export class BettingState implements Saveable {
           basePayoutCents,
           "Cannot calculate bet payout. Payout is not a safe integer.",
         ),
+        key,
         remainder: numerator % BigInt(winningTotalCents),
-        userId,
       };
     });
-    const payoutsByUserId: Record<string, number> = {};
+    const payoutsByKey: Record<string, number> = {};
     let distributedCents: bigint = 0n;
     payoutEntries.forEach(entry => {
-      payoutsByUserId[entry.userId] = entry.basePayoutCents;
+      payoutsByKey[entry.key] = entry.basePayoutCents;
       distributedCents += BigInt(entry.basePayoutCents);
     });
     const remainingCents: number = BettingState.__toSafeInteger(
@@ -415,9 +456,9 @@ export class BettingState implements Saveable {
       )
       .slice(0, remainingCents)
       .forEach(entry => {
-        payoutsByUserId[entry.userId] += 1;
+        payoutsByKey[entry.key] += 1;
       });
-    return payoutsByUserId;
+    return payoutsByKey;
   }
 
   private __containsNormalizedLetter(letter: string | null): boolean {
@@ -444,6 +485,17 @@ export class BettingState implements Saveable {
     };
   }
 
+  private __getUserBets(): UserBet[] {
+    return Object.entries(this.__betsByUserId).flatMap(
+      ([userId, betsByLetter]) =>
+        Object.entries(betsByLetter).map(([letter, bet]) => ({
+          bet,
+          key: `${userId}:${letter}`,
+          userId,
+        })),
+    );
+  }
+
   private __indexToLetter(index: number): string {
     return String.fromCharCode("A".charCodeAt(0) + index);
   }
@@ -457,32 +509,44 @@ export class BettingState implements Saveable {
 
   private __normalizeBetsByUserId(
     betsByUserId: NonNullable<BettingStateJson["betsByUserId"]>,
-  ): [string, Bet][] {
-    return Object.entries(betsByUserId).flatMap(([userId, bet]) => {
-      const normalizedLetter: string | null = this.__normalizeLetter(
-        bet.letter,
-      );
-      if (
-        normalizedLetter === null ||
-        !this.__containsNormalizedLetter(normalizedLetter)
-      ) {
-        Log.error("Ignoring invalid persisted bet.", {
-          bet,
-          normalizedLetter,
-          options: this.__options,
-          userId,
-        });
-        return [];
-      }
-      return [
-        [
-          userId,
-          {
-            amountCents: bet.amountCents,
-            letter: normalizedLetter,
-          },
-        ],
-      ];
+  ): [string, BetsByLetter][] {
+    return Object.entries(betsByUserId).flatMap(([userId, rawUserBets]) => {
+      const rawBets: unknown[] = BettingState.__isStoredBetJson(rawUserBets)
+        ? [rawUserBets]
+        : Object.values(rawUserBets);
+      const betsByLetter: BetsByLetter = {};
+      rawBets.forEach(rawBet => {
+        if (!BettingState.__isStoredBetJson(rawBet)) {
+          Log.error("Ignoring invalid persisted bet.", {
+            rawBet,
+            userId,
+          });
+          return;
+        }
+        const bet: Bet = rawBet as Bet;
+        const normalizedLetter: string | null = this.__normalizeLetter(
+          bet.letter,
+        );
+        if (
+          normalizedLetter === null ||
+          !this.__containsNormalizedLetter(normalizedLetter)
+        ) {
+          Log.error("Ignoring invalid persisted bet.", {
+            bet,
+            normalizedLetter,
+            options: this.__options,
+            userId,
+          });
+          return;
+        }
+        betsByLetter[normalizedLetter] = {
+          amountCents: bet.amountCents,
+          letter: normalizedLetter,
+        };
+      });
+      return Object.keys(betsByLetter).length > 0
+        ? [[userId, betsByLetter]]
+        : [];
     });
   }
 
