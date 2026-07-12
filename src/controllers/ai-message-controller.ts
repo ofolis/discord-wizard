@@ -1,4 +1,5 @@
 import type * as discordJs from "discord.js";
+import { randomUUID } from "node:crypto";
 import { AppEnvironment } from "../app-environment";
 import { Discord, Log } from "../core";
 import { AiClient } from "./ai-client";
@@ -263,7 +264,7 @@ export class AiMessageController {
       )
       .map((target, index) => ({
         ...target,
-        token: `[[mention:${(index + 1).toString()}]]`,
+        token: `[[mention:${(index + 1).toString()}:${randomUUID()}]]`,
       }));
   }
 
@@ -345,16 +346,10 @@ export class AiMessageController {
     if (message.attachments.size === 0) {
       return "";
     }
-    const attachmentDescriptions: string[] = message.attachments.map(
-      attachment => {
-        const contentType: string = this.__escapePromptBlockText(
-          attachment.contentType ?? "unknown type",
-        );
-        const name: string = this.__escapePromptBlockText(attachment.name);
-        return `${name} (${contentType}, ${attachment.size.toString()} bytes)`;
-      },
-    );
-    return ` [attachment(s): ${attachmentDescriptions.join("; ")}]`;
+    const attachmentCount: number = message.attachments.size;
+    const attachmentLabel: string =
+      attachmentCount === 1 ? "attachment" : "attachments";
+    return ` [${attachmentCount.toString()} ${attachmentLabel} sent]`;
   }
 
   private static __formatAuthorName(message: discordJs.Message): string {
