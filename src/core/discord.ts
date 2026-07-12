@@ -25,6 +25,9 @@ export class Discord {
     if (this.__client === null) {
       Log.debug("Creating Discord client...");
       this.__client = new discordJs.Client({
+        // This template provisions privileged intents in the Discord Developer
+        // Portal up front; app-level feature flags should not mutate the shared
+        // core client surface per deployment.
         intents: [
           "DirectMessages",
           "GuildMembers",
