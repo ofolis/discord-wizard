@@ -88,6 +88,7 @@ export class CallInPromote implements Command {
 
     try {
       callInState.addSpeakingUser(member.id);
+      DataController.saveCallInState(callInState);
       await CallInUtils.unmuteForCallIn(member, callInState);
       DataController.saveCallInState(callInState);
       if (

@@ -35,8 +35,9 @@ export class CallInEnd implements Command {
     }
 
     try {
-      await CallInUtils.unmuteTrackedMembers(message.member.guild, callInState);
       callInState.close();
+      DataController.saveCallInState(callInState);
+      await CallInUtils.unmuteTrackedMembers(message.member.guild, callInState);
       DataController.saveCallInState(callInState);
       await InteractionController.announceCallInEnd(callInState.channelId);
     } catch (reason: unknown) {

@@ -82,6 +82,7 @@ export class CallInForce implements Command {
     const wasQueued: boolean = callInState.hasQueuedUser(member.id);
     try {
       callInState.addSpeakingUser(member.id);
+      DataController.saveCallInState(callInState);
       await CallInUtils.unmuteForCallIn(member, callInState);
       DataController.saveCallInState(callInState);
       if (wasQueued) {

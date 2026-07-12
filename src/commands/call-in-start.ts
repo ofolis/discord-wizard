@@ -65,6 +65,7 @@ export class CallInStart implements Command {
     } catch (reason: unknown) {
       Log.error("Could not start call-in mode.", reason);
       callInState.close();
+      DataController.saveCallInState(callInState);
       try {
         await CallInUtils.unmuteTrackedMembers(
           message.member.guild,
