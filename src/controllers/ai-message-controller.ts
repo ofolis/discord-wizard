@@ -38,7 +38,7 @@ export class AiMessageController {
     number
   > = new Map();
 
-  private static readonly __maxBufferMilliseconds: number = 15000;
+  private static readonly __maxBufferMilliseconds: number = 30000;
 
   private static readonly __maxContextCharacters: number = 6000;
 
