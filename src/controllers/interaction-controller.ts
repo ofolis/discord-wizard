@@ -428,6 +428,22 @@ export class InteractionController {
     );
   }
 
+  private static __addSafeCents(
+    totalCents: number,
+    amountCents: number,
+    errorMessage: string,
+  ): number {
+    const nextTotalCents: number = totalCents + amountCents;
+    if (!Number.isSafeInteger(nextTotalCents)) {
+      Log.throw(errorMessage, {
+        amountCents,
+        nextTotalCents,
+        totalCents,
+      });
+    }
+    return nextTotalCents;
+  }
+
   private static __formatBetOptionString(
     summary: BettingOptionSummary,
   ): string {
@@ -493,7 +509,12 @@ export class InteractionController {
     optionSummaries: BettingOptionSummary[],
   ): string {
     const totalPoolCents: number = optionSummaries.reduce(
-      (total, summary) => total + summary.totalCents,
+      (total, summary) =>
+        this.__addSafeCents(
+          total,
+          summary.totalCents,
+          "Cannot format betting total pool. Total is not a safe integer.",
+        ),
       0,
     );
     return `### Total Pool: \`${MoneyUtils.format(totalPoolCents)}\``;
@@ -677,11 +698,27 @@ export class InteractionController {
   }
 
   private static __getTotalBetCents(payouts: BettingPayout[]): number {
-    return payouts.reduce((total, payout) => total + payout.amountCents, 0);
+    return payouts.reduce(
+      (total, payout) =>
+        this.__addSafeCents(
+          total,
+          payout.amountCents,
+          "Cannot format total bet. Total is not a safe integer.",
+        ),
+      0,
+    );
   }
 
   private static __getTotalWonCents(payouts: BettingPayout[]): number {
-    return payouts.reduce((total, payout) => total + payout.payoutCents, 0);
+    return payouts.reduce(
+      (total, payout) =>
+        this.__addSafeCents(
+          total,
+          payout.payoutCents,
+          "Cannot format total won. Total is not a safe integer.",
+        ),
+      0,
+    );
   }
 
   private static __groupBettingPayouts(
