@@ -102,7 +102,7 @@ export class AppEnvironment {
     readonly minimumValue?: number;
   }): number {
     const { defaultValue, key, maximumValue, minimumValue } = options;
-    const value: string = EnvironmentUtils.getOptionalEnvVariable(key);
+    const value: string = EnvironmentUtils.getOptionalEnvVariable(key).trim();
     if (value.length === 0) {
       return defaultValue;
     }

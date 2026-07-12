@@ -500,7 +500,7 @@ export class AiMessageController {
         repliedUser: false,
         users: [...mentionUserIds],
       },
-      content,
+      content: this.__truncateResponse(content),
     };
     if (shouldReferenceMessage) {
       options.reply = {
