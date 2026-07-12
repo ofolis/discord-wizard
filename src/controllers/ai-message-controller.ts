@@ -1,5 +1,5 @@
 import type * as discordJs from "discord.js";
-import { randomUUID } from "node:crypto";
+import { randomInt } from "node:crypto";
 import { AppEnvironment } from "../app-environment";
 import { Discord, Log } from "../core";
 import { AiClient } from "./ai-client";
@@ -264,7 +264,7 @@ export class AiMessageController {
       )
       .map((target, index) => ({
         ...target,
-        token: `[[mention:${(index + 1).toString()}:${randomUUID()}]]`,
+        token: `[[mention:${(index + 1).toString()}:${randomInt(1, 1001).toString()}]]`,
       }));
   }
 
