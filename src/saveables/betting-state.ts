@@ -376,15 +376,16 @@ export class BettingState implements Saveable {
       return null;
     }
     if (amountCents === 0) {
-      const existingBet: Bet | null =
-        this.__betsByUserId[userId]?.[betOption.letter] ?? null;
-      if (this.__betsByUserId[userId] !== undefined) {
+      const betsByLetter: BetsByLetter | undefined =
+        this.__betsByUserId[userId];
+      const existingBet: Bet | null = betsByLetter?.[betOption.letter] ?? null;
+      if (betsByLetter !== undefined) {
         // eslint-disable-next-line @typescript-eslint/no-dynamic-delete -- User IDs and option letters are dynamic wager keys.
-        delete this.__betsByUserId[userId][betOption.letter];
+        delete betsByLetter[betOption.letter];
       }
       if (
-        this.__betsByUserId[userId] !== undefined &&
-        Object.keys(this.__betsByUserId[userId]).length === 0
+        betsByLetter !== undefined &&
+        Object.keys(betsByLetter).length === 0
       ) {
         // eslint-disable-next-line @typescript-eslint/no-dynamic-delete -- User IDs are dynamic wager keys.
         delete this.__betsByUserId[userId];

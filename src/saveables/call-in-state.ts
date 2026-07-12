@@ -177,6 +177,10 @@ export class CallInState implements Saveable {
     this.__isEnding = true;
   }
 
+  public stopEnding(): void {
+    this.__isEnding = false;
+  }
+
   public toJson(): CallInStateJson {
     return {
       botMutedUserIds: [...this.__botMutedUserIds],

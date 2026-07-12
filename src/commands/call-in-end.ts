@@ -50,6 +50,8 @@ export class CallInEnd implements Command {
       await InteractionController.announceCallInEnd(callInState.channelId);
     } catch (reason: unknown) {
       Log.error("Could not end call-in mode.", reason);
+      callInState.stopEnding();
+      DataController.saveCallInState(callInState);
       await InteractionController.informError(
         message,
         "Could not end call-in mode. Contact an admin.",
