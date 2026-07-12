@@ -29,9 +29,9 @@ type BettingWinningOption = {
   readonly option: string;
 };
 type BettingPayoutGroup = {
-  readonly netCents: number;
-  readonly payouts: BettingPayout[];
-  readonly userId: string;
+  netCents: number;
+  payouts: BettingPayout[];
+  userId: string;
 };
 type MoneyRankingEntry = {
   readonly balanceCents: number;
@@ -689,16 +689,13 @@ export class InteractionController {
   ): BettingPayoutGroup[] {
     const groupsByUserId: Record<string, BettingPayoutGroup> = {};
     payouts.forEach(payout => {
-      const group: BettingPayoutGroup = groupsByUserId[payout.userId] ?? {
+      groupsByUserId[payout.userId] ??= {
         netCents: 0,
         payouts: [],
         userId: payout.userId,
       };
-      groupsByUserId[payout.userId] = {
-        ...group,
-        netCents: group.netCents + payout.netCents,
-        payouts: [...group.payouts, payout],
-      };
+      groupsByUserId[payout.userId].netCents += payout.netCents;
+      groupsByUserId[payout.userId].payouts.push(payout);
     });
     return Object.values(groupsByUserId);
   }

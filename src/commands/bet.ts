@@ -72,7 +72,7 @@ export class Bet implements Command {
     if (amountCents > 0 && amountCents < BettingState.minWagerCents) {
       await InteractionController.informError(
         message,
-        `Minimum wager is \`${MoneyUtils.format(BettingState.minWagerCents)}\`. Use \`0\` to remove your wager.`,
+        `Minimum wager is \`${MoneyUtils.format(BettingState.minWagerCents)}\`. Use \`0\` with an option letter to remove your wager from that option.`,
       );
       return;
     }
