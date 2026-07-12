@@ -731,7 +731,11 @@ export class InteractionController {
         payouts: [],
         userId: payout.userId,
       };
-      groupsByUserId[payout.userId].netCents += payout.netCents;
+      groupsByUserId[payout.userId].netCents = this.__addSafeCents(
+        groupsByUserId[payout.userId].netCents,
+        payout.netCents,
+        "Cannot group betting payouts. Net total is not a safe integer.",
+      );
       groupsByUserId[payout.userId].payouts.push(payout);
     });
     return Object.values(groupsByUserId);
