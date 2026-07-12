@@ -141,7 +141,7 @@ export class InteractionController {
     await InteractionUtils.createChannelCard(channelId, {
       color: CardColor.INFO,
       description: Utils.linesToString([
-        "# Call-in mode inactive",
+        `# ${ICONS[IconName.CALL_IN]} Call-In Mode Inactive`,
         "You can mute and unmute yourself as normal.",
       ]),
     });
@@ -155,7 +155,7 @@ export class InteractionController {
   ): Promise<void> {
     await InteractionUtils.createChannelCard(channelId, {
       color: CardColor.INFO,
-      description: `# ${data.userName} is no longer on the air.`,
+      description: `# ${ICONS[IconName.CALL_IN]} Off Air\n**${data.userName}** is no longer on the air.`,
     });
   }
 
@@ -167,7 +167,7 @@ export class InteractionController {
   ): Promise<void> {
     await InteractionUtils.createChannelCard(channelId, {
       color: CardColor.INFO,
-      description: `# ${data.userMention} is now on the air.`,
+      description: `# ${ICONS[IconName.CALL_IN]} On Air\n${data.userMention} is now on the air.`,
     });
   }
 
@@ -179,7 +179,7 @@ export class InteractionController {
   ): Promise<void> {
     await InteractionUtils.createChannelCard(channelId, {
       color: CardColor.INFO,
-      description: `# ${data.userName} is calling in.`,
+      description: `# ${ICONS[IconName.CALL_IN]} Calling In\n**${data.userName}** is calling in.`,
     });
   }
 
@@ -191,7 +191,7 @@ export class InteractionController {
   ): Promise<void> {
     await InteractionUtils.createChannelCard(channelId, {
       color: CardColor.INFO,
-      description: `# ${data.userName} hung up.`,
+      description: `# ${ICONS[IconName.CALL_IN]} Hung Up\n**${data.userName}** hung up.`,
     });
   }
 
@@ -199,7 +199,7 @@ export class InteractionController {
     await InteractionUtils.createChannelCard(channelId, {
       color: CardColor.INFO,
       description: Utils.linesToString([
-        "# Call-in mode active",
+        `# ${ICONS[IconName.CALL_IN]} Call-In Mode Active`,
         "Non-host users in the voice channel will be muted until they call in with `/callin` and a host puts them on the air.",
       ]),
     });
@@ -505,7 +505,7 @@ export class InteractionController {
     callInState: CallInState,
     userLabelsById: Record<string, string>,
   ): string {
-    const heading: string = "# Call-in Queue";
+    const heading: string = `# ${ICONS[IconName.CALL_IN]} Call-In Queue`;
     return Utils.linesToString([
       heading,
       callInState.queuedUserIds.length > 0
