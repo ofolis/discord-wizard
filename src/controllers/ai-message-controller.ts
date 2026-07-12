@@ -37,7 +37,7 @@ export class AiMessageController {
     number
   > = new Map();
 
-  private static readonly __maxBufferMilliseconds: number = 8000;
+  private static readonly __maxBufferMilliseconds: number = 15000;
 
   private static readonly __maxContextCharacters: number = 6000;
 
@@ -91,7 +91,8 @@ export class AiMessageController {
       messageId: message.id,
     };
     this.__activeResponseStateByChannelId.set(message.channelId, responseState);
-    const stopTyping: () => void = this.__startTyping(message);
+    let hasReferencedResponse: boolean = false;
+    let stopTyping: () => void = this.__startTyping(message);
     try {
       const promptContext: AiPromptContext = await this.__buildPromptContext(
         message,
@@ -110,28 +111,57 @@ export class AiMessageController {
       const response: string = await AiClient.generateResponse(
         promptContext.prompt,
       );
-      const mentionReplacement: MentionReplacement =
-        this.__replaceMentionTokens(
-          this.__formatResponse(response),
-          promptContext.mentionTargets,
+      const mentionReplacements: MentionReplacement[] =
+        this.__formatResponseParagraphs(response).map(paragraph =>
+          this.__replaceMentionTokens(paragraph, promptContext.mentionTargets),
         );
-      const bufferMilliseconds: number = this.__calculateBufferMilliseconds(
-        mentionReplacement.content,
+      const mentionUserIds: string[] = [
+        ...new Set(
+          mentionReplacements.flatMap(replacement => replacement.userIds),
+        ),
+      ];
+      const responseLength: number = mentionReplacements.reduce(
+        (length, replacement) => length + replacement.content.length,
+        0,
       );
       Log.info("Buffering AI message response.", {
-        bufferMilliseconds,
         hasOverlappingInvocation: responseState.hasOverlappingInvocation,
-        mentionUserIds: mentionReplacement.userIds,
+        mentionUserIds,
         messageId: message.id,
-        responseLength: mentionReplacement.content.length,
+        responseLength,
+        responseParagraphCount: mentionReplacements.length,
       });
-      await this.__sleepWithTypingLeadOut(bufferMilliseconds, stopTyping);
-      await this.__sendResponse(
-        message,
-        mentionReplacement.content,
-        responseState.hasOverlappingInvocation,
-        mentionReplacement.userIds,
-      );
+      for (let index: number = 0; index < mentionReplacements.length; index++) {
+        const mentionReplacement: MentionReplacement =
+          mentionReplacements[index];
+        const bufferMilliseconds: number = this.__calculateBufferMilliseconds(
+          mentionReplacement.content,
+        );
+        const shouldReferenceMessage: boolean =
+          responseState.hasOverlappingInvocation && !hasReferencedResponse;
+        Log.info("Buffering AI message response paragraph.", {
+          bufferMilliseconds,
+          hasOverlappingInvocation: responseState.hasOverlappingInvocation,
+          messageId: message.id,
+          paragraphIndex: index,
+          paragraphLength: mentionReplacement.content.length,
+          paragraphTotal: mentionReplacements.length,
+          shouldReferenceMessage,
+        });
+        await this.__sleepWithTypingLeadOut(bufferMilliseconds, stopTyping);
+        await this.__sendResponse(
+          message,
+          mentionReplacement.content,
+          shouldReferenceMessage,
+          mentionReplacement.userIds,
+        );
+        if (shouldReferenceMessage) {
+          hasReferencedResponse = true;
+        }
+        if (index < mentionReplacements.length - 1) {
+          stopTyping = this.__startTyping(message);
+        }
+      }
       this.__recordOrganicResponse(message, trigger);
     } catch (reason: unknown) {
       Log.error("Could not generate AI message response.", reason);
@@ -357,6 +387,14 @@ export class AiMessageController {
 
   private static __formatResponse(response: string): string {
     return this.__trimDanglingMarkdown(this.__truncateResponse(response));
+  }
+
+  private static __formatResponseParagraphs(response: string): string[] {
+    const paragraphs: string[] = response
+      .split(/\n\s*\n/gu)
+      .map(paragraph => this.__formatResponse(paragraph))
+      .filter(paragraph => paragraph.length > 0);
+    return paragraphs.length > 0 ? paragraphs : ["..."];
   }
 
   private static __formatTranscriptLine(
