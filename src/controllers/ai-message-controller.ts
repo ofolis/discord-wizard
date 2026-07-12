@@ -475,6 +475,8 @@ export class AiMessageController {
     const userIds: Set<string> = new Set();
     mentionTargets.forEach(target => {
       const regex: RegExp = new RegExp(this.__escapeRegex(target.token), "gu");
+      // Repeated authorized tokens are respected as intentional model output.
+      // allowedMentions.users still limits pings to users mapped in this request.
       replacedContent = replacedContent.replace(regex, () => {
         userIds.add(target.userId);
         return Discord.formatUserMentionString({
