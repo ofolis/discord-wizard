@@ -64,16 +64,23 @@ export class CallInStart implements Command {
       await InteractionController.announceCallInStart(callInState.channelId);
     } catch (reason: unknown) {
       Log.error("Could not start call-in mode.", reason);
-      callInState.close();
+      callInState.startEnding();
       DataController.saveCallInState(callInState);
       try {
-        await CallInUtils.unmuteTrackedMembers(
+        const didUnmuteAll: boolean = await CallInUtils.unmuteTrackedMembers(
           message.member.guild,
           callInState,
         );
         DataController.saveCallInState(callInState);
+        if (!didUnmuteAll) {
+          Log.throw("Could not unmute all tracked call-in members.");
+        }
+        callInState.close();
+        DataController.saveCallInState(callInState);
       } catch (rollbackReason: unknown) {
         Log.error("Could not roll back failed call-in start.", rollbackReason);
+        callInState.stopEnding();
+        DataController.saveCallInState(callInState);
       }
       await InteractionController.informError(
         message,
