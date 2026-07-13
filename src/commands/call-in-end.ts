@@ -35,12 +35,23 @@ export class CallInEnd implements Command {
     }
 
     try {
-      await CallInUtils.unmuteTrackedMembers(message.member.guild, callInState);
+      callInState.startEnding();
+      DataController.saveCallInState(callInState);
+      const didUnmuteAll: boolean = await CallInUtils.unmuteTrackedMembers(
+        message.member.guild,
+        callInState,
+      );
+      DataController.saveCallInState(callInState);
+      if (!didUnmuteAll) {
+        Log.throw("Could not unmute all tracked call-in members.");
+      }
       callInState.close();
       DataController.saveCallInState(callInState);
       await InteractionController.announceCallInEnd(callInState.channelId);
     } catch (reason: unknown) {
       Log.error("Could not end call-in mode.", reason);
+      callInState.stopEnding();
+      DataController.saveCallInState(callInState);
       await InteractionController.informError(
         message,
         "Could not end call-in mode. Contact an admin.",

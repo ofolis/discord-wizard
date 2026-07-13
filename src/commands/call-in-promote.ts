@@ -88,7 +88,15 @@ export class CallInPromote implements Command {
 
     try {
       callInState.addSpeakingUser(member.id);
-      await CallInUtils.unmuteForCallIn(member, callInState);
+      DataController.saveCallInState(callInState);
+      try {
+        await CallInUtils.unmuteForCallIn(member, callInState);
+      } catch (reason: unknown) {
+        callInState.removeSpeakingUser(member.id);
+        callInState.addQueuedUser(member.id);
+        DataController.saveCallInState(callInState);
+        throw reason;
+      }
       DataController.saveCallInState(callInState);
       if (
         !(await CallInUtils.postQueueToHosts(message.member.guild, callInState))

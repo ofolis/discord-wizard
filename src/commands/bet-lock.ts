@@ -9,7 +9,6 @@ import {
   Log,
 } from "../core";
 import { BettingState } from "../saveables";
-import { BetUtils } from "./bet-utils";
 
 export class BetLock implements Command {
   public readonly description: string = "Locks the open bet.";
@@ -53,10 +52,7 @@ export class BetLock implements Command {
     }
 
     try {
-      await InteractionController.updateBetStart(
-        bettingState,
-        await BetUtils.getParticipantLabels(bettingState),
-      );
+      await InteractionController.updateBetStart(bettingState);
     } catch (reason: unknown) {
       Log.error("Could not update locked bet.", reason);
       const isMissingChannel: boolean = AppError.is(

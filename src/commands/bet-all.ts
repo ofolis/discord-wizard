@@ -13,7 +13,6 @@ import {
 } from "../core";
 import { MoneyUtils } from "../money-utils";
 import { BettingState, MoneyState } from "../saveables";
-import { BetUtils } from "./bet-utils";
 
 const letterOptionName: string = "letter";
 
@@ -52,9 +51,21 @@ export class BetAll implements Command {
       return;
     }
 
+    const letter: string | undefined = message.getCommandOption(
+      letterOptionName,
+      CommandOptionType.STRING,
+    );
+    if (letter === undefined) {
+      await InteractionController.informError(
+        message,
+        "Enter a bet option letter.",
+      );
+      return;
+    }
+
     const userId: string = message.user.id;
     const previousWagerCents: number =
-      bettingState.getWager(userId)?.amountCents ?? 0;
+      bettingState.getWager(userId, letter)?.amountCents ?? 0;
     const moneyState: MoneyState = DataController.loadOrCreateMoneyState(
       message.member.guild.id,
     );
@@ -75,15 +86,10 @@ export class BetAll implements Command {
       );
       return;
     }
-
-    const letter: string | undefined = message.getCommandOption(
-      letterOptionName,
-      CommandOptionType.STRING,
-    );
-    if (letter === undefined) {
+    if (amountCents > 0 && amountCents < BettingState.minWagerCents) {
       await InteractionController.informError(
         message,
-        "Enter a bet option letter.",
+        `You need at least \`${MoneyUtils.format(BettingState.minWagerCents)}\` available to wager all in.`,
       );
       return;
     }
@@ -118,10 +124,7 @@ export class BetAll implements Command {
     }
 
     try {
-      await InteractionController.updateBetStart(
-        bettingState,
-        await BetUtils.getParticipantLabels(bettingState),
-      );
+      await InteractionController.updateBetStart(bettingState);
     } catch (reason: unknown) {
       Log.error("Could not update bet total.", reason);
       const isMissingChannel: boolean = AppError.is(

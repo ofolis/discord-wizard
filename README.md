@@ -104,33 +104,41 @@ The chatbot's runtime prompt is managed in OpenAI Prompt Management and selected
 2. In your Discord server channel, execute the bot's commands.
    - Mention Wizard in a message to receive an AI response when `CHATBOT_ENABLED=true`.
    - When `CHATBOT_ENABLED=true`, Wizard may also reply organically in `CHATBOT_ORGANIC_CHANNEL_NAMES` based on `CHATBOT_ORGANIC_REPLY_CHANCE` and `CHATBOT_ORGANIC_COOLDOWN_MINUTES`.
-   - `/submit` - submit a message anonymously to the configured submission channel.
-   - `/votestart` - start an anonymous vote. Manager or Discord admin only.
-   - `/vote` - submit or update your anonymous vote.
-   - `/voteend` - end the open vote and post results. Manager or Discord admin only.
-   - `/votecancel` - cancel the open vote and mark the original vote post as canceled. Manager or Discord admin only.
-   - `/money` - privately view your money balance and server ranking.
-   - `/moneygive` - give some of your money to another server member.
-   - `/moneyadduser` - add money to a user. Manager or Discord admin only.
-   - `/moneyremoveuser` - remove money from a user. Manager or Discord admin only.
-   - `/moneysetuser` - set a user's money. Manager or Discord admin only.
-   - `/moneyaddserver` - add money to every server member. Manager or Discord admin only.
-   - `/moneyremoveserver` - remove money from every server member. Manager or Discord admin only.
-   - `/moneysetserver` - set every server member's money. Manager or Discord admin only.
-   - `/betstart` - start a bet. Manager or Discord admin only.
-   - `/bet` - place or update your wager; use amount `0` with an option letter to remove your wager.
-   - `/betall` - wager all of your available money.
-   - `/betlock` - lock the open bet so wagers cannot change. Manager or Discord admin only.
-   - `/betunlock` - unlock the open bet. Manager or Discord admin only.
-   - `/betend` - end the open bet and pay winners. Manager or Discord admin only.
-   - `/betcancel` - cancel the open bet, refund all wagers, and mark the original bet post as canceled. Manager or Discord admin only.
-   - `/callinstart` - start call-in mode in a voice channel. Call-in host, manager, or Discord admin only.
-   - `/callin` - join the call-in queue. Non-host only.
-   - `/hangup` - leave the call-in queue or leave the live call. Non-host only.
-   - `/callinpromote` - promote a queued call-in user. Call-in host, manager, or Discord admin only.
-   - `/callindemote` - demote a live call-in user. Call-in host, manager, or Discord admin only.
-   - `/callinforce` - make a voice-channel user live even if they are not queued. Call-in host, manager, or Discord admin only.
-   - `/callinend` - end call-in mode and release bot-managed mutes. Call-in host, manager, or Discord admin only.
+
+### Commands Available To Everyone
+
+- `/submit` - submit a message anonymously to the configured submission channel.
+- `/vote` - submit or update your anonymous vote.
+- `/money` - privately view your money balance and server ranking.
+- `/moneygive` - give some of your money to another server member.
+- `/bet` - place or update your wager on an option. Nonzero wagers must be at least `$1.00`; use amount `0` to remove your wager from that option. You may have one wager per option.
+- `/betall` - wager all of your available money on an option.
+- `/callin` - join the call-in queue. Non-host only.
+- `/hangup` - leave the call-in queue or leave the live call. Non-host only.
+
+### Restricted Commands
+
+These commands require Discord Administrator permission, a role listed in `MANAGER_ROLE_NAMES`, or the role noted on the command.
+
+- `/votestart` - start an anonymous vote.
+- `/voteend` - end the open vote and post results.
+- `/votecancel` - cancel the open vote and mark the original vote post as canceled.
+- `/moneyadduser` - add money to a user.
+- `/moneyremoveuser` - remove money from a user.
+- `/moneysetuser` - set a user's money.
+- `/moneyaddserver` - add money to every server member.
+- `/moneyremoveserver` - remove money from every server member.
+- `/moneysetserver` - set every server member's money.
+- `/betstart` - start a bet.
+- `/betlock` - lock the open bet so wagers cannot change.
+- `/betunlock` - unlock the open bet.
+- `/betend` - end the open bet and pay winners.
+- `/betcancel` - cancel the open bet, refund all wagers, and mark the original bet post as canceled.
+- `/callinstart` - start call-in mode in a voice channel. Call-in host, manager, or Discord admin only.
+- `/callinpromote` - promote a queued call-in user. Call-in host, manager, or Discord admin only.
+- `/callindemote` - demote a live call-in user. Call-in host, manager, or Discord admin only.
+- `/callinforce` - make a voice-channel user live even if they are not queued. Call-in host, manager, or Discord admin only.
+- `/callinend` - end call-in mode and release bot-managed mutes. Call-in host, manager, or Discord admin only.
 
 ---
 

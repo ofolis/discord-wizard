@@ -28,6 +28,11 @@ type BettingWinningOption = {
   readonly letter: string;
   readonly option: string;
 };
+type BettingPayoutGroup = {
+  netCents: number;
+  payouts: BettingPayout[];
+  userId: string;
+};
 type MoneyRankingEntry = {
   readonly balanceCents: number;
   readonly displayName: string;
@@ -103,21 +108,20 @@ export class InteractionController {
     channelId: string,
     payouts: BettingPayout[],
     winningOptions: BettingWinningOption[],
+    optionSummaries: BettingOptionSummary[],
     userLabelsById: Record<string, string>,
-    balancesByUserId: Record<string, number>,
   ): Promise<void> {
     await InteractionUtils.createChannelCard(channelId, {
       color: CardColor.INFO,
       description: Utils.linesToString([
         `# ${ICONS[IconName.BET_RESULTS]} Bet Results`,
         this.__formatBetWinnerString(winningOptions),
-        payouts.length > 0 ? "### Payouts" : "No wagers were placed.",
         payouts.length > 0
-          ? this.__formatBettingPayoutsString(
-              payouts,
-              userLabelsById,
-              balancesByUserId,
-            )
+          ? this.__formatBettingTotalPoolString(optionSummaries)
+          : "No wagers were placed.",
+        payouts.length > 0 ? "### Settlements" : null,
+        payouts.length > 0
+          ? this.__formatBettingPayoutsString(payouts, userLabelsById)
           : null,
       ]),
     });
@@ -126,14 +130,10 @@ export class InteractionController {
   public static async announceBetStart(
     channelId: string,
     bettingState: BettingState,
-    userLabelsById: Record<string, string>,
   ): Promise<ChannelMessage> {
     return await InteractionUtils.createChannelCard(channelId, {
       color: CardColor.INFO,
-      description: this.__formatBetStartDescription(
-        bettingState,
-        userLabelsById,
-      ),
+      description: this.__formatBetStartDescription(bettingState),
     });
   }
 
@@ -141,7 +141,7 @@ export class InteractionController {
     await InteractionUtils.createChannelCard(channelId, {
       color: CardColor.INFO,
       description: Utils.linesToString([
-        "# Call-in mode inactive",
+        `# ${ICONS[IconName.CALL_IN]} Call-In Mode Inactive`,
         "You can mute and unmute yourself as normal.",
       ]),
     });
@@ -155,7 +155,7 @@ export class InteractionController {
   ): Promise<void> {
     await InteractionUtils.createChannelCard(channelId, {
       color: CardColor.INFO,
-      description: `# ${data.userName} is no longer on the air.`,
+      description: `# ${ICONS[IconName.CALL_IN]} Off Air\n**${data.userName}** is no longer on the air.`,
     });
   }
 
@@ -167,7 +167,7 @@ export class InteractionController {
   ): Promise<void> {
     await InteractionUtils.createChannelCard(channelId, {
       color: CardColor.INFO,
-      description: `# ${data.userMention} is now on the air.`,
+      description: `# ${ICONS[IconName.CALL_IN]} On Air\n${data.userMention} is now on the air.`,
     });
   }
 
@@ -179,7 +179,7 @@ export class InteractionController {
   ): Promise<void> {
     await InteractionUtils.createChannelCard(channelId, {
       color: CardColor.INFO,
-      description: `# ${data.userName} is calling in.`,
+      description: `# ${ICONS[IconName.CALL_IN]} Calling In\n**${data.userName}** is calling in.`,
     });
   }
 
@@ -191,7 +191,7 @@ export class InteractionController {
   ): Promise<void> {
     await InteractionUtils.createChannelCard(channelId, {
       color: CardColor.INFO,
-      description: `# ${data.userName} hung up.`,
+      description: `# ${ICONS[IconName.CALL_IN]} Hung Up\n**${data.userName}** hung up.`,
     });
   }
 
@@ -199,8 +199,8 @@ export class InteractionController {
     await InteractionUtils.createChannelCard(channelId, {
       color: CardColor.INFO,
       description: Utils.linesToString([
-        "# Call-in mode active",
-        "Non-host users in the voice channel will be muted until they call in with `/callin` and a host puts them on the air.",
+        `# ${ICONS[IconName.CALL_IN]} Call-In Mode Active`,
+        "Non-host users will be muted until they call in with `/callin` and a host puts them on the air.",
       ]),
     });
   }
@@ -354,7 +354,6 @@ export class InteractionController {
 
   public static async updateBetStart(
     bettingState: BettingState,
-    userLabelsById: Record<string, string>,
   ): Promise<void> {
     if (bettingState.messageId === null) {
       Log.debug("Skipping bet start message update. Message ID is missing.", {
@@ -368,10 +367,7 @@ export class InteractionController {
       bettingState.messageId,
       {
         color: CardColor.INFO,
-        description: this.__formatBetStartDescription(
-          bettingState,
-          userLabelsById,
-        ),
+        description: this.__formatBetStartDescription(bettingState),
       },
     );
   }
@@ -432,22 +428,30 @@ export class InteractionController {
     );
   }
 
+  private static __addSafeCents(
+    totalCents: number,
+    amountCents: number,
+    errorMessage: string,
+  ): number {
+    const nextTotalCents: number = totalCents + amountCents;
+    if (!Number.isSafeInteger(nextTotalCents)) {
+      Log.throw(errorMessage, {
+        amountCents,
+        nextTotalCents,
+        totalCents,
+      });
+    }
+    return nextTotalCents;
+  }
+
   private static __formatBetOptionString(
     summary: BettingOptionSummary,
-    userLabelsById: Record<string, string>,
   ): string {
-    return Utils.linesToString([
-      `- ${this.__formatLetterEmoji(summary.letter)} **${summary.option}** - \`${MoneyUtils.format(summary.totalCents)}\``,
-      ...summary.wagers.map(
-        wager =>
-          `  - ${this.__formatUserLabel(wager.userId, userLabelsById)}: \`${MoneyUtils.format(wager.amountCents)}\``,
-      ),
-    ]);
+    return `- ${this.__formatLetterEmoji(summary.letter)} **${summary.option}** - \`${MoneyUtils.format(summary.totalCents)}\``;
   }
 
   private static __formatBetStartDescription(
     bettingState: BettingState,
-    userLabelsById: Record<string, string>,
   ): string {
     return Utils.linesToString([
       `# ${ICONS[IconName.BET_START]} Bet Started`,
@@ -456,9 +460,7 @@ export class InteractionController {
       Utils.linesToString(
         bettingState
           .getOptionSummaries()
-          .map(summary =>
-            this.__formatBetOptionString(summary, userLabelsById),
-          ),
+          .map(summary => this.__formatBetOptionString(summary)),
       ),
       `### Total Pool: \`${MoneyUtils.format(bettingState.totalPoolCents)}\``,
       bettingState.isLocked
@@ -485,27 +487,44 @@ export class InteractionController {
   private static __formatBettingPayoutsString(
     payouts: BettingPayout[],
     userLabelsById: Record<string, string>,
-    balancesByUserId: Record<string, number>,
   ): string {
     return Utils.linesToString(
-      payouts
+      this.__groupBettingPayouts(payouts)
         .sort((a, b) => b.netCents - a.netCents)
-        .map(payout => {
-          const netSign: string = payout.netCents > 0 ? "+" : "";
-          const changeEmoji: string =
-            payout.netCents > 0 ? " 🟢" : payout.netCents < 0 ? " 🔴" : "";
-          const balanceCents: number = balancesByUserId[payout.userId] ?? 0;
-          const balanceEmoji: string = balanceCents === 0 ? " 💀" : "";
-          return `- **${this.__formatUserLabel(payout.userId, userLabelsById)}:** \`${netSign}${MoneyUtils.format(payout.netCents)}\`${changeEmoji} (\`${MoneyUtils.format(balanceCents)}\`${balanceEmoji})`;
-        }),
+        .map(group =>
+          Utils.linesToString([
+            `- **${this.__formatUserLabel(group.userId, userLabelsById)}:** \`${this.__formatSignedMoney(group.netCents)}\` ${this.__formatChangeEmoji(group.netCents)} (bet \`${MoneyUtils.format(this.__getTotalBetCents(group.payouts))}\` | won \`${MoneyUtils.format(this.__getTotalWonCents(group.payouts))}\`)`,
+            ...[...group.payouts]
+              .sort((a, b) => b.netCents - a.netCents)
+              .map(
+                payout =>
+                  `  - **${payout.option}:** \`${this.__formatSignedMoney(payout.netCents)}\` ${this.__formatChangeEmoji(payout.netCents)} (bet \`${MoneyUtils.format(payout.amountCents)}\` | won \`${MoneyUtils.format(payout.payoutCents)}\`)`,
+              ),
+          ]),
+        ),
     );
+  }
+
+  private static __formatBettingTotalPoolString(
+    optionSummaries: BettingOptionSummary[],
+  ): string {
+    const totalPoolCents: number = optionSummaries.reduce(
+      (total, summary) =>
+        this.__addSafeCents(
+          total,
+          summary.totalCents,
+          "Cannot format betting total pool. Total is not a safe integer.",
+        ),
+      0,
+    );
+    return `### Total Pool: \`${MoneyUtils.format(totalPoolCents)}\``;
   }
 
   private static __formatCallInQueueDescription(
     callInState: CallInState,
     userLabelsById: Record<string, string>,
   ): string {
-    const heading: string = "# Call-in Queue";
+    const heading: string = `# ${ICONS[IconName.CALL_IN]} Call-In Queue`;
     return Utils.linesToString([
       heading,
       callInState.queuedUserIds.length > 0
@@ -530,7 +549,7 @@ export class InteractionController {
       index++
     ) {
       const userId: string = callInState.queuedUserIds[index];
-      const line: string = `${(index + 1).toString()}. ${this.__formatUserLabel(userId, userLabelsById)}`;
+      const line: string = `${(index + 1).toString()}. **${this.__formatUserLabel(userId, userLabelsById)}**`;
       if (Utils.linesToString([...lines, line]).length <= maxLength) {
         lines.push(line);
         continue;
@@ -543,6 +562,16 @@ export class InteractionController {
       break;
     }
     return Utils.linesToString(lines);
+  }
+
+  private static __formatChangeEmoji(amountCents: number): string {
+    if (amountCents > 0) {
+      return "🟢";
+    }
+    if (amountCents < 0) {
+      return "🔴";
+    }
+    return "⚪️";
   }
 
   private static __formatLetterEmoji(letter: string): string {
@@ -599,6 +628,10 @@ export class InteractionController {
 
   private static __formatRankEmoji(rank: number): string {
     return numberEmojis[rank] ?? `#${rank.toString()}`;
+  }
+
+  private static __formatSignedMoney(amountCents: number): string {
+    return `${amountCents > 0 ? "+" : ""}${MoneyUtils.format(amountCents)}`;
   }
 
   private static __formatUserLabel(
@@ -662,6 +695,50 @@ export class InteractionController {
         return `- ${this.__formatRankEmoji(rank)} **${result.option}** (\`${result.voteCount.toString()}\` ${voteLabel})`;
       }),
     );
+  }
+
+  private static __getTotalBetCents(payouts: BettingPayout[]): number {
+    return payouts.reduce(
+      (total, payout) =>
+        this.__addSafeCents(
+          total,
+          payout.amountCents,
+          "Cannot format total bet. Total is not a safe integer.",
+        ),
+      0,
+    );
+  }
+
+  private static __getTotalWonCents(payouts: BettingPayout[]): number {
+    return payouts.reduce(
+      (total, payout) =>
+        this.__addSafeCents(
+          total,
+          payout.payoutCents,
+          "Cannot format total won. Total is not a safe integer.",
+        ),
+      0,
+    );
+  }
+
+  private static __groupBettingPayouts(
+    payouts: BettingPayout[],
+  ): BettingPayoutGroup[] {
+    const groupsByUserId: Record<string, BettingPayoutGroup> = {};
+    payouts.forEach(payout => {
+      groupsByUserId[payout.userId] ??= {
+        netCents: 0,
+        payouts: [],
+        userId: payout.userId,
+      };
+      groupsByUserId[payout.userId].netCents = this.__addSafeCents(
+        groupsByUserId[payout.userId].netCents,
+        payout.netCents,
+        "Cannot group betting payouts. Net total is not a safe integer.",
+      );
+      groupsByUserId[payout.userId].payouts.push(payout);
+    });
+    return Object.values(groupsByUserId);
   }
 
   private static __hasVotes(results: VotingResult[]): boolean {

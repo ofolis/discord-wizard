@@ -12,7 +12,6 @@ import {
 } from "../core";
 import { MoneyUtils } from "../money-utils";
 import { BettingState, MoneyState } from "../saveables";
-import { BetUtils } from "./bet-utils";
 
 const amountOptionName: string = "amount";
 const letterOptionName: string = "letter";
@@ -81,10 +80,17 @@ export class Bet implements Command {
       );
       return;
     }
+    if (amountCents > 0 && amountCents < BettingState.minWagerCents) {
+      await InteractionController.informError(
+        message,
+        `Minimum wager is \`${MoneyUtils.format(BettingState.minWagerCents)}\`. Use \`0\` with an option letter to remove your wager from that option.`,
+      );
+      return;
+    }
 
     const userId: string = message.user.id;
     const previousWagerCents: number =
-      bettingState.getWager(userId)?.amountCents ?? 0;
+      bettingState.getWager(userId, letter)?.amountCents ?? 0;
     const moneyState: MoneyState = DataController.loadOrCreateMoneyState(
       message.member.guild.id,
     );
@@ -134,12 +140,8 @@ export class Bet implements Command {
       );
       return;
     }
-
     try {
-      await InteractionController.updateBetStart(
-        bettingState,
-        await BetUtils.getParticipantLabels(bettingState),
-      );
+      await InteractionController.updateBetStart(bettingState);
     } catch (reason: unknown) {
       Log.error("Could not update bet total.", reason);
       const isMissingChannel: boolean = AppError.is(

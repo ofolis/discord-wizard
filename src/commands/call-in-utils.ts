@@ -14,6 +14,8 @@ import {
 } from "../core";
 import { CallInState } from "../saveables";
 
+const discordUnknownMemberErrorCode: number = 10007;
+
 export class CallInUtils {
   public static canManageCallIn(member: discordJs.GuildMember): boolean {
     return this.isHost(member) || AccessUtils.canUseRestrictedCommands(member);
@@ -69,6 +71,7 @@ export class CallInUtils {
 
     if (
       isInActiveChannel &&
+      !callInState.isEnding &&
       !this.isHost(member) &&
       !callInState.hasSpeakingUser(member.id) &&
       newState.serverMute !== true
@@ -267,18 +270,25 @@ export class CallInUtils {
   public static async unmuteTrackedMembers(
     guild: discordJs.Guild,
     callInState: CallInState,
-  ): Promise<void> {
+  ): Promise<boolean> {
+    let didUnmuteAll: boolean = true;
     for (const userId of [...callInState.botMutedUserIds]) {
       try {
         const member: discordJs.GuildMember = await guild.members.fetch(userId);
         await this.unmuteForCallIn(member, callInState);
       } catch (reason: unknown) {
+        if (this.__isDiscordUnknownMemberError(reason)) {
+          callInState.removeBotMutedUser(userId);
+          continue;
+        }
+        didUnmuteAll = false;
         Log.error("Could not unmute call-in member.", reason, {
           guildId: guild.id,
           userId,
         });
       }
     }
+    return didUnmuteAll;
   }
 
   private static async __getUserLabelsById(
@@ -297,5 +307,14 @@ export class CallInUtils {
       }
     }
     return labelsById;
+  }
+
+  private static __isDiscordUnknownMemberError(reason: unknown): boolean {
+    return (
+      typeof reason === "object" &&
+      reason !== null &&
+      "code" in reason &&
+      reason.code === discordUnknownMemberErrorCode
+    );
   }
 }

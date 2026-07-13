@@ -86,7 +86,6 @@ export class BetStart implements Command {
       betMessage = await InteractionController.announceBetStart(
         message.channelId,
         bettingState,
-        {},
       );
     } catch (reason: unknown) {
       Log.error("Could not post bet.", reason);
