@@ -15,6 +15,7 @@ import {
 import { CallInState } from "../saveables";
 
 const discordUnknownMemberErrorCode: number = 10007;
+const discordTargetUserNotConnectedToVoiceErrorCode: number = 40032;
 
 export class CallInUtils {
   public static canManageCallIn(member: discordJs.GuildMember): boolean {
@@ -50,14 +51,18 @@ export class CallInUtils {
         try {
           await this.unmuteForCallIn(member, callInState);
         } catch (reason: unknown) {
-          Log.error(
-            "Could not unmute call-in member leaving channel.",
-            reason,
-            {
-              guildId,
-              userId: member.id,
-            },
-          );
+          if (this.__isDiscordVoiceDisconnectedError(reason)) {
+            callInState.removeBotMutedUser(member.id);
+          } else {
+            Log.error(
+              "Could not unmute call-in member leaving channel.",
+              reason,
+              {
+                guildId,
+                userId: member.id,
+              },
+            );
+          }
         }
       }
       callInState.removeQueuedUser(member.id);
@@ -116,8 +121,18 @@ export class CallInUtils {
     if (this.isHost(member)) {
       return;
     }
+    if (member.voice.channelId === null) {
+      return;
+    }
     if (member.voice.serverMute !== true) {
-      await member.voice.setMute(true, "Call-in mode");
+      try {
+        await member.voice.setMute(true, "Call-in mode");
+      } catch (reason: unknown) {
+        if (this.__isDiscordVoiceDisconnectedError(reason)) {
+          return;
+        }
+        throw reason;
+      }
       callInState.addBotMutedUser(member.id);
     }
   }
@@ -261,6 +276,10 @@ export class CallInUtils {
     if (!callInState.botMutedUserIds.includes(member.id)) {
       return;
     }
+    if (member.voice.channelId === null) {
+      callInState.removeBotMutedUser(member.id);
+      return;
+    }
     if (member.voice.serverMute === true) {
       await member.voice.setMute(false, "Call-in mode");
     }
@@ -277,7 +296,10 @@ export class CallInUtils {
         const member: discordJs.GuildMember = await guild.members.fetch(userId);
         await this.unmuteForCallIn(member, callInState);
       } catch (reason: unknown) {
-        if (this.__isDiscordUnknownMemberError(reason)) {
+        if (
+          this.__isDiscordUnknownMemberError(reason) ||
+          this.__isDiscordVoiceDisconnectedError(reason)
+        ) {
           callInState.removeBotMutedUser(userId);
           continue;
         }
@@ -315,6 +337,15 @@ export class CallInUtils {
       reason !== null &&
       "code" in reason &&
       reason.code === discordUnknownMemberErrorCode
+    );
+  }
+
+  private static __isDiscordVoiceDisconnectedError(reason: unknown): boolean {
+    return (
+      typeof reason === "object" &&
+      reason !== null &&
+      "code" in reason &&
+      reason.code === discordTargetUserNotConnectedToVoiceErrorCode
     );
   }
 }
