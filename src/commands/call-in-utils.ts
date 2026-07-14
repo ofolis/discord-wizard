@@ -15,6 +15,7 @@ import {
 import { CallInState } from "../saveables";
 
 const discordUnknownMemberErrorCode: number = 10007;
+const discordTargetUserNotConnectedToVoiceErrorCode: number = 40032;
 
 export class CallInUtils {
   public static canManageCallIn(member: discordJs.GuildMember): boolean {
@@ -116,8 +117,18 @@ export class CallInUtils {
     if (this.isHost(member)) {
       return;
     }
+    if (member.voice.channelId === null) {
+      return;
+    }
     if (member.voice.serverMute !== true) {
-      await member.voice.setMute(true, "Call-in mode");
+      try {
+        await member.voice.setMute(true, "Call-in mode");
+      } catch (reason: unknown) {
+        if (this.__isDiscordVoiceDisconnectedError(reason)) {
+          return;
+        }
+        throw reason;
+      }
       callInState.addBotMutedUser(member.id);
     }
   }
@@ -257,14 +268,27 @@ export class CallInUtils {
   public static async unmuteForCallIn(
     member: discordJs.GuildMember,
     callInState: CallInState,
-  ): Promise<void> {
+  ): Promise<boolean> {
+    if (member.voice.channelId === null) {
+      callInState.removeBotMutedUser(member.id);
+      return false;
+    }
     if (!callInState.botMutedUserIds.includes(member.id)) {
-      return;
+      return true;
     }
     if (member.voice.serverMute === true) {
-      await member.voice.setMute(false, "Call-in mode");
+      try {
+        await member.voice.setMute(false, "Call-in mode");
+      } catch (reason: unknown) {
+        if (this.__isDiscordVoiceDisconnectedError(reason)) {
+          callInState.removeBotMutedUser(member.id);
+          return false;
+        }
+        throw reason;
+      }
     }
     callInState.removeBotMutedUser(member.id);
+    return true;
   }
 
   public static async unmuteTrackedMembers(
@@ -315,6 +339,15 @@ export class CallInUtils {
       reason !== null &&
       "code" in reason &&
       reason.code === discordUnknownMemberErrorCode
+    );
+  }
+
+  private static __isDiscordVoiceDisconnectedError(reason: unknown): boolean {
+    return (
+      typeof reason === "object" &&
+      reason !== null &&
+      "code" in reason &&
+      reason.code === discordTargetUserNotConnectedToVoiceErrorCode
     );
   }
 }
