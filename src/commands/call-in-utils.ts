@@ -51,18 +51,14 @@ export class CallInUtils {
         try {
           await this.unmuteForCallIn(member, callInState);
         } catch (reason: unknown) {
-          if (this.__isDiscordVoiceDisconnectedError(reason)) {
-            callInState.removeBotMutedUser(member.id);
-          } else {
-            Log.error(
-              "Could not unmute call-in member leaving channel.",
-              reason,
-              {
-                guildId,
-                userId: member.id,
-              },
-            );
-          }
+          Log.error(
+            "Could not unmute call-in member leaving channel.",
+            reason,
+            {
+              guildId,
+              userId: member.id,
+            },
+          );
         }
       }
       callInState.removeQueuedUser(member.id);
@@ -305,10 +301,7 @@ export class CallInUtils {
         const member: discordJs.GuildMember = await guild.members.fetch(userId);
         await this.unmuteForCallIn(member, callInState);
       } catch (reason: unknown) {
-        if (
-          this.__isDiscordUnknownMemberError(reason) ||
-          this.__isDiscordVoiceDisconnectedError(reason)
-        ) {
+        if (this.__isDiscordUnknownMemberError(reason)) {
           callInState.removeBotMutedUser(userId);
           continue;
         }
