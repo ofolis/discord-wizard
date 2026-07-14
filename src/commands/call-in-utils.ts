@@ -281,7 +281,14 @@ export class CallInUtils {
       return;
     }
     if (member.voice.serverMute === true) {
-      await member.voice.setMute(false, "Call-in mode");
+      try {
+        await member.voice.setMute(false, "Call-in mode");
+      } catch (reason: unknown) {
+        if (this.__isDiscordVoiceDisconnectedError(reason)) {
+          callInState.removeBotMutedUser(member.id);
+        }
+        throw reason;
+      }
     }
     callInState.removeBotMutedUser(member.id);
   }
