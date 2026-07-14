@@ -272,13 +272,13 @@ export class CallInUtils {
   public static async unmuteForCallIn(
     member: discordJs.GuildMember,
     callInState: CallInState,
-  ): Promise<void> {
-    if (!callInState.botMutedUserIds.includes(member.id)) {
-      return;
-    }
+  ): Promise<boolean> {
     if (member.voice.channelId === null) {
       callInState.removeBotMutedUser(member.id);
-      return;
+      return false;
+    }
+    if (!callInState.botMutedUserIds.includes(member.id)) {
+      return true;
     }
     if (member.voice.serverMute === true) {
       try {
@@ -286,11 +286,13 @@ export class CallInUtils {
       } catch (reason: unknown) {
         if (this.__isDiscordVoiceDisconnectedError(reason)) {
           callInState.removeBotMutedUser(member.id);
+          return false;
         }
         throw reason;
       }
     }
     callInState.removeBotMutedUser(member.id);
+    return true;
   }
 
   public static async unmuteTrackedMembers(

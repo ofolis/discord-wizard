@@ -90,7 +90,20 @@ export class CallInPromote implements Command {
       callInState.addSpeakingUser(member.id);
       DataController.saveCallInState(callInState);
       try {
-        await CallInUtils.unmuteForCallIn(member, callInState);
+        const didUnmute: boolean = await CallInUtils.unmuteForCallIn(
+          member,
+          callInState,
+        );
+        if (!didUnmute) {
+          callInState.removeSpeakingUser(member.id);
+          callInState.addQueuedUser(member.id);
+          DataController.saveCallInState(callInState);
+          await InteractionController.informError(
+            message,
+            "That user is not in the active call-in voice channel.",
+          );
+          return;
+        }
       } catch (reason: unknown) {
         callInState.removeSpeakingUser(member.id);
         callInState.addQueuedUser(member.id);
