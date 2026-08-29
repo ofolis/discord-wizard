@@ -3,6 +3,8 @@ import { Log } from "../core";
 import type { CallInStateJson } from "../types";
 
 export class CallInState implements Saveable {
+  public static readonly maxCustomNameLength: number = 100;
+
   public readonly channelId: string;
 
   public readonly guildId: string;
@@ -245,7 +247,8 @@ export class CallInState implements Saveable {
     }
     const normalizedCustomName: string = customName
       .replace(/\s+/gu, " ")
-      .trim();
+      .trim()
+      .slice(0, CallInState.maxCustomNameLength);
     if (normalizedCustomName.length === 0) {
       this.__customNamesByUserId.delete(userId);
       return;

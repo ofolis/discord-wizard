@@ -133,7 +133,7 @@ export class CallInForce implements Command {
     }
     await InteractionController.informSuccess(
       message,
-      `${callInState.getCustomName(member.id) ?? Discord.formatGuildMemberNameString(member)} is live on the call.`,
+      `${Discord.formatGuildMemberNameString(member)} is live on the call.`,
     );
   }
 }

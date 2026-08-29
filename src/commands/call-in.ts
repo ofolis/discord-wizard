@@ -24,7 +24,7 @@ export class CallIn implements Command {
     {
       description: "The name to show instead of your Discord username.",
       isRequired: false,
-      maxLength: 100,
+      maxLength: CallInState.maxCustomNameLength,
       name: nameOptionName,
       type: CommandOptionType.STRING,
     },
