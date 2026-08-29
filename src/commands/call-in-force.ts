@@ -19,7 +19,7 @@ export class CallInForce implements Command {
 
   public readonly isAvailableToAllUsers: boolean = false;
 
-  public readonly name: string = "callinforce";
+  public readonly name: string = "ciforce";
 
   public readonly options: CommandOption[] = [
     {

@@ -19,7 +19,7 @@ export class CallInPromote implements Command {
 
   public readonly isAvailableToAllUsers: boolean = false;
 
-  public readonly name: string = "callinpromote";
+  public readonly name: string = "cipromote";
 
   public readonly options: CommandOption[] = [
     {

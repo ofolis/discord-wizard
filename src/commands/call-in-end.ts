@@ -14,7 +14,7 @@ export class CallInEnd implements Command {
 
   public readonly isAvailableToAllUsers: boolean = false;
 
-  public readonly name: string = "callinend";
+  public readonly name: string = "ciend";
 
   public readonly options: CommandOption[] = [];
 

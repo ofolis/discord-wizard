@@ -19,7 +19,7 @@ export class CallInDemote implements Command {
 
   public readonly isAvailableToAllUsers: boolean = false;
 
-  public readonly name: string = "callindemote";
+  public readonly name: string = "cidemote";
 
   public readonly options: CommandOption[] = [
     {

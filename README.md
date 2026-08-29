@@ -134,11 +134,11 @@ These commands require Discord Administrator permission, a role listed in `MANAG
 - `/betunlock` - unlock the open bet.
 - `/betend` - end the open bet and pay winners.
 - `/betcancel` - cancel the open bet, refund all wagers, and mark the original bet post as canceled.
-- `/callinstart` - start call-in mode in a voice channel. Call-in host, manager, or Discord admin only.
-- `/callinpromote` - promote a queued call-in user. Call-in host, manager, or Discord admin only.
-- `/callindemote` - demote a live call-in user. Call-in host, manager, or Discord admin only.
-- `/callinforce` - make a voice-channel user live even if they are not queued. Call-in host, manager, or Discord admin only.
-- `/callinend` - end call-in mode and release bot-managed mutes. Call-in host, manager, or Discord admin only.
+- `/cistart` - start call-in mode in a voice channel. Call-in host, manager, or Discord admin only.
+- `/cipromote` - promote a queued call-in user. Call-in host, manager, or Discord admin only.
+- `/cidemote` - demote a live call-in user. Call-in host, manager, or Discord admin only.
+- `/ciforce` - make a voice-channel user live even if they are not queued. Call-in host, manager, or Discord admin only.
+- `/ciend` - end call-in mode and release bot-managed mutes. Call-in host, manager, or Discord admin only.
 
 ---
 
