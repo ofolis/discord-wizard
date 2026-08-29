@@ -77,8 +77,9 @@ export class CallInState implements Saveable {
       ...callInState.__normalizeUserIds(callInStateJson.botMutedUserIds ?? []),
     );
     Object.entries(callInStateJson.customNamesByUserId ?? {}).forEach(
-      ([userId, customName]) =>
-        callInState.__customNamesByUserId.set(userId, customName),
+      ([userId, customName]) => {
+        callInState.__setCustomName(userId, customName);
+      },
     );
     callInState.__queuedUserIds.push(
       ...callInState.__normalizeUserIds(callInStateJson.queuedUserIds ?? []),
@@ -158,9 +159,7 @@ export class CallInState implements Saveable {
     if (!this.__queuedUserIds.includes(userId)) {
       this.__queuedUserIds.push(userId);
     }
-    if (customName !== undefined) {
-      this.__customNamesByUserId.set(userId, customName);
-    }
+    this.__setCustomName(userId, customName);
   }
 
   public addSpeakingUser(userId: string): void {
@@ -238,5 +237,19 @@ export class CallInState implements Saveable {
     if (index >= 0) {
       userIds.splice(index, 1);
     }
+  }
+
+  private __setCustomName(userId: string, customName?: string): void {
+    if (customName === undefined) {
+      return;
+    }
+    const normalizedCustomName: string = customName
+      .replace(/\s+/gu, " ")
+      .trim();
+    if (normalizedCustomName.length === 0) {
+      this.__customNamesByUserId.delete(userId);
+      return;
+    }
+    this.__customNamesByUserId.set(userId, normalizedCustomName);
   }
 }

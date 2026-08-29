@@ -82,7 +82,8 @@ export class CallIn implements Command {
         callInState.channelId,
         {
           userName:
-            customName ?? Discord.formatGuildMemberNameString(message.member),
+            callInState.getCustomName(message.user.id) ??
+            Discord.formatGuildMemberNameString(message.member),
         },
       );
     } catch (reason: unknown) {
