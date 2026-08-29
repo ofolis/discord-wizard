@@ -354,8 +354,8 @@ export class InteractionController {
       description: Utils.linesToString([
         `# ${ICONS[IconName.TABS_GENERATE]} TABS Teams`,
         `Budget: \`${data.budget.toString()} gold\``,
-        this.__formatTabsTeamString("RED", data.redTeam),
-        this.__formatTabsTeamString("BLUE", data.blueTeam),
+        this.__formatTabsTeamString("🟥 RED", data.redTeam),
+        this.__formatTabsTeamString("🟦 BLUE", data.blueTeam),
       ]),
     });
   }
@@ -667,16 +667,16 @@ export class InteractionController {
 
   private static __formatTabsBudgetSummary(remainingBudget: number): string {
     if (remainingBudget === 0) {
-      return "Your team perfectly fit your budget!";
+      return "Team perfectly fit the budget!";
     }
     if (remainingBudget > 4000) {
-      return `Your team came in \`${remainingBudget.toString()} gold\` under budget. Perhaps your budget was too high?`;
+      return `Team came in \`${remainingBudget.toString()} gold\` under budget. Budget too high?`;
     }
-    return `Your team came in \`${remainingBudget.toString()} gold\` under budget.`;
+    return `Team came in \`${remainingBudget.toString()} gold\` under budget.`;
   }
 
   private static __formatTabsTeamMemberString(member: TabsTeamMember): string {
-    return `- **${member.unit.name}** (${member.unit.faction}) x${member.count.toString()}`;
+    return `- **${member.unit.name}** (${member.unit.faction}): \`${member.count.toString()}\``;
   }
 
   private static __formatTabsTeamString(name: string, team: TabsTeam): string {
