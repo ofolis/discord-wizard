@@ -7,6 +7,7 @@ export enum IconName {
   MONEY_GIVE = "moneyGive",
   SUBMISSION = "submission",
   SUCCESS = "success",
+  TABS_GENERATE = "tabsGenerate",
   VOTE_RESULTS = "voteResults",
   VOTE_START = "voteStart",
 }
