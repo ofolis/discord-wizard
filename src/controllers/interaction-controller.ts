@@ -163,11 +163,12 @@ export class InteractionController {
     channelId: string,
     data: {
       readonly userMention: string;
+      readonly userName?: string;
     },
   ): Promise<void> {
     await InteractionUtils.createChannelCard(channelId, {
       color: CardColor.INFO,
-      description: `# ${ICONS[IconName.CALL_IN]} On Air\n${data.userMention} is now on the air.`,
+      description: `# ${ICONS[IconName.CALL_IN]} On Air\n${data.userName === undefined ? data.userMention : `**${data.userName}**`} is now on the air.`,
     });
   }
 

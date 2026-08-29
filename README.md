@@ -113,7 +113,7 @@ The chatbot's runtime prompt is managed in OpenAI Prompt Management and selected
 - `/moneygive` - give some of your money to another server member.
 - `/bet` - place or update your wager on an option. Nonzero wagers must be at least `$1.00`; use amount `0` to remove your wager from that option. You may have one wager per option.
 - `/betall` - wager all of your available money on an option.
-- `/callin` - join the call-in queue. Non-host only.
+- `/callin [name]` - join the call-in queue, optionally using a custom public caller name. Hosts can still see and select the caller's Discord identity. Non-host only.
 - `/hangup` - leave the call-in queue or leave the live call. Non-host only.
 
 ### Restricted Commands

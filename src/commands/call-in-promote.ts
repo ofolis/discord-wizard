@@ -117,6 +117,7 @@ export class CallInPromote implements Command {
         Log.throw("Could not update call-in queue for hosts.");
       }
       await InteractionController.announceCallInOnAir(callInState.channelId, {
+        userName: callInState.getCustomName(member.id),
         userMention: Discord.formatUserMentionString(member.user),
       });
     } catch (reason: unknown) {

@@ -120,6 +120,7 @@ export class CallInForce implements Command {
         }
       }
       await InteractionController.announceCallInOnAir(callInState.channelId, {
+        userName: callInState.getCustomName(member.id),
         userMention: Discord.formatUserMentionString(member.user),
       });
     } catch (reason: unknown) {
@@ -132,7 +133,7 @@ export class CallInForce implements Command {
     }
     await InteractionController.informSuccess(
       message,
-      `${Discord.formatGuildMemberNameString(member)} is live on the call.`,
+      `${callInState.getCustomName(member.id) ?? Discord.formatGuildMemberNameString(member)} is live on the call.`,
     );
   }
 }

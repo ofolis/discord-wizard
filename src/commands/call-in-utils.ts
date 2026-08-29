@@ -63,6 +63,7 @@ export class CallInUtils {
       }
       callInState.removeQueuedUser(member.id);
       callInState.removeSpeakingUser(member.id);
+      callInState.removeCustomName(member.id);
       DataController.saveCallInState(callInState);
       if (didQueueChange) {
         await this.postQueueToHosts(newState.guild, callInState);
@@ -155,7 +156,11 @@ export class CallInUtils {
       return false;
     }
     const userLabelsById: Record<string, string> =
-      await this.__getUserLabelsById(guild, callInState.queuedUserIds);
+      await this.__getUserLabelsById(
+        guild,
+        callInState,
+        callInState.queuedUserIds,
+      );
     if (callInState.queueMessageId !== null) {
       try {
         await InteractionController.updateCallInQueue(
@@ -317,18 +322,23 @@ export class CallInUtils {
 
   private static async __getUserLabelsById(
     guild: discordJs.Guild,
+    callInState: CallInState,
     userIds: readonly string[],
   ): Promise<Record<string, string>> {
     const labelsById: Record<string, string> = {};
     for (const userId of userIds) {
+      let memberName: string;
       try {
         const member: discordJs.GuildMember = await guild.members.fetch(userId);
-        labelsById[userId] = Discord.formatGuildMemberNameString(member);
+        memberName = Discord.formatGuildMemberNameString(member);
       } catch {
-        labelsById[userId] = Discord.formatUnknownUserNameString({
+        memberName = Discord.formatUnknownUserNameString({
           id: userId,
         });
       }
+      const customName: string | undefined = callInState.getCustomName(userId);
+      labelsById[userId] =
+        customName === undefined ? memberName : `${customName} (${memberName})`;
     }
     return labelsById;
   }
