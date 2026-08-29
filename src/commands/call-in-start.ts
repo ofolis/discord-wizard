@@ -15,7 +15,7 @@ export class CallInStart implements Command {
 
   public readonly isAvailableToAllUsers: boolean = false;
 
-  public readonly name: string = "callinstart";
+  public readonly name: string = "cistart";
 
   public readonly options: CommandOption[] = [];
 

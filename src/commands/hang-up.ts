@@ -55,14 +55,18 @@ export class HangUp implements Command {
     message: ChannelCommandMessage,
     callInState: CallInState,
   ): Promise<void> {
+    const userName: string =
+      callInState.getCustomName(message.user.id) ??
+      Discord.formatGuildMemberNameString(message.member);
     try {
       callInState.removeSpeakingUser(message.user.id);
+      callInState.removeCustomName(message.user.id);
       if (CallInUtils.isInCallInVoiceChannel(message.member, callInState)) {
         await CallInUtils.muteForCallIn(message.member, callInState);
       }
       DataController.saveCallInState(callInState);
       await InteractionController.announceCallInOffAir(callInState.channelId, {
-        userName: Discord.formatGuildMemberNameString(message.member),
+        userName,
       });
     } catch (reason: unknown) {
       Log.error("Could not hang up call-in user.", reason);
@@ -82,8 +86,12 @@ export class HangUp implements Command {
     message: ChannelCommandMessage,
     callInState: CallInState,
   ): Promise<void> {
+    const userName: string =
+      callInState.getCustomName(message.user.id) ??
+      Discord.formatGuildMemberNameString(message.member);
     try {
       callInState.removeQueuedUser(message.user.id);
+      callInState.removeCustomName(message.user.id);
       DataController.saveCallInState(callInState);
       if (
         !(await CallInUtils.postQueueToHosts(message.member.guild, callInState))
@@ -93,7 +101,7 @@ export class HangUp implements Command {
       await InteractionController.announceCallInQueueRemove(
         callInState.channelId,
         {
-          userName: Discord.formatGuildMemberNameString(message.member),
+          userName,
         },
       );
     } catch (reason: unknown) {

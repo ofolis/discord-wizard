@@ -19,7 +19,7 @@ export class CallInForce implements Command {
 
   public readonly isAvailableToAllUsers: boolean = false;
 
-  public readonly name: string = "callinforce";
+  public readonly name: string = "ciforce";
 
   public readonly options: CommandOption[] = [
     {
@@ -120,6 +120,7 @@ export class CallInForce implements Command {
         }
       }
       await InteractionController.announceCallInOnAir(callInState.channelId, {
+        userName: callInState.getCustomName(member.id),
         userMention: Discord.formatUserMentionString(member.user),
       });
     } catch (reason: unknown) {

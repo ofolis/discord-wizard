@@ -21,6 +21,7 @@ export { MoneyRemoveUser } from "./money-remove-user";
 export { MoneySetServer } from "./money-set-server";
 export { MoneySetUser } from "./money-set-user";
 export { Submit } from "./submit";
+export { TabsGenerate } from "./tabs-generate";
 export { Vote } from "./vote";
 export { VoteCancel } from "./vote-cancel";
 export { VoteEnd } from "./vote-end";

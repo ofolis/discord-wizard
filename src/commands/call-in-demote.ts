@@ -19,7 +19,7 @@ export class CallInDemote implements Command {
 
   public readonly isAvailableToAllUsers: boolean = false;
 
-  public readonly name: string = "callindemote";
+  public readonly name: string = "cidemote";
 
   public readonly options: CommandOption[] = [
     {
@@ -76,12 +76,16 @@ export class CallInDemote implements Command {
       return;
     }
 
+    const userName: string =
+      callInState.getCustomName(member.id) ??
+      Discord.formatGuildMemberNameString(member);
     try {
       callInState.removeSpeakingUser(member.id);
+      callInState.removeCustomName(member.id);
       await CallInUtils.muteForCallIn(member, callInState);
       DataController.saveCallInState(callInState);
       await InteractionController.announceCallInOffAir(callInState.channelId, {
-        userName: Discord.formatGuildMemberNameString(member),
+        userName,
       });
     } catch (reason: unknown) {
       Log.error("Could not demote call-in user.", reason);

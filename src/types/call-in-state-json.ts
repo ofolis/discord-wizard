@@ -1,6 +1,7 @@
 export type CallInStateJson = {
   readonly botMutedUserIds?: string[];
   readonly channelId: string;
+  readonly customNamesByUserId?: Record<string, string>;
   readonly guildId: string;
   readonly isEnding?: boolean;
   readonly isOpen: boolean;

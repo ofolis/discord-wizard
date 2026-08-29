@@ -3,12 +3,15 @@ import {
   ChannelCommandMessage,
   Command,
   CommandOption,
+  CommandOptionType,
   CommandRegistrationType,
   Discord,
   Log,
 } from "../core";
 import { CallInState } from "../saveables";
 import { CallInUtils } from "./call-in-utils";
+
+const nameOptionName: string = "name";
 
 export class CallIn implements Command {
   public readonly description: string = "Adds you to the call-in queue.";
@@ -17,7 +20,15 @@ export class CallIn implements Command {
 
   public readonly name: string = "callin";
 
-  public readonly options: CommandOption[] = [];
+  public readonly options: CommandOption[] = [
+    {
+      description: "The name to show instead of your Discord username.",
+      isRequired: false,
+      maxLength: CallInState.maxCustomNameLength,
+      name: nameOptionName,
+      type: CommandOptionType.STRING,
+    },
+  ];
 
   public readonly registrationType: CommandRegistrationType =
     CommandRegistrationType.GUILD;
@@ -55,7 +66,11 @@ export class CallIn implements Command {
       return;
     }
 
-    callInState.addQueuedUser(message.user.id);
+    const customName: string | undefined = message.getCommandOption(
+      nameOptionName,
+      CommandOptionType.STRING,
+    );
+    callInState.addQueuedUser(message.user.id, customName);
     try {
       DataController.saveCallInState(callInState);
       if (
@@ -66,7 +81,9 @@ export class CallIn implements Command {
       await InteractionController.announceCallInQueueAdd(
         callInState.channelId,
         {
-          userName: Discord.formatGuildMemberNameString(message.member),
+          userName:
+            callInState.getCustomName(message.user.id) ??
+            Discord.formatGuildMemberNameString(message.member),
         },
       );
     } catch (reason: unknown) {

@@ -3,6 +3,8 @@ import { Log } from "../core";
 import type { CallInStateJson } from "../types";
 
 export class CallInState implements Saveable {
+  public static readonly maxCustomNameLength: number = 100;
+
   public readonly channelId: string;
 
   public readonly guildId: string;
@@ -12,6 +14,8 @@ export class CallInState implements Saveable {
   public readonly voiceChannelId: string;
 
   private readonly __botMutedUserIds: string[];
+
+  private readonly __customNamesByUserId: Map<string, string>;
 
   private __isEnding: boolean;
 
@@ -31,6 +35,7 @@ export class CallInState implements Saveable {
     this.queueMessageId = null;
     this.voiceChannelId = state.voiceChannelId;
     this.__botMutedUserIds = [];
+    this.__customNamesByUserId = new Map();
     this.__isEnding = false;
     this.__isOpen = true;
     this.__queuedUserIds = [];
@@ -73,6 +78,11 @@ export class CallInState implements Saveable {
     callInState.__botMutedUserIds.push(
       ...callInState.__normalizeUserIds(callInStateJson.botMutedUserIds ?? []),
     );
+    Object.entries(callInStateJson.customNamesByUserId ?? {}).forEach(
+      ([userId, customName]) => {
+        callInState.__setCustomName(userId, customName);
+      },
+    );
     callInState.__queuedUserIds.push(
       ...callInState.__normalizeUserIds(callInStateJson.queuedUserIds ?? []),
     );
@@ -80,6 +90,16 @@ export class CallInState implements Saveable {
       ...callInState.__normalizeUserIds(callInStateJson.speakingUserIds ?? []),
     );
     return callInState;
+  }
+
+  private static __isValidCustomNames(value: unknown): boolean {
+    return (
+      value === undefined ||
+      (typeof value === "object" &&
+        value !== null &&
+        !Array.isArray(value) &&
+        Object.values(value).every(name => typeof name === "string"))
+    );
   }
 
   private static __isValidUserIdArray(value: unknown): boolean {
@@ -103,6 +123,7 @@ export class CallInState implements Saveable {
         typeof json.queueMessageId !== "string") ||
       typeof json.voiceChannelId !== "string" ||
       !this.__isValidUserIdArray(json.botMutedUserIds) ||
+      !this.__isValidCustomNames(json.customNamesByUserId) ||
       !this.__isValidUserIdArray(json.queuedUserIds) ||
       !this.__isValidUserIdArray(json.speakingUserIds)
     ) {
@@ -117,6 +138,9 @@ export class CallInState implements Saveable {
     return {
       botMutedUserIds: json.botMutedUserIds as string[] | undefined,
       channelId: json.channelId,
+      customNamesByUserId: json.customNamesByUserId as
+        | Record<string, string>
+        | undefined,
       guildId: json.guildId,
       isEnding: json.isEnding,
       isOpen: json.isOpen,
@@ -133,10 +157,11 @@ export class CallInState implements Saveable {
     }
   }
 
-  public addQueuedUser(userId: string): void {
+  public addQueuedUser(userId: string, customName?: string): void {
     if (!this.__queuedUserIds.includes(userId)) {
       this.__queuedUserIds.push(userId);
     }
+    this.__setCustomName(userId, customName);
   }
 
   public addSpeakingUser(userId: string): void {
@@ -149,8 +174,13 @@ export class CallInState implements Saveable {
   public close(): void {
     this.__isEnding = false;
     this.__isOpen = false;
+    this.__customNamesByUserId.clear();
     this.__queuedUserIds.length = 0;
     this.__speakingUserIds.length = 0;
+  }
+
+  public getCustomName(userId: string): string | undefined {
+    return this.__customNamesByUserId.get(userId);
   }
 
   public hasQueuedUser(userId: string): boolean {
@@ -163,6 +193,10 @@ export class CallInState implements Saveable {
 
   public removeBotMutedUser(userId: string): void {
     this.__removeUserId(this.__botMutedUserIds, userId);
+  }
+
+  public removeCustomName(userId: string): void {
+    this.__customNamesByUserId.delete(userId);
   }
 
   public removeQueuedUser(userId: string): void {
@@ -185,6 +219,7 @@ export class CallInState implements Saveable {
     return {
       botMutedUserIds: [...this.__botMutedUserIds],
       channelId: this.channelId,
+      customNamesByUserId: Object.fromEntries(this.__customNamesByUserId),
       guildId: this.guildId,
       isEnding: this.__isEnding,
       isOpen: this.__isOpen,
@@ -204,5 +239,20 @@ export class CallInState implements Saveable {
     if (index >= 0) {
       userIds.splice(index, 1);
     }
+  }
+
+  private __setCustomName(userId: string, customName?: string): void {
+    if (customName === undefined) {
+      return;
+    }
+    const normalizedCustomName: string = customName
+      .replace(/\s+/gu, " ")
+      .trim()
+      .slice(0, CallInState.maxCustomNameLength);
+    if (normalizedCustomName.length === 0) {
+      this.__customNamesByUserId.delete(userId);
+      return;
+    }
+    this.__customNamesByUserId.set(userId, normalizedCustomName);
   }
 }

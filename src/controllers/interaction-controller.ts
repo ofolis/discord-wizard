@@ -38,6 +38,17 @@ type MoneyRankingEntry = {
   readonly displayName: string;
   readonly userId: string;
 };
+type TabsTeamMember = {
+  readonly count: number;
+  readonly unit: {
+    readonly faction: string;
+    readonly name: string;
+  };
+};
+type TabsTeam = {
+  readonly members: TabsTeamMember[];
+  readonly remainingBudget: number;
+};
 
 const letterEmojis: string[] = [
   "🇦",
@@ -163,11 +174,12 @@ export class InteractionController {
     channelId: string,
     data: {
       readonly userMention: string;
+      readonly userName?: string;
     },
   ): Promise<void> {
     await InteractionUtils.createChannelCard(channelId, {
       color: CardColor.INFO,
-      description: `# ${ICONS[IconName.CALL_IN]} On Air\n${data.userMention} is now on the air.`,
+      description: `# ${ICONS[IconName.CALL_IN]} On Air\n${data.userName === undefined ? data.userMention : `**${data.userName}**`} is now on the air.`,
     });
   }
 
@@ -325,6 +337,25 @@ export class InteractionController {
           data.maxRankingEntries,
           Discord.embedDescriptionMaxLength - descriptionPrefix.length - 1,
         ),
+      ]),
+    });
+  }
+
+  public static async showTabsGeneration(
+    message: ChannelCommandMessage,
+    data: {
+      readonly blueTeam: TabsTeam;
+      readonly budget: number;
+      readonly redTeam: TabsTeam;
+    },
+  ): Promise<void> {
+    await InteractionUtils.setMessageCard(message, {
+      color: CardColor.INFO,
+      description: Utils.linesToString([
+        `# ${ICONS[IconName.TABS_GENERATE]} TABS Teams`,
+        `Budget: \`${data.budget.toString()} gold\``,
+        this.__formatTabsTeamString("🟥 RED", data.redTeam),
+        this.__formatTabsTeamString("🟦 BLUE", data.blueTeam),
       ]),
     });
   }
@@ -632,6 +663,30 @@ export class InteractionController {
 
   private static __formatSignedMoney(amountCents: number): string {
     return `${amountCents > 0 ? "+" : ""}${MoneyUtils.format(amountCents)}`;
+  }
+
+  private static __formatTabsBudgetSummary(remainingBudget: number): string {
+    if (remainingBudget === 0) {
+      return "Team perfectly fit the budget!";
+    }
+    if (remainingBudget > 4000) {
+      return `Team came in \`${remainingBudget.toString()} gold\` under budget. Budget too high?`;
+    }
+    return `Team came in \`${remainingBudget.toString()} gold\` under budget.`;
+  }
+
+  private static __formatTabsTeamMemberString(member: TabsTeamMember): string {
+    return `- **${member.unit.name}** (${member.unit.faction}): \`${member.count.toString()}\``;
+  }
+
+  private static __formatTabsTeamString(name: string, team: TabsTeam): string {
+    return Utils.linesToString([
+      `### ${name} Random Team`,
+      Utils.linesToString(
+        team.members.map(member => this.__formatTabsTeamMemberString(member)),
+      ),
+      this.__formatTabsBudgetSummary(team.remainingBudget),
+    ]);
   }
 
   private static __formatUserLabel(

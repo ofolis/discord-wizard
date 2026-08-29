@@ -9,6 +9,7 @@ export const ICONS: Record<IconName, string> = {
   [IconName.MONEY_GIVE]: "💸",
   [IconName.SUBMISSION]: "📨",
   [IconName.SUCCESS]: "✅",
+  [IconName.TABS_GENERATE]: "⚔️",
   [IconName.VOTE_RESULTS]: "🏁",
   [IconName.VOTE_START]: "🗳️",
 };
