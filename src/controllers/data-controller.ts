@@ -2,6 +2,7 @@ import type { Json } from "../core";
 import { IO, Log } from "../core";
 import {
   BettingState,
+  BracketState,
   CallInState,
   ChannelState,
   MoneyState,
@@ -19,6 +20,11 @@ export class DataController {
     IO.deleteData(this.__getBettingStateId(guildId));
   }
 
+  public static deleteBracketState(guildId: string): void {
+    Log.debug("Deleting bracket state.");
+    IO.deleteData(this.__getBracketStateId(guildId));
+  }
+
   public static deleteVotingState(guildId: string): void {
     Log.debug("Deleting voting state.");
     IO.deleteData(this.__getVotingStateId(guildId));
@@ -31,6 +37,15 @@ export class DataController {
       return null;
     }
     return bettingState;
+  }
+
+  public static loadActiveBracketState(guildId: string): BracketState | null {
+    Log.debug("Loading active bracket state.");
+    const bracketState: BracketState | null = this.loadBracketState(guildId);
+    if (bracketState === null || !bracketState.isOpen) {
+      return null;
+    }
+    return bracketState;
   }
 
   public static loadActiveCallInState(guildId: string): CallInState | null {
@@ -61,6 +76,18 @@ export class DataController {
     }
 
     return BettingState.fromJson(bettingStateJson, guildId);
+  }
+
+  public static loadBracketState(guildId: string): BracketState | null {
+    Log.debug("Loading bracket state.");
+    const bracketStateJson: Json | null = IO.loadData(
+      this.__getBracketStateId(guildId),
+    );
+    if (bracketStateJson === null) {
+      return null;
+    }
+
+    return BracketState.fromJson(bracketStateJson, guildId);
   }
 
   public static loadCallInState(guildId: string): CallInState | null {
@@ -169,6 +196,14 @@ export class DataController {
     );
   }
 
+  public static saveBracketState(bracketState: BracketState): void {
+    Log.debug("Saving bracket state.");
+    IO.saveData(
+      this.__getBracketStateId(bracketState.guildId),
+      bracketState.toJson(),
+    );
+  }
+
   public static saveCallInState(callInState: CallInState): void {
     Log.debug("Saving call-in state.");
     const callInStateJson: Json = callInState.toJson();
@@ -221,6 +256,10 @@ export class DataController {
 
   private static __getBettingStateId(guildId: string): string {
     return `bet-${guildId}`;
+  }
+
+  private static __getBracketStateId(guildId: string): string {
+    return `bracket-${guildId}`;
   }
 
   private static __getCallInStateId(guildId: string): string {
