@@ -12,6 +12,8 @@ import { IconName } from "../enums";
 import { MoneyUtils } from "../money-utils";
 import {
   BettingState,
+  BracketMatchSummary,
+  BracketState,
   CallInState,
   MoneyState,
   VotingState,
@@ -28,6 +30,7 @@ type BettingWinningOption = {
   readonly letter: string;
   readonly option: string;
 };
+type BracketResultChangeType = "cleared" | "set";
 type BettingPayoutGroup = {
   netCents: number;
   payouts: BettingPayout[];
@@ -145,6 +148,75 @@ export class InteractionController {
     return await InteractionUtils.createChannelCard(channelId, {
       color: CardColor.INFO,
       description: this.__formatBetStartDescription(bettingState),
+    });
+  }
+
+  public static async announceBracketComplete(
+    channelId: string,
+    bracketState: BracketState,
+  ): Promise<void> {
+    await InteractionUtils.createChannelCard(channelId, {
+      color: CardColor.INFO,
+      description: Utils.linesToString([
+        `# ${ICONS[IconName.BRACKET]} Bracket Complete`,
+        `The winner is...\n# ${bracketState.champion ?? "Unknown"} 👑`,
+        "### Matches",
+        this.__formatBracketMatchesString(bracketState.getMatchSummaries()),
+      ]),
+    });
+  }
+
+  public static async announceBracketMatch(
+    channelId: string,
+    match: BracketMatchSummary,
+  ): Promise<void> {
+    await InteractionUtils.createChannelCard(channelId, {
+      color: CardColor.INFO,
+      description: Utils.linesToString([
+        `# ${ICONS[IconName.BRACKET]} Match ${match.number.toString()}`,
+        match.winner === null
+          ? this.__formatBracketMatchPairingString(match)
+          : this.__formatBracketWinnerString(match, match.winner),
+      ]),
+    });
+  }
+
+  public static async announceBracketResultChange(
+    channelId: string,
+    bracketState: BracketState,
+    match: BracketMatchSummary,
+    changeType: BracketResultChangeType,
+  ): Promise<void> {
+    await InteractionUtils.createChannelCard(channelId, {
+      color: CardColor.INFO,
+      description: Utils.linesToString([
+        `# ${ICONS[IconName.BRACKET]} Match ${match.number.toString()} ${this.__formatBracketResultChangeHeading(changeType)}`,
+        match.winner === null
+          ? this.__formatBracketMatchPairingString(match)
+          : this.__formatBracketWinnerString(match, match.winner),
+        "### Bracket",
+        this.__formatBracketMatchesString(bracketState.getMatchSummaries()),
+      ]),
+    });
+  }
+
+  public static async announceBracketShow(
+    channelId: string,
+    bracketState: BracketState,
+  ): Promise<void> {
+    await InteractionUtils.createChannelCard(channelId, {
+      color: CardColor.INFO,
+      description: this.__formatBracketShowDescription(bracketState),
+    });
+  }
+
+  public static async announceBracketStart(
+    channelId: string,
+    bracketState: BracketState,
+  ): Promise<ChannelMessage> {
+    return await InteractionUtils.createChannelCard(channelId, {
+      color: CardColor.INFO,
+      description: this.__formatBracketStartDescription(bracketState),
     });
   }
 
@@ -269,6 +341,97 @@ export class InteractionController {
       color: CardColor.INFO,
       description: this.__formatVoteStartDescription(votingState),
     });
+  }
+
+  public static canDisplayBracket(bracketState: BracketState): boolean {
+    const completedState: BracketState = new BracketState({
+      channelId: bracketState.channelId,
+      guildId: bracketState.guildId,
+      participants: [...bracketState.participants],
+    });
+    for (const match of completedState.getMatchSummaries()) {
+      const readyMatch: BracketMatchSummary | null = completedState.getMatch(
+        match.number,
+      );
+      if (readyMatch !== null) {
+        completedState.setMatchResult(
+          match.number,
+          readyMatch.participant1.length >= readyMatch.participant2.length
+            ? 1
+            : 2,
+        );
+      }
+    }
+
+    const initialMatches: BracketMatchSummary[] =
+      bracketState.getMatchSummaries();
+    const completedMatches: BracketMatchSummary[] =
+      completedState.getMatchSummaries();
+    const longestMatches: BracketMatchSummary[] = initialMatches.map(
+      (match, index) => {
+        const completedMatch: BracketMatchSummary = completedMatches[index];
+        return {
+          ...completedMatch,
+          participant1: this.__longerString(
+            match.participant1,
+            completedMatch.participant1,
+          ),
+          participant2: this.__longerString(
+            match.participant2,
+            completedMatch.participant2,
+          ),
+        };
+      },
+    );
+    const matchesString: string =
+      this.__formatBracketMatchesString(longestMatches);
+    const longestPairing: string = longestMatches.reduce(
+      (longest, match) =>
+        this.__longerString(
+          longest,
+          this.__formatBracketMatchPairingString(match),
+        ),
+      "",
+    );
+    const longestResult: string = longestMatches.reduce(
+      (longest, match) =>
+        this.__longerString(
+          longest,
+          this.__formatBracketWinnerString(match, match.winner ?? ""),
+        ),
+      "",
+    );
+    const longestName: string = bracketState.participants.reduce(
+      (longest, participant) => this.__longerString(longest, participant),
+      "",
+    );
+    const longestMatchNumber: string = String(longestMatches.length);
+    const descriptions: string[] = [
+      Utils.linesToString([
+        `# ${ICONS[IconName.BRACKET]} Bracket Complete`,
+        `Champion: **${longestName}** 👑`,
+        `### Next Match\n${longestPairing}`,
+        "### Matches",
+        matchesString,
+      ]),
+      Utils.linesToString([
+        `# ${ICONS[IconName.BRACKET]} Match ${longestMatchNumber} Result Cleared`,
+        longestResult,
+        "### Bracket",
+        matchesString,
+      ]),
+      Utils.linesToString([
+        `# ${ICONS[IconName.BRACKET]} Bracket Complete`,
+        `The winner is...\n# ${longestName} 👑`,
+        "### Matches",
+        matchesString,
+      ]),
+    ];
+    return descriptions.every(
+      description =>
+        description.length + longestMatches.length <=
+        Discord.embedDescriptionMaxLength,
+    );
   }
 
   public static async informError(
@@ -399,6 +562,55 @@ export class InteractionController {
       {
         color: CardColor.INFO,
         description: this.__formatBetStartDescription(bettingState),
+      },
+    );
+  }
+
+  public static async updateBracketCanceled(
+    bracketState: BracketState,
+  ): Promise<void> {
+    if (bracketState.messageId === null) {
+      Log.debug(
+        "Skipping bracket cancel message update. Message ID is missing.",
+        {
+          channelId: bracketState.channelId,
+          guildId: bracketState.guildId,
+        },
+      );
+      return;
+    }
+    await InteractionUtils.updateChannelCard(
+      bracketState.channelId,
+      bracketState.messageId,
+      {
+        color: CardColor.ERROR,
+        description: Utils.linesToString([
+          `# ${ICONS[IconName.BRACKET]} Bracket Canceled`,
+          "This bracket was canceled.",
+        ]),
+      },
+    );
+  }
+
+  public static async updateBracketStart(
+    bracketState: BracketState,
+  ): Promise<void> {
+    if (bracketState.messageId === null) {
+      Log.debug(
+        "Skipping bracket start message update. Message ID is missing.",
+        {
+          channelId: bracketState.channelId,
+          guildId: bracketState.guildId,
+        },
+      );
+      return;
+    }
+    await InteractionUtils.updateChannelCard(
+      bracketState.channelId,
+      bracketState.messageId,
+      {
+        color: bracketState.isComplete ? CardColor.SUCCESS : CardColor.INFO,
+        description: this.__formatBracketStartDescription(bracketState),
       },
     );
   }
@@ -549,6 +761,92 @@ export class InteractionController {
       0,
     );
     return `### Total Pool: \`${MoneyUtils.format(totalPoolCents)}\``;
+  }
+
+  private static __formatBracketMatchPairingString(
+    match: BracketMatchSummary,
+  ): string {
+    return `**${match.participant1}** vs **${match.participant2}**`;
+  }
+
+  private static __formatBracketMatchString(
+    match: BracketMatchSummary,
+  ): string {
+    const statusEmoji: string =
+      match.winner === null ? (match.isReady ? "🟨" : "🟥") : "✅";
+    const result: string =
+      match.winner === null ? "" : ` → **${match.winner}**`;
+    return `- ${statusEmoji} **Match ${match.number.toString()}**: \`${match.participant1}\` vs \`${match.participant2}\`${result}`;
+  }
+
+  private static __formatBracketMatchesString(
+    matches: BracketMatchSummary[],
+  ): string {
+    return Utils.linesToString(
+      matches.map(match => this.__formatBracketMatchString(match)),
+    );
+  }
+
+  private static __formatBracketResultChangeHeading(
+    changeType: BracketResultChangeType,
+  ): string {
+    switch (changeType) {
+      case "cleared":
+        return "Result Cleared";
+      case "set":
+        return "Results";
+      default:
+        Log.throw("Cannot format bracket result change. Unknown change type.", {
+          changeType,
+        });
+    }
+  }
+
+  private static __formatBracketShowDescription(
+    bracketState: BracketState,
+  ): string {
+    return this.__formatBracketStateDescription(
+      bracketState,
+      bracketState.isComplete ? "Bracket Complete" : "Bracket",
+    );
+  }
+
+  private static __formatBracketStartDescription(
+    bracketState: BracketState,
+  ): string {
+    return this.__formatBracketStateDescription(
+      bracketState,
+      bracketState.isComplete ? "Bracket Complete" : "Bracket Started",
+    );
+  }
+
+  private static __formatBracketStateDescription(
+    bracketState: BracketState,
+    heading: string,
+  ): string {
+    const nextMatch: BracketMatchSummary | null =
+      bracketState.getNextUnresolvedMatch();
+    return Utils.linesToString([
+      `# ${ICONS[IconName.BRACKET]} ${heading}`,
+      bracketState.isComplete
+        ? `Champion: **${bracketState.champion ?? "Unknown"}** 👑`
+        : null,
+      !bracketState.isComplete && nextMatch !== null
+        ? `### Next Match\n${this.__formatBracketMatchPairingString(nextMatch)}`
+        : null,
+      "### Matches",
+      this.__formatBracketMatchesString(bracketState.getMatchSummaries()),
+    ]);
+  }
+
+  private static __formatBracketWinnerString(
+    match: BracketMatchSummary,
+    winner: string,
+  ): string {
+    return Utils.linesToString([
+      `The ${this.__formatBracketMatchPairingString(match)} winner is...`,
+      `# ${winner} 👑`,
+    ]);
   }
 
   private static __formatCallInQueueDescription(
@@ -798,6 +1096,10 @@ export class InteractionController {
 
   private static __hasVotes(results: VotingResult[]): boolean {
     return results.length > 0 && results[0].voteCount > 0;
+  }
+
+  private static __longerString(left: string, right: string): string {
+    return left.length >= right.length ? left : right;
   }
 
   private static __pushMoneyRankingLine(

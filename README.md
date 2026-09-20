@@ -134,6 +134,10 @@ These commands require Discord Administrator permission, a role listed in `MANAG
 - `/betunlock` - unlock the open bet.
 - `/betend` - end the open bet and pay winners.
 - `/betcancel` - cancel the open bet, refund all wagers, and mark the original bet post as canceled.
+- `/bracketstart` - creates a new single-elimination bracket, randomizing the participants.
+- `/bracketcancel` - cancels an in-progress bracket.
+- `/bracketshow` - posts the current bracket status.
+- `/bracketmatch` - sets, replaces, or clears a particular bracket match result.
 - `/tabsgenerate` - publicly generate red and blue random Totally Accurate Battle Simulator teams from a shared gold budget.
 - `/cistart` - start call-in mode in a voice channel. Call-in host, manager, or Discord admin only.
 - `/cipromote` - promote a queued call-in user. Call-in host, manager, or Discord admin only.
