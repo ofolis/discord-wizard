@@ -343,6 +343,97 @@ export class InteractionController {
     });
   }
 
+  public static canDisplayBracket(bracketState: BracketState): boolean {
+    const completedState: BracketState = new BracketState({
+      channelId: bracketState.channelId,
+      guildId: bracketState.guildId,
+      participants: [...bracketState.participants],
+    });
+    for (const match of completedState.getMatchSummaries()) {
+      const readyMatch: BracketMatchSummary | null = completedState.getMatch(
+        match.number,
+      );
+      if (readyMatch !== null) {
+        completedState.setMatchResult(
+          match.number,
+          readyMatch.participant1.length >= readyMatch.participant2.length
+            ? 1
+            : 2,
+        );
+      }
+    }
+
+    const initialMatches: BracketMatchSummary[] =
+      bracketState.getMatchSummaries();
+    const completedMatches: BracketMatchSummary[] =
+      completedState.getMatchSummaries();
+    const longestMatches: BracketMatchSummary[] = initialMatches.map(
+      (match, index) => {
+        const completedMatch: BracketMatchSummary = completedMatches[index];
+        return {
+          ...completedMatch,
+          participant1: this.__longerString(
+            match.participant1,
+            completedMatch.participant1,
+          ),
+          participant2: this.__longerString(
+            match.participant2,
+            completedMatch.participant2,
+          ),
+        };
+      },
+    );
+    const matchesString: string =
+      this.__formatBracketMatchesString(longestMatches);
+    const longestPairing: string = longestMatches.reduce(
+      (longest, match) =>
+        this.__longerString(
+          longest,
+          this.__formatBracketMatchPairingString(match),
+        ),
+      "",
+    );
+    const longestResult: string = longestMatches.reduce(
+      (longest, match) =>
+        this.__longerString(
+          longest,
+          this.__formatBracketWinnerString(match, match.winner ?? ""),
+        ),
+      "",
+    );
+    const longestName: string = bracketState.participants.reduce(
+      (longest, participant) => this.__longerString(longest, participant),
+      "",
+    );
+    const longestMatchNumber: string = String(longestMatches.length);
+    const descriptions: string[] = [
+      Utils.linesToString([
+        `# ${ICONS[IconName.BRACKET]} Bracket Complete`,
+        `Champion: **${longestName}** 👑`,
+        `### Next Match\n${longestPairing}`,
+        "### Matches",
+        matchesString,
+      ]),
+      Utils.linesToString([
+        `# ${ICONS[IconName.BRACKET]} Match ${longestMatchNumber} Result Cleared`,
+        longestResult,
+        "### Bracket",
+        matchesString,
+      ]),
+      Utils.linesToString([
+        `# ${ICONS[IconName.BRACKET]} Bracket Complete`,
+        `The winner is...\n# ${longestName} 👑`,
+        "### Matches",
+        matchesString,
+      ]),
+    ];
+    return descriptions.every(
+      description =>
+        description.length + longestMatches.length <=
+        Discord.embedDescriptionMaxLength,
+    );
+  }
+
   public static async informError(
     message: ChannelCommandMessage,
     description: string,
@@ -1005,6 +1096,10 @@ export class InteractionController {
 
   private static __hasVotes(results: VotingResult[]): boolean {
     return results.length > 0 && results[0].voteCount > 0;
+  }
+
+  private static __longerString(left: string, right: string): string {
+    return left.length >= right.length ? left : right;
   }
 
   private static __pushMoneyRankingLine(

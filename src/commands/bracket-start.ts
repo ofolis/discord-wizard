@@ -74,6 +74,13 @@ export class BracketStart implements Command {
       guildId: message.member.guild.id,
       participants: this.__shuffleParticipants(parsedParticipants),
     });
+    if (!InteractionController.canDisplayBracket(bracketState)) {
+      await InteractionController.informError(
+        message,
+        "This bracket is too long to display as matches finish. Use shorter participant names or fewer participants.",
+      );
+      return;
+    }
     try {
       DataController.saveBracketState(bracketState);
     } catch (reason: unknown) {
@@ -97,16 +104,26 @@ export class BracketStart implements Command {
         reason,
         AppErrorCode.DISCORD_EMBED_DESCRIPTION_TOO_LONG,
       );
+      let didClearFailedBracket: boolean = true;
       try {
         DataController.deleteBracketState(bracketState.guildId);
       } catch (rollbackReason: unknown) {
         Log.error("Could not delete failed bracket.", rollbackReason);
+        bracketState.close();
+        try {
+          DataController.saveBracketState(bracketState);
+        } catch (closeReason: unknown) {
+          didClearFailedBracket = false;
+          Log.error("Could not close failed bracket.", closeReason);
+        }
       }
       await InteractionController.informError(
         message,
-        isTooLong
-          ? "Bracket participants are too long to display. Please shorten them and try again."
-          : "Could not post the bracket. Contact an admin.",
+        !didClearFailedBracket
+          ? "Could not post or clear the bracket. Contact an admin."
+          : isTooLong
+            ? "Bracket participants are too long to display. Please shorten them and try again."
+            : "Could not post the bracket. Contact an admin.",
       );
       return;
     }

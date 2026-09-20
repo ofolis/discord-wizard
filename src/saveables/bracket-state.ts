@@ -95,17 +95,41 @@ export class BracketState implements Saveable {
       guildId: bracketStateJson.guildId,
       participants: bracketStateJson.participants,
     });
+    if (
+      bracketStateJson.matches.length !== bracketState.__matches.length ||
+      bracketStateJson.matches.some((match, index) => {
+        const expectedMatch: BracketMatch = bracketState.__matches[index];
+        return (
+          match.number !== expectedMatch.number ||
+          !this.__sameMatchParticipant(
+            match.participant1,
+            expectedMatch.participant1,
+          ) ||
+          !this.__sameMatchParticipant(
+            match.participant2,
+            expectedMatch.participant2,
+          )
+        );
+      })
+    ) {
+      Log.throw("Cannot load bracket state. Stored matches are invalid.");
+    }
     bracketState.__isOpen = bracketStateJson.isOpen;
     bracketState.messageId = bracketStateJson.messageId ?? null;
-    bracketState.__matches.length = 0;
-    bracketStateJson.matches.forEach(match => {
-      bracketState.__matches.push({
-        number: match.number,
-        participant1: match.participant1,
-        participant2: match.participant2,
-        winnerPosition: match.winnerPosition ?? null,
-      });
+    bracketStateJson.matches.forEach((match, index) => {
+      bracketState.__matches[index].winnerPosition =
+        match.winnerPosition ?? null;
     });
+    if (
+      bracketState.__matches.some(
+        match =>
+          match.winnerPosition !== null &&
+          (bracketState.__resolveParticipant(match.participant1) === null ||
+            bracketState.__resolveParticipant(match.participant2) === null),
+      )
+    ) {
+      Log.throw("Cannot load bracket state. Stored results are invalid.");
+    }
     return bracketState;
   }
 
@@ -195,6 +219,19 @@ export class BracketState implements Saveable {
       messageId: messageId as string | undefined,
       participants: json.participants as string[],
     };
+  }
+
+  private static __sameMatchParticipant(
+    left: BracketMatchParticipantJson,
+    right: BracketMatchParticipant,
+  ): boolean {
+    if (left.type === "participant" && right.type === "participant") {
+      return left.participantIndex === right.participantIndex;
+    }
+    if (left.type === "winner" && right.type === "winner") {
+      return left.matchNumber === right.matchNumber;
+    }
+    return false;
   }
 
   private static __validateParticipants(participants: readonly string[]): void {
