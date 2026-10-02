@@ -20,6 +20,7 @@ export { Money } from "./money";
 export { MoneyAddServer } from "./money-add-server";
 export { MoneyAddUser } from "./money-add-user";
 export { MoneyGive } from "./money-give";
+export { MoneyPayUser } from "./money-pay-user";
 export { MoneyRemoveServer } from "./money-remove-server";
 export { MoneyRemoveUser } from "./money-remove-user";
 export { MoneySetServer } from "./money-set-server";

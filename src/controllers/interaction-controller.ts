@@ -303,6 +303,19 @@ export class InteractionController {
     });
   }
 
+  public static async announceMoneyPayment(
+    channelId: string,
+    data: {
+      readonly amountCents: number;
+      readonly recipientName: string;
+    },
+  ): Promise<void> {
+    await InteractionUtils.createChannelCard(channelId, {
+      color: CardColor.INFO,
+      description: `# ${ICONS[IconName.MONEY_GIVE]} ${data.recipientName} was paid \`${MoneyUtils.format(data.amountCents)}\`!`,
+    });
+  }
+
   public static async announceSubmission(
     channelId: string,
     submission: string,
