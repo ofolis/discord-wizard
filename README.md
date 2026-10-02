@@ -124,6 +124,7 @@ These commands require Discord Administrator permission, a role listed in `MANAG
 - `/voteend` - end the open vote and post results.
 - `/votecancel` - cancel the open vote and mark the original vote post as canceled.
 - `/moneyadduser` - add money to a user.
+- `/moneypayuser` - add money to a user and publicly announce the payment.
 - `/moneyremoveuser` - remove money from a user.
 - `/moneysetuser` - set a user's money.
 - `/moneyaddserver` - add money to every server member.
